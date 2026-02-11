@@ -189,41 +189,41 @@
             gravity: 0.8,
             slingshotX: 80,
             slingshotY: 520,
-            maxPullDistance: 100,
-            launchPower: 0.15,
+            maxPullDistance: 120,
+            launchPower: 0.22,
             totalAmmo: 30
         };
 
         // ==================== 道具数据 ====================
         const ITEMS = [
             // 餐具类
-            { name: '陶瓷盘子', damage: 10, weight: 3, size: 18, type: 'plate', color: '#e8e8e8', fragile: true },
-            { name: '陶瓷碟子', damage: 8, weight: 2, size: 14, type: 'dish', color: '#f0f0f0', fragile: true, floaty: true },
-            { name: '玻璃杯', damage: 12, weight: 2, size: 12, type: 'cup', color: '#aaddff', fragile: true },
-            { name: '马克杯', damage: 12, weight: 3, size: 14, type: 'mug', color: '#ff9966', fragile: true },
-            { name: '刀叉', damage: 15, weight: 4, size: 20, type: 'cutlery', color: '#c0c0c0', penetrating: true },
+            { name: '陶瓷盘子', damage: 10, weight: 3, size: 28, type: 'plate', color: '#e8e8e8', fragile: true },
+            { name: '陶瓷碟子', damage: 8, weight: 2, size: 24, type: 'dish', color: '#f0f0f0', fragile: true, floaty: true },
+            { name: '玻璃杯', damage: 12, weight: 2, size: 22, type: 'cup', color: '#aaddff', fragile: true },
+            { name: '马克杯', damage: 12, weight: 3, size: 24, type: 'mug', color: '#ff9966', fragile: true },
+            { name: '刀叉', damage: 15, weight: 4, size: 32, type: 'cutlery', color: '#c0c0c0', penetrating: true },
             
             // 家用杂物类
-            { name: '棒球棍', damage: 25, weight: 6, size: 35, type: 'bat', color: '#deb887', heavy: true, large: true },
-            { name: '棒球', damage: 18, weight: 3, size: 14, type: 'ball', color: '#fff', bouncy: true },
-            { name: '卷纸', damage: 5, weight: 1, size: 12, type: 'toilet_paper', color: '#fff', floaty: true },
-            { name: '拖鞋', damage: 7, weight: 1, size: 16, type: 'slipper', color: '#ff6b6b', soft: true },
-            { name: '衣架', damage: 9, weight: 2, size: 22, type: 'hanger', color: '#c0c0c0', thin: true },
-            { name: '花瓶', damage: 14, weight: 3, size: 16, type: 'vase', color: '#98fb98', fragile: true },
+            { name: '棒球棍', damage: 25, weight: 6, size: 50, type: 'bat', color: '#deb887', heavy: true, large: true },
+            { name: '棒球', damage: 18, weight: 3, size: 24, type: 'ball', color: '#fff', bouncy: true },
+            { name: '卷纸', damage: 5, weight: 1, size: 20, type: 'toilet_paper', color: '#fff', floaty: true },
+            { name: '拖鞋', damage: 7, weight: 1, size: 26, type: 'slipper', color: '#ff6b6b', soft: true },
+            { name: '衣架', damage: 9, weight: 2, size: 34, type: 'hanger', color: '#c0c0c0', thin: true },
+            { name: '花瓶', damage: 14, weight: 3, size: 26, type: 'vase', color: '#98fb98', fragile: true },
             
             // 文具类
-            { name: '书本', damage: 11, weight: 3, size: 20, type: 'book', color: '#4169e1', stable: true },
-            { name: '铅笔', damage: 8, weight: 1, size: 18, type: 'pencil', color: '#ffd700', thin: true, straight: true },
+            { name: '书本', damage: 11, weight: 3, size: 32, type: 'book', color: '#4169e1', stable: true },
+            { name: '铅笔', damage: 8, weight: 1, size: 28, type: 'pencil', color: '#ffd700', thin: true, straight: true },
             
             // 电子玩具类
-            { name: '游戏机', damage: 13, weight: 3, size: 18, type: 'console', color: '#333', hard: true },
-            { name: '游戏手柄', damage: 10, weight: 2, size: 16, type: 'controller', color: '#666' },
-            { name: '毛绒玩具', damage: 6, weight: 1, size: 20, type: 'plush', color: '#ffb6c1', soft: true, noImpact: true },
+            { name: '游戏机', damage: 13, weight: 3, size: 28, type: 'console', color: '#333', hard: true },
+            { name: '游戏手柄', damage: 10, weight: 2, size: 26, type: 'controller', color: '#666' },
+            { name: '毛绒玩具', damage: 6, weight: 1, size: 32, type: 'plush', color: '#ffb6c1', soft: true, noImpact: true },
             
             // 衣物服饰类
-            { name: '袜子', damage: 4, weight: 0.5, size: 12, type: 'sock', color: '#fff', floaty: true, veryLight: true },
-            { name: '内裤', damage: 5, weight: 0.5, size: 14, type: 'underwear', color: '#87ceeb', floaty: true, unstable: true },
-            { name: '胸罩', damage: 6, weight: 0.5, size: 16, type: 'bra', color: '#dda0dd', floaty: true, windAffected: true }
+            { name: '袜子', damage: 4, weight: 0.5, size: 20, type: 'sock', color: '#fff', floaty: true, veryLight: true },
+            { name: '内裤', damage: 5, weight: 0.5, size: 24, type: 'underwear', color: '#87ceeb', floaty: true, unstable: true },
+            { name: '胸罩', damage: 6, weight: 0.5, size: 26, type: 'bra', color: '#dda0dd', floaty: true, windAffected: true }
         ];
 
         // ==================== 角色数据 ====================
@@ -466,8 +466,8 @@
                 const item = this.currentItem;
                 let body;
                 
-                // 计算回弹系数 - 增加墙壁回弹效果
-                const baseRestitution = item.bouncy ? 0.85 : (item.soft ? 0.4 : 0.7);
+                // 计算回弹系数 - 增加墙壁回弹效果 (加强版)
+                const baseRestitution = item.bouncy ? 0.95 : (item.soft ? 0.6 : 0.85);
                 
                 if (item.thin) {
                     body = Bodies.rectangle(this.dragStart.x, this.dragStart.y, item.size, 4, {
@@ -520,6 +520,9 @@
                 this.gameState = 'flying';
                 this.ammo--;
                 
+                // 播放发射音效
+                this.playSound('launch');
+                
                 // 监听弹射物停止
                 this.projectileTimeout = setTimeout(() => {
                     this.onProjectileStop();
@@ -568,12 +571,20 @@
                             // 增加分数
                             this.score += damage;
                             
-                            // 易碎道具破碎
+                            // 易碎道具破碎（增强版）
                             if (item.fragile) {
-                                this.createParticles(projectile.position.x, projectile.position.y, item.color, 5);
+                                // 更多碎片
+                                this.createParticles(projectile.position.x, projectile.position.y, item.color, 12);
+                                // 碎片飞溅效果
+                                this.createShatterEffect(projectile.position.x, projectile.position.y, item);
+                                // 破碎音效
+                                this.playSound('break');
                                 Matter.World.remove(this.world, projectile);
                                 this.projectile = null;
-                                setTimeout(() => this.onProjectileStop(), 500);
+                                setTimeout(() => this.onProjectileStop(), 300);
+                            } else {
+                                // 非易碎物品也播放击中音效
+                                this.playSound('hit');
                             }
                         }
                     }
@@ -621,11 +632,76 @@
                     this.particles.push({
                         x: x,
                         y: y,
-                        vx: (Math.random() - 0.5) * 5,
-                        vy: (Math.random() - 0.5) * 5,
-                        life: 30,
-                        color: color
+                        vx: (Math.random() - 0.5) * 8,
+                        vy: (Math.random() - 0.5) * 8,
+                        life: 40,
+                        color: color,
+                        size: Math.random() * 4 + 2
                     });
+                }
+            }
+
+            // 破碎飞溅效果
+            createShatterEffect(x, y, item) {
+                const shardCount = item.large ? 15 : 8;
+                for (let i = 0; i < shardCount; i++) {
+                    const angle = (Math.PI * 2 / shardCount) * i + Math.random() * 0.5;
+                    const speed = Math.random() * 6 + 3;
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed - 2,
+                        life: 50,
+                        color: item.color,
+                        size: Math.random() * 6 + 3,
+                        isShard: true,
+                        rotation: Math.random() * Math.PI * 2,
+                        rotationSpeed: (Math.random() - 0.5) * 0.3
+                    });
+                }
+            }
+
+            // 音效系统
+            playSound(type) {
+                try {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    
+                    if (type === 'break') {
+                        // 破碎音效 - 高频噪音
+                        oscillator.type = 'sawtooth';
+                        oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.15);
+                        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                        oscillator.start(audioCtx.currentTime);
+                        oscillator.stop(audioCtx.currentTime + 0.15);
+                    } else if (type === 'hit') {
+                        // 击中音效 - 闷响
+                        oscillator.type = 'square';
+                        oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.1);
+                        gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                        oscillator.start(audioCtx.currentTime);
+                        oscillator.stop(audioCtx.currentTime + 0.1);
+                    } else if (type === 'launch') {
+                        // 发射音效
+                        oscillator.type = 'sine';
+                        oscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
+                        oscillator.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+                        gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                        gainNode.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                        oscillator.start(audioCtx.currentTime);
+                        oscillator.stop(audioCtx.currentTime + 0.2);
+                    }
+                } catch (e) {
+                    // 音频上下文可能不可用，忽略错误
                 }
             }
 
@@ -957,6 +1033,18 @@
                     ctx.fillRect(-6, -faceOffset + 20, 12, 2);
                 }
                 
+                ctx.restore();
+                
+                // 绘制角色名字（头顶显示）
+                ctx.save();
+                ctx.font = 'bold 12px Arial, sans-serif';
+                ctx.fillStyle = '#fff';
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 3;
+                const nameText = char.name;
+                const textWidth = ctx.measureText(nameText).width;
+                ctx.strokeText(nameText, pos.x - textWidth/2, pos.y - faceOffset - 8);
+                ctx.fillText(nameText, pos.x - textWidth/2, pos.y - faceOffset - 8);
                 ctx.restore();
                 
                 // 创建/更新物理检测体
@@ -1300,9 +1388,23 @@
 
             drawParticles(ctx) {
                 this.particles.forEach(p => {
-                    ctx.fillStyle = p.color;
-                    ctx.globalAlpha = p.life / 30;
-                    ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+                    ctx.globalAlpha = p.life / (p.isShard ? 50 : 40);
+                    
+                    if (p.isShard) {
+                        // 碎片带旋转
+                        ctx.save();
+                        ctx.translate(p.x, p.y);
+                        ctx.rotate(p.rotation);
+                        ctx.fillStyle = p.color;
+                        ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                        ctx.restore();
+                        // 更新旋转
+                        p.rotation += p.rotationSpeed;
+                    } else {
+                        // 普通粒子
+                        ctx.fillStyle = p.color;
+                        ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+                    }
                 });
                 ctx.globalAlpha = 1;
             }
