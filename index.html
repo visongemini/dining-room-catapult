@@ -580,6 +580,10 @@
                 // 播放发射音效
                 this.playSound('launch');
                 
+                // 手机震动反馈（根据物品重量）
+                const vibrateTime = Math.min(item.weight * 5, 30);
+                this.vibrate(vibrateTime);
+                
                 // 如果是机关枪，启动机关枪模式
                 if (item.isGun) {
                     this.startMachineGunMode(item.ammo || 100);
@@ -711,7 +715,8 @@
                     damage: 3, 
                     size: 12, 
                     type: 'poop',
-                    color: '#8B4513'
+                    color: '#8B4513',
+                    penetrating: true // 子弹可以穿透
                 };
                 
                 World.add(this.world, bullet);
@@ -725,12 +730,58 @@
                 // 播放发射音效
                 this.playSound('launch');
                 
+                // 手机震动反馈
+                this.vibrate(15);
+                
+                // 枪口火焰特效
+                this.createMuzzleFlash(CONFIG.slingshotX, CONFIG.slingshotY, angle);
+                
                 // 5秒后清理
                 setTimeout(() => {
                     if (bullet && this.world.bodies.includes(bullet)) {
                         World.remove(this.world, bullet);
                     }
                 }, 5000);
+            }
+            
+            // 手机震动
+            vibrate(ms) {
+                if (navigator.vibrate) {
+                    navigator.vibrate(ms);
+                }
+            }
+            
+            // 枪口火焰特效
+            createMuzzleFlash(x, y, angle) {
+                // 火焰粒子
+                for (let i = 0; i < 8; i++) {
+                    const flameAngle = angle + (Math.random() - 0.5) * 0.5;
+                    const speed = 3 + Math.random() * 4;
+                    this.particles.push({
+                        x: x + Math.cos(angle) * 45, // 枪口位置
+                        y: y + Math.sin(angle) * 45,
+                        vx: Math.cos(flameAngle) * speed,
+                        vy: Math.sin(flameAngle) * speed,
+                        life: 15,
+                        color: Math.random() > 0.3 ? '#ff6600' : '#ffff00',
+                        size: 4 + Math.random() * 6,
+                        isFire: true
+                    });
+                }
+                // 烟雾粒子
+                for (let i = 0; i < 5; i++) {
+                    const smokeAngle = angle + (Math.random() - 0.5) * 0.3;
+                    this.particles.push({
+                        x: x + Math.cos(angle) * 45,
+                        y: y + Math.sin(angle) * 45,
+                        vx: Math.cos(smokeAngle) * 2,
+                        vy: Math.sin(smokeAngle) * 2 - 1,
+                        life: 40,
+                        color: 'rgba(100, 100, 100, 0.5)',
+                        size: 3 + Math.random() * 4,
+                        isSmoke: true
+                    });
+                }
             }
 
             // 结束机关枪模式
@@ -801,26 +852,38 @@
                             // 播放受伤音效（人被打中）
                             this.playSound('hurt');
                             
+                            // 手机震动反馈
+                            this.vibrate(20);
+                            
                             // 显示伤害数字
                             this.showDamageText(charBody.position.x, charBody.position.y, damage);
                             
                             // 增加分数
                             this.score += damage;
                             
-                            // 易碎道具破碎（增强版）
-                            if (item.fragile) {
-                                // 更多碎片
+                            // 所有投射物打到人都有效果
+                            // 穿透型子弹（机关枪子弹）不销毁，继续飞行
+                            if (item.penetrating) {
+                                // 子弹穿透人体，继续飞行
+                                // 给子弹一点减速
+                                Matter.Body.setVelocity(projectile, {
+                                    x: projectile.velocity.x * 0.9,
+                                    y: projectile.velocity.y * 0.9
+                                });
+                            } else if (item.fragile) {
+                                // 易碎道具破碎
                                 this.createParticles(projectile.position.x, projectile.position.y, item.color, 12);
-                                // 碎片飞溅效果
                                 this.createShatterEffect(projectile.position.x, projectile.position.y, item);
-                                // 破碎音效
                                 this.playSound('break');
                                 Matter.World.remove(this.world, projectile);
                                 this.projectile = null;
                                 setTimeout(() => this.onProjectileStop(), 300);
                             } else {
-                                // 非易碎物品也播放击中音效
+                                // 非易碎物品播放击中音效并销毁
                                 this.playSound('hit');
+                                Matter.World.remove(this.world, projectile);
+                                this.projectile = null;
+                                setTimeout(() => this.onProjectileStop(), 300);
                             }
                         }
                     }
@@ -835,7 +898,7 @@
                         
                         if (furniture) {
                             const speed = Math.hypot(projectile.velocity.x, projectile.velocity.y);
-                            if (speed > 3) {
+                            if (speed > 2) {
                                 const damage = projectile.itemData.damage;
                                 furniture.hp -= damage;
                                 
@@ -850,14 +913,25 @@
                                 // 播放击中音效
                                 this.playSound('hit');
                                 
+                                // 手机震动
+                                this.vibrate(10);
+                                
                                 // 家具被摧毁
                                 if (furniture.hp <= 0) {
                                     this.breakFurniture(furniture);
                                 }
                                 
-                                // 投射物反弹或销毁（根据材质）
+                                // 投射物处理
                                 const item = projectile.itemData;
-                                if (item.fragile || item.type === 'poop') {
+                                // 穿透型子弹（机关枪子弹）不销毁，继续飞行
+                                if (item.penetrating) {
+                                    // 子弹穿透，继续飞行
+                                    // 给子弹一点散射
+                                    Matter.Body.setVelocity(projectile, {
+                                        x: projectile.velocity.x * 0.95,
+                                        y: projectile.velocity.y * 0.95
+                                    });
+                                } else if (item.fragile || item.type === 'poop') {
                                     // 易碎物品和大便直接粉碎
                                     if (item.type === 'poop') {
                                         this.createShatterEffect(projectile.position.x, projectile.position.y, {color: '#8B4513', large: false});
@@ -1802,10 +1876,27 @@
 
             drawParticles(ctx) {
                 this.particles.forEach(p => {
-                    ctx.globalAlpha = p.life / (p.isShard ? 50 : 40);
-                    
-                    if (p.isShard) {
+                    if (p.isFire) {
+                        // 火焰效果 - 圆形渐变
+                        ctx.globalAlpha = p.life / 15;
+                        const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+                        gradient.addColorStop(0, '#ffff00');
+                        gradient.addColorStop(0.5, p.color);
+                        gradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+                        ctx.fillStyle = gradient;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (p.isSmoke) {
+                        // 烟雾效果
+                        ctx.globalAlpha = (p.life / 40) * 0.5;
+                        ctx.fillStyle = p.color;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (p.isShard) {
                         // 碎片带旋转
+                        ctx.globalAlpha = p.life / 50;
                         ctx.save();
                         ctx.translate(p.x, p.y);
                         ctx.rotate(p.rotation);
@@ -1816,6 +1907,7 @@
                         p.rotation += p.rotationSpeed;
                     } else {
                         // 普通粒子
+                        ctx.globalAlpha = p.life / 40;
                         ctx.fillStyle = p.color;
                         ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
                     }
