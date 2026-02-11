@@ -223,7 +223,10 @@
             // 衣物服饰类
             { name: '袜子', damage: 4, weight: 0.5, size: 20, type: 'sock', color: '#fff', floaty: true, veryLight: true },
             { name: '内裤', damage: 5, weight: 0.5, size: 24, type: 'underwear', color: '#87ceeb', floaty: true, unstable: true },
-            { name: '胸罩', damage: 6, weight: 0.5, size: 26, type: 'bra', color: '#dda0dd', floaty: true, windAffected: true }
+            { name: '胸罩', damage: 6, weight: 0.5, size: 26, type: 'bra', color: '#dda0dd', floaty: true, windAffected: true },
+            
+            // 特殊武器
+            { name: '💩机关枪', damage: 3, weight: 5, size: 18, type: 'machine_gun', color: '#8B4513', isGun: true, ammo: 100 }
         ];
 
         // ==================== 角色数据 ====================
@@ -328,8 +331,9 @@
                 // 木质餐桌 - 中央
                 const table = Bodies.rectangle(CONFIG.width/2, 350, 140, 80, {
                     isStatic: false,
-                    density: 0.002,
-                    friction: 0.5,
+                    density: 0.005,
+                    friction: 0.8,
+                    restitution: 0.2,
                     render: { fillStyle: '#8b4513' },
                     label: 'table'
                 });
@@ -338,7 +342,9 @@
                 // 餐椅 - 左
                 const chair1 = Bodies.rectangle(80, 320, 40, 60, {
                     isStatic: false,
-                    density: 0.001,
+                    density: 0.003,
+                    friction: 0.7,
+                    restitution: 0.1,
                     render: { fillStyle: '#a0522d' },
                     label: 'chair'
                 });
@@ -347,7 +353,9 @@
                 // 餐椅 - 右
                 const chair2 = Bodies.rectangle(280, 320, 40, 60, {
                     isStatic: false,
-                    density: 0.001,
+                    density: 0.003,
+                    friction: 0.7,
+                    restitution: 0.1,
                     render: { fillStyle: '#a0522d' },
                     label: 'chair'
                 });
@@ -356,15 +364,20 @@
                 // 玻璃橱柜 - 右上
                 const cabinet = Bodies.rectangle(300, 200, 80, 120, {
                     isStatic: false,
-                    density: 0.003,
+                    density: 0.004,
+                    friction: 0.5,
+                    restitution: 0.1,
                     render: { fillStyle: '#add8e6' },
                     label: 'glass_cabinet'
                 });
-                this.furniture.push({ body: cabinet, type: 'glass_cabinet', hp: 20, maxHp: 20, fragile: true });
+                this.furniture.push({ body: cabinet, type: 'glass_cabinet', hp: 20, maxHp: 20 });
                 
                 // 冰箱 - 左后
                 const fridge = Bodies.rectangle(60, 220, 70, 140, {
                     isStatic: true,
+                    density: 0.01,
+                    friction: 0.9,
+                    restitution: 0.1,
                     render: { fillStyle: '#e0e0e0' },
                     label: 'fridge'
                 });
@@ -373,6 +386,9 @@
                 // 餐边柜 - 右后
                 const sideboard = Bodies.rectangle(260, 240, 100, 80, {
                     isStatic: true,
+                    density: 0.006,
+                    friction: 0.8,
+                    restitution: 0.1,
                     render: { fillStyle: '#cd853f' },
                     label: 'sideboard'
                 });
@@ -527,8 +543,13 @@
                 // 播放发射音效
                 this.playSound('launch');
                 
-                // 立即加载下一个道具（连续发射）
-                this.loadNextItem();
+                // 如果是机关枪，启动连射模式
+                if (item.isGun) {
+                    this.startMachineGun(angle, item.ammo || 100);
+                } else {
+                    // 立即加载下一个道具（连续发射）
+                    this.loadNextItem();
+                }
                 
                 // 监听弹射物停止
                 this.projectileTimeout = setTimeout(() => {
@@ -536,6 +557,80 @@
                 }, 8000);
                 
                 this.updateUI();
+            }
+
+            // 机关枪连射模式
+            startMachineGun(angle, ammoCount) {
+                let shotsFired = 0;
+                const maxShots = Math.min(ammoCount, 100);
+                const fireRate = 80; // 毫秒间隔
+                
+                this.machineGunActive = true;
+                this.ammo -= maxShots - 1; // 扣除剩余子弹
+                if (this.ammo < 0) this.ammo = 0;
+                
+                const fireBullet = () => {
+                    if (shotsFired >= maxShots || !this.machineGunActive) {
+                        this.machineGunActive = false;
+                        this.loadNextItem();
+                        return;
+                    }
+                    
+                    this.fireBullet(angle);
+                    shotsFired++;
+                    
+                    // 更新UI显示剩余子弹
+                    this.updateUI();
+                    
+                    setTimeout(fireBullet, fireRate);
+                };
+                
+                // 开始连射
+                setTimeout(fireBullet, fireRate);
+            }
+
+            // 发射单发子弹（大便）
+            fireBullet(baseAngle) {
+                const { World, Bodies, Body } = Matter;
+                
+                // 稍微随机化角度
+                const angle = baseAngle + (Math.random() - 0.5) * 0.15;
+                const speed = 12 + Math.random() * 3;
+                
+                const bullet = Bodies.circle(CONFIG.slingshotX, CONFIG.slingshotY, 6, {
+                    density: 0.002,
+                    friction: 0.4,
+                    restitution: 0.3,
+                    frictionAir: 0.005,
+                    render: { fillStyle: '#8B4513' }
+                });
+                
+                bullet.label = 'projectile';
+                bullet.itemData = { 
+                    name: '💩', 
+                    damage: 3, 
+                    size: 12, 
+                    type: 'poop',
+                    color: '#8B4513'
+                };
+                
+                World.add(this.world, bullet);
+                
+                // 设置子弹速度
+                Body.setVelocity(bullet, {
+                    x: Math.cos(angle) * speed,
+                    y: Math.sin(angle) * speed
+                });
+                
+                // 播放发射音效
+                this.playSound('launch');
+                
+                // 8秒后清理
+                setTimeout(() => {
+                    if (bullet && this.world.bodies.includes(bullet)) {
+                        World.remove(this.world, bullet);
+                    }
+                }, 8000);
             }
 
             onProjectileStop() {
@@ -603,7 +698,7 @@
                         }
                     }
                     
-                    // 家具损坏检测
+                    // 家具损坏检测 - 所有家具都可以被打坏
                     if ((bodyA.label === 'projectile' && bodyB.label && bodyB.label.includes('_')) ||
                         (bodyB.label === 'projectile' && bodyA.label && bodyA.label.includes('_'))) {
                         
@@ -613,10 +708,40 @@
                         
                         if (furniture) {
                             const speed = Math.hypot(projectile.velocity.x, projectile.velocity.y);
-                            if (speed > 5) {
-                                furniture.hp -= projectile.itemData.damage;
-                                if (furniture.hp <= 0 && furniture.fragile) {
+                            if (speed > 3) {
+                                const damage = projectile.itemData.damage;
+                                furniture.hp -= damage;
+                                
+                                // 显示家具受损效果
+                                this.createParticles(
+                                    (projectile.position.x + furnitureBody.position.x) / 2,
+                                    (projectile.position.y + furnitureBody.position.y) / 2,
+                                    furniture.type === 'glass_cabinet' ? '#add8e6' : '#8b4513',
+                                    5
+                                );
+                                
+                                // 播放击中音效
+                                this.playSound('hit');
+                                
+                                // 家具被摧毁
+                                if (furniture.hp <= 0) {
                                     this.breakFurniture(furniture);
+                                }
+                                
+                                // 投射物反弹或销毁（根据材质）
+                                const item = projectile.itemData;
+                                if (item.fragile || item.type === 'poop') {
+                                    // 易碎物品和大便直接粉碎
+                                    if (item.type === 'poop') {
+                                        this.createShatterEffect(projectile.position.x, projectile.position.y, {color: '#8B4513', large: false});
+                                    } else {
+                                        this.createShatterEffect(projectile.position.x, projectile.position.y, item);
+                                    }
+                                    this.playSound('break');
+                                    Matter.World.remove(this.world, projectile);
+                                    if (this.projectile === projectile) {
+                                        this.projectile = null;
+                                    }
                                 }
                             }
                         }
@@ -960,14 +1085,17 @@
                 
                 ctx.restore();
                 
-                // 绘制家具血条（低血量时显示）
-                if (f.hp < f.maxHp) {
-                    const hpPercent = f.hp / f.maxHp;
-                    ctx.fillStyle = '#333';
-                    ctx.fillRect(x - 20, y - h/2 - 15, 40, 5);
-                    ctx.fillStyle = hpPercent > 0.5 ? '#4CAF50' : '#ff4444';
-                    ctx.fillRect(x - 20, y - h/2 - 15, 40 * hpPercent, 5);
-                }
+                // 绘制家具血条（始终显示，受到伤害时更明显）
+                const hpPercent = f.hp / f.maxHp;
+                const barWidth = Math.min(w, 50);
+                ctx.fillStyle = '#333';
+                ctx.fillRect(x - barWidth/2, y - h/2 - 12, barWidth, 6);
+                ctx.fillStyle = hpPercent > 0.6 ? '#4CAF50' : hpPercent > 0.3 ? '#ff9800' : '#ff4444';
+                ctx.fillRect(x - barWidth/2, y - h/2 - 12, barWidth * hpPercent, 6);
+                // 血条边框
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x - barWidth/2, y - h/2 - 12, barWidth, 6);
             }
 
             drawCharacter(ctx, char, index) {
@@ -1377,6 +1505,38 @@
                         ctx.arc(s/3, 0, s/3, 0, Math.PI * 2);
                         ctx.fill();
                         ctx.fillRect(-s/6, -2, s/3, 4);
+                        break;
+                    case 'poop': // 大便 💩
+                        ctx.fillStyle = '#8B4513';
+                        // 底部圆球
+                        ctx.beginPath();
+                        ctx.arc(0, s/3, s/3, 0, Math.PI * 2);
+                        ctx.fill();
+                        // 中间圆球
+                        ctx.beginPath();
+                        ctx.arc(0, 0, s/2.5, 0, Math.PI * 2);
+                        ctx.fill();
+                        // 顶部尖尖
+                        ctx.beginPath();
+                        ctx.ellipse(0, -s/2.5, s/4, s/3, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        // 光泽
+                        ctx.fillStyle = '#A0522D';
+                        ctx.beginPath();
+                        ctx.arc(-s/6, -s/4, s/8, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                    case 'machine_gun': // 机关枪
+                        ctx.fillStyle = '#333';
+                        // 枪身
+                        ctx.fillRect(-s/2, -s/4, s, s/2);
+                        // 枪管
+                        ctx.fillRect(s/2-2, -s/6, s/2, s/3);
+                        // 握把
+                        ctx.fillRect(-s/4, s/4, s/4, s/2);
+                        // 弹匣
+                        ctx.fillStyle = '#666';
+                        ctx.fillRect(0, s/4, s/3, s/2);
                         break;
                     default:
                         ctx.fillStyle = item.color;
