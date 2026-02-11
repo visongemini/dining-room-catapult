@@ -1160,11 +1160,11 @@
 
         // 启动游戏 - 等待DOM完全加载
         let game;
-        document.addEventListener('DOMContentLoaded', () => {
-            game = new Game();
-        });
-        // 如果DOM已经加载完成，立即启动
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                game = new Game();
+            });
+        } else {
             game = new Game();
         }
     </script>
