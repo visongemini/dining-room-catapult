@@ -298,6 +298,12 @@
                     hitOffsetY: 0    // 受伤位移Y
                 }));
                 
+                // 机关枪状态
+                this.machineGunActive = false;
+                this.machineGunAmmo = 0;
+                this.machineGunAngle = -Math.PI / 4;
+                this.isFiring = false;
+                
                 // 创建边界
                 this.createBoundaries();
                 
@@ -398,19 +404,49 @@
             }
 
             loadNextItem() {
+                if (this.machineGunActive) {
+                    // 机关枪模式下不加载新道具
+                    return;
+                }
+                
                 if (this.ammo > 0) {
                     const randomIndex = Math.floor(Math.random() * ITEMS.length);
                     this.currentItem = { ...ITEMS[randomIndex] };
                     document.getElementById('currentItemName').textContent = this.currentItem.name;
+                } else if (!this.infiniteMachineGun) {
+                    // 普通道具用完，给100发机关枪
+                    this.currentItem = { 
+                        name: '💩机关枪', 
+                        damage: 3, 
+                        size: 18, 
+                        type: 'machine_gun',
+                        color: '#8B4513',
+                        isGun: true,
+                        ammo: 100
+                    };
+                    this.machineGunAmmo = 100;
+                    document.getElementById('currentItemName').textContent = '💩机关枪(100)';
                 } else {
-                    this.currentItem = null;
-                    document.getElementById('currentItemName').textContent = '已耗尽';
-                    this.checkGameEnd();
+                    // 无限机关枪模式
+                    this.currentItem = { 
+                        name: '💩无限机关枪', 
+                        damage: 3, 
+                        size: 18, 
+                        type: 'machine_gun',
+                        color: '#8B4513',
+                        isGun: true,
+                        ammo: 999999
+                    };
+                    this.machineGunAmmo = 999999;
+                    document.getElementById('currentItemName').textContent = '💩无限机关枪';
                 }
             }
 
             bindEvents() {
                 const handleStart = (e) => {
+                    // 机关枪模式下不处理弹弓事件
+                    if (this.machineGunActive) return;
+                    
                     // 只要有道具就能发射（连续发射模式）
                     if (!this.currentItem) return;
                     
@@ -424,6 +460,8 @@
                 };
 
                 const handleMove = (e) => {
+                    // 机关枪模式下不处理弹弓事件
+                    if (this.machineGunActive) return;
                     if (!this.dragStart) return;
                     
                     this.dragCurrent = this.getPointerPos(e);
@@ -443,6 +481,8 @@
                 };
 
                 const handleEnd = () => {
+                    // 机关枪模式下不处理弹弓事件
+                    if (this.machineGunActive) return;
                     if (!this.dragStart || !this.dragCurrent) return;
                     
                     this.fireProjectile();
@@ -543,9 +583,9 @@
                 // 播放发射音效
                 this.playSound('launch');
                 
-                // 如果是机关枪，启动连射模式
+                // 如果是机关枪，启动机关枪模式
                 if (item.isGun) {
-                    this.startMachineGun(angle, item.ammo || 100);
+                    this.startMachineGunMode(item.ammo || 100);
                 } else {
                     // 立即加载下一个道具（连续发射）
                     this.loadNextItem();
@@ -559,43 +599,106 @@
                 this.updateUI();
             }
 
-            // 机关枪连射模式
-            startMachineGun(angle, ammoCount) {
-                let shotsFired = 0;
-                const maxShots = Math.min(ammoCount, 100);
-                const fireRate = 80; // 毫秒间隔
-                
+            // 机关枪模式 - 按住开火，移动转方向
+            startMachineGunMode(ammoCount) {
                 this.machineGunActive = true;
-                this.ammo -= maxShots - 1; // 扣除剩余子弹
-                if (this.ammo < 0) this.ammo = 0;
+                this.machineGunAmmo = ammoCount;
+                this.isFiring = false;
+                this.machineGunAngle = -Math.PI / 4; // 默认朝向右上
                 
-                const fireBullet = () => {
-                    if (shotsFired >= maxShots || !this.machineGunActive) {
-                        this.machineGunActive = false;
-                        this.loadNextItem();
-                        return;
-                    }
-                    
-                    this.fireBullet(angle);
-                    shotsFired++;
-                    
-                    // 更新UI显示剩余子弹
-                    this.updateUI();
-                    
-                    setTimeout(fireBullet, fireRate);
-                };
-                
-                // 开始连射
-                setTimeout(fireBullet, fireRate);
+                // 设置特殊事件监听
+                this.setupMachineGunControls();
             }
 
-            // 发射单发子弹（大便）
-            fireBullet(baseAngle) {
+            // 机关枪控制 - 按住开火，移动转方向
+            setupMachineGunControls() {
+                const canvas = this.canvas;
+                
+                const handleStart = (e) => {
+                    if (!this.machineGunActive) return;
+                    e.preventDefault();
+                    this.isFiring = true;
+                    this.fireMachineGunBullet();
+                };
+                
+                const handleMove = (e) => {
+                    if (!this.machineGunActive) return;
+                    e.preventDefault();
+                    
+                    const pos = this.getPointerPos(e);
+                    // 计算从弹弓位置到手指位置的角度
+                    const dx = pos.x - CONFIG.slingshotX;
+                    const dy = pos.y - CONFIG.slingshotY;
+                    this.machineGunAngle = Math.atan2(dy, dx);
+                };
+                
+                const handleEnd = (e) => {
+                    if (!this.machineGunActive) return;
+                    this.isFiring = false;
+                };
+                
+                // 移除旧的事件监听（如果有）
+                canvas.removeEventListener('mousedown', this._mgStart);
+                canvas.removeEventListener('mousemove', this._mgMove);
+                canvas.removeEventListener('mouseup', this._mgEnd);
+                canvas.removeEventListener('touchstart', this._mgStart);
+                canvas.removeEventListener('touchmove', this._mgMove);
+                canvas.removeEventListener('touchend', this._mgEnd);
+                
+                // 保存引用以便后续移除
+                this._mgStart = handleStart;
+                this._mgMove = handleMove;
+                this._mgEnd = handleEnd;
+                
+                // 添加新的事件监听
+                canvas.addEventListener('mousedown', handleStart, { passive: false });
+                canvas.addEventListener('mousemove', handleMove, { passive: false });
+                window.addEventListener('mouseup', handleEnd, { passive: false });
+                canvas.addEventListener('touchstart', handleStart, { passive: false });
+                canvas.addEventListener('touchmove', handleMove, { passive: false });
+                window.addEventListener('touchend', handleEnd, { passive: false });
+                
+                // 启动连射循环
+                this.startMachineGunLoop();
+            }
+
+            // 机关枪连射循环
+            startMachineGunLoop() {
+                const fireLoop = () => {
+                    if (!this.machineGunActive) return;
+                    
+                    if (this.isFiring && this.machineGunAmmo > 0) {
+                        this.fireMachineGunBullet();
+                        this.machineGunAmmo--;
+                        
+                        // 更新UI
+                        if (this.machineGunAmmo > 1000) {
+                            document.getElementById('currentItemName').textContent = '💩无限机关枪';
+                        } else {
+                            document.getElementById('currentItemName').textContent = `💩机关枪(${this.machineGunAmmo})`;
+                        }
+                        
+                        // 子弹打完
+                        if (this.machineGunAmmo <= 0) {
+                            this.endMachineGunMode();
+                            return;
+                        }
+                    }
+                    
+                    setTimeout(fireLoop, 80); // 80ms间隔，约12发/秒
+                };
+                
+                fireLoop();
+            }
+
+            // 发射机关枪子弹
+            fireMachineGunBullet() {
                 const { World, Bodies, Body } = Matter;
                 
-                // 稍微随机化角度
-                const angle = baseAngle + (Math.random() - 0.5) * 0.15;
-                const speed = 12 + Math.random() * 3;
+                // 添加一点随机散布
+                const spread = (Math.random() - 0.5) * 0.1;
+                const angle = this.machineGunAngle + spread;
+                const speed = 15;
                 
                 const bullet = Bodies.circle(CONFIG.slingshotX, CONFIG.slingshotY, 6, {
                     density: 0.002,
@@ -625,12 +728,39 @@
                 // 播放发射音效
                 this.playSound('launch');
                 
-                // 8秒后清理
+                // 5秒后清理
                 setTimeout(() => {
                     if (bullet && this.world.bodies.includes(bullet)) {
                         World.remove(this.world, bullet);
                     }
-                }, 8000);
+                }, 5000);
+            }
+
+            // 结束机关枪模式
+            endMachineGunMode() {
+                this.machineGunActive = false;
+                this.isFiring = false;
+                
+                // 移除事件监听
+                const canvas = this.canvas;
+                if (this._mgStart) {
+                    canvas.removeEventListener('mousedown', this._mgStart);
+                    canvas.removeEventListener('mousemove', this._mgMove);
+                    window.removeEventListener('mouseup', this._mgEnd);
+                    canvas.removeEventListener('touchstart', this._mgStart);
+                    canvas.removeEventListener('touchmove', this._mgMove);
+                    window.removeEventListener('touchend', this._mgEnd);
+                }
+                
+                // 100发打完，进入无限模式
+                if (!this.infiniteMachineGun && this.currentItem && this.currentItem.ammo <= 100) {
+                    this.infiniteMachineGun = true;
+                    this.loadNextItem(); // 加载无限机关枪
+                } else {
+                    this.infiniteMachineGun = false;
+                    this.currentItem = null;
+                    document.getElementById('currentItemName').textContent = '已耗尽';
+                }
             }
 
             onProjectileStop() {
@@ -901,11 +1031,6 @@
                     document.getElementById('gameOver').style.display = 'block';
                     document.getElementById('gameOverTitle').textContent = '🎉 通关成功！';
                     document.getElementById('gameOverText').textContent = `最终得分: ${this.score}`;
-                } else if (this.ammo <= 0 && !this.projectile) {
-                    this.gameState = 'ended';
-                    document.getElementById('gameOver').style.display = 'block';
-                    document.getElementById('gameOverTitle').textContent = '😢 游戏结束';
-                    document.getElementById('gameOverText').textContent = `道具耗尽！剩余敌人: ${aliveCharacters.length}`;
                 }
             }
 
@@ -1219,10 +1344,13 @@
                 ctx.fillText(nameText, nameX, nameY);
                 ctx.restore();
                 
-                // 创建/更新物理检测体
+                // 创建/更新物理检测体 - 使用实际绘制位置
+                const bodyX = drawX;
+                const bodyY = drawY - faceOffset/2;
+                
                 if (!char.body && faceOffset > size * 0.5) {
                     const { Bodies } = Matter;
-                    char.body = Bodies.rectangle(pos.x, pos.y - faceOffset/2, size * 0.6, faceOffset * 0.6, {
+                    char.body = Bodies.rectangle(bodyX, bodyY, size * 0.6, faceOffset * 0.6, {
                         isStatic: true,
                         isSensor: true,
                         label: 'character_face'
@@ -1232,6 +1360,9 @@
                 } else if (char.body && faceOffset <= size * 0.3) {
                     Matter.World.remove(this.world, char.body);
                     char.body = null;
+                } else if (char.body) {
+                    // 更新检测体位置（跟随受伤位移）
+                    Matter.Body.setPosition(char.body, { x: bodyX, y: bodyY });
                 }
             }
 
