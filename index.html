@@ -289,7 +289,10 @@
                     visibleTimer: 0,
                     nextToggle: Math.random() * 100,
                     hitFlash: 0,
-                    faceOffset: 0
+                    faceOffset: 0,
+                    hitReaction: 0,  // 受伤动作计时
+                    hitOffsetX: 0,   // 受伤位移X
+                    hitOffsetY: 0    // 受伤位移Y
                 }));
                 
                 // 创建边界
@@ -392,7 +395,8 @@
 
             bindEvents() {
                 const handleStart = (e) => {
-                    if (this.gameState !== 'aiming' || !this.currentItem) return;
+                    // 只要有道具就能发射（连续发射模式）
+                    if (!this.currentItem) return;
                     
                     const pos = this.getPointerPos(e);
                     const dist = Math.hypot(pos.x - CONFIG.slingshotX, pos.y - CONFIG.slingshotY);
@@ -523,10 +527,13 @@
                 // 播放发射音效
                 this.playSound('launch');
                 
+                // 立即加载下一个道具（连续发射）
+                this.loadNextItem();
+                
                 // 监听弹射物停止
                 this.projectileTimeout = setTimeout(() => {
                     this.onProjectileStop();
-                }, 5000);
+                }, 8000);
                 
                 this.updateUI();
             }
@@ -538,7 +545,6 @@
                 }
                 
                 this.gameState = 'aiming';
-                this.loadNextItem();
                 this.checkGameEnd();
             }
 
@@ -563,7 +569,15 @@
                             
                             // 造成伤害
                             character.hp -= damage;
-                            character.hitFlash = 10;
+                            character.hitFlash = 15;
+                            
+                            // 受伤动作 - 向后仰/抖动
+                            character.hitReaction = 20;
+                            character.hitOffsetX = (Math.random() - 0.5) * 15;
+                            character.hitOffsetY = -Math.random() * 10;
+                            
+                            // 播放受伤音效（人被打中）
+                            this.playSound('hurt');
                             
                             // 显示伤害数字
                             this.showDamageText(charBody.position.x, charBody.position.y, damage);
@@ -699,6 +713,15 @@
                         gainNode.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
                         oscillator.start(audioCtx.currentTime);
                         oscillator.stop(audioCtx.currentTime + 0.2);
+                    } else if (type === 'hurt') {
+                        // 受伤音效 - 惨叫
+                        oscillator.type = 'sawtooth';
+                        oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.3);
+                        gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                        oscillator.start(audioCtx.currentTime);
+                        oscillator.stop(audioCtx.currentTime + 0.3);
                     }
                 } catch (e) {
                     // 音频上下文可能不可用，忽略错误
@@ -731,6 +754,17 @@
                     }
                     
                     if (char.hitFlash > 0) char.hitFlash--;
+                    
+                    // 受伤动作恢复
+                    if (char.hitReaction > 0) {
+                        char.hitReaction--;
+                        // 逐渐回到原位
+                        char.hitOffsetX *= 0.8;
+                        char.hitOffsetY *= 0.8;
+                    } else {
+                        char.hitOffsetX = 0;
+                        char.hitOffsetY = 0;
+                    }
                 });
             }
 
@@ -951,7 +985,15 @@
                 if (faceOffset <= 0) return;
                 
                 ctx.save();
-                ctx.translate(pos.x, pos.y);
+                // 添加受伤位移
+                const drawX = pos.x + (char.hitOffsetX || 0);
+                const drawY = pos.y + (char.hitOffsetY || 0);
+                ctx.translate(drawX, drawY);
+                
+                // 受伤抖动效果
+                if (char.hitReaction > 0) {
+                    ctx.translate((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3);
+                }
                 
                 // 受击闪烁效果
                 if (char.hitFlash > 0 && Math.floor(Date.now() / 50) % 2) {
@@ -1035,7 +1077,7 @@
                 
                 ctx.restore();
                 
-                // 绘制角色名字（头顶显示）
+                // 绘制角色名字（头顶显示）- 跟随受伤位移
                 ctx.save();
                 ctx.font = 'bold 12px Arial, sans-serif';
                 ctx.fillStyle = '#fff';
@@ -1043,8 +1085,10 @@
                 ctx.lineWidth = 3;
                 const nameText = char.name;
                 const textWidth = ctx.measureText(nameText).width;
-                ctx.strokeText(nameText, pos.x - textWidth/2, pos.y - faceOffset - 8);
-                ctx.fillText(nameText, pos.x - textWidth/2, pos.y - faceOffset - 8);
+                const nameX = drawX - textWidth/2;
+                const nameY = drawY - faceOffset - 8;
+                ctx.strokeText(nameText, nameX, nameY);
+                ctx.fillText(nameText, nameX, nameY);
                 ctx.restore();
                 
                 // 创建/更新物理检测体
