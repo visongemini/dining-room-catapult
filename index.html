@@ -466,25 +466,31 @@
                 const item = this.currentItem;
                 let body;
                 
+                // 计算回弹系数 - 增加墙壁回弹效果
+                const baseRestitution = item.bouncy ? 0.85 : (item.soft ? 0.4 : 0.7);
+                
                 if (item.thin) {
                     body = Bodies.rectangle(this.dragStart.x, this.dragStart.y, item.size, 4, {
                         density: item.weight * 0.001,
                         friction: 0.3,
-                        restitution: item.bouncy ? 0.8 : (item.soft ? 0.1 : 0.3),
+                        restitution: baseRestitution,
+                        frictionAir: 0.01,
                         render: { fillStyle: item.color }
                     });
                 } else if (item.large) {
                     body = Bodies.rectangle(this.dragStart.x, this.dragStart.y, item.size, 10, {
                         density: item.weight * 0.001,
                         friction: 0.3,
-                        restitution: item.bouncy ? 0.8 : 0.3,
+                        restitution: baseRestitution * 0.8, // 重物回弹稍弱
+                        frictionAir: 0.015,
                         render: { fillStyle: item.color }
                     });
                 } else {
                     body = Bodies.circle(this.dragStart.x, this.dragStart.y, item.size/2, {
                         density: item.weight * 0.001,
                         friction: 0.3,
-                        restitution: item.bouncy ? 0.8 : (item.soft ? 0.1 : 0.3),
+                        restitution: baseRestitution,
+                        frictionAir: 0.01,
                         render: { fillStyle: item.color }
                     });
                 }
@@ -1034,10 +1040,12 @@
                     ctx.lineTo(this.dragCurrent.x, this.dragCurrent.y);
                     ctx.stroke();
                     
-                    // 当前道具预览
+                    // 当前道具预览 - 使用造型
                     if (this.currentItem) {
-                        ctx.fillStyle = this.currentItem.color;
-                        ctx.fillRect(this.dragCurrent.x - 8, this.dragCurrent.y - 8, 16, 16);
+                        ctx.save();
+                        ctx.translate(this.dragCurrent.x, this.dragCurrent.y);
+                        this.drawItemShape(ctx, this.currentItem, 0.6); // 缩小显示
+                        ctx.restore();
                     }
                 } else {
                     ctx.strokeStyle = '#654321';
@@ -1047,37 +1055,216 @@
                     ctx.lineTo(sx + 15, sy);
                     ctx.stroke();
                     
-                    // 当前道具在弹弓上
+                    // 当前道具在弹弓上 - 使用造型
                     if (this.currentItem && this.gameState === 'aiming') {
-                        ctx.fillStyle = this.currentItem.color;
-                        ctx.fillRect(sx - 6, sy - 6, 12, 12);
+                        ctx.save();
+                        ctx.translate(sx, sy);
+                        this.drawItemShape(ctx, this.currentItem, 0.5); // 缩小显示
+                        ctx.restore();
                     }
                 }
                 
                 ctx.restore();
             }
 
+            // 绘制物品造型的辅助函数
+            drawItemShape(ctx, item, scale = 1) {
+                const s = item.size * scale;
+                
+                switch(item.type) {
+                    case 'plate':
+                        ctx.fillStyle = item.color;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, s/2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = '#ccc';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                        ctx.fillStyle = '#f5f5f5';
+                        ctx.beginPath();
+                        ctx.arc(0, 0, s/4, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                    case 'dish':
+                        ctx.fillStyle = item.color;
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, s/2, s/3, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                    case 'cup':
+                        ctx.fillStyle = item.color;
+                        ctx.fillRect(-s/3, -s/2, s*2/3, s);
+                        ctx.fillStyle = 'rgba(200,230,255,0.5)';
+                        ctx.fillRect(-s/3+2, -s/2, s*2/3-4, 4);
+                        break;
+                    case 'mug':
+                        ctx.fillStyle = item.color;
+                        ctx.fillRect(-s/3, -s/2, s*2/3, s);
+                        ctx.strokeStyle = item.color;
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.arc(s/3, 0, s/4, -Math.PI/2, Math.PI/2);
+                        ctx.stroke();
+                        break;
+                    case 'cutlery':
+                        ctx.fillStyle = item.color;
+                        ctx.fillRect(-s/2+2, -2, s*0.6, 4);
+                        ctx.fillRect(s/2-8, -4, 6, 2);
+                        ctx.fillRect(s/2-8, 0, 6, 2);
+                        ctx.fillRect(s/2-8, 4, 6, 2);
+                        break;
+                    case 'bat':
+                        ctx.fillStyle = item.color;
+                        ctx.fillRect(-s/2+3, -3, s*0.7, 6);
+                        ctx.fillRect(s/2-8, -5, 10, 10);
+                        break;
+                    case 'ball':
+                        ctx.fillStyle = item.color;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, s/2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = '#ff0000';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, s/3, 0.5, Math.PI-0.5);
+                        ctx.stroke();
+                        break;
+                    case 'toilet_paper':
+                        ctx.fillStyle = item.color;
+                        ctx.fillRect(-s/3, -s/2, s*2/3, s);
+                        ctx.fillStyle = '#d4c4b0';
+                        ctx.fillRect(-s/6, -s/2+2, s/3, s-4);
+                        break;
+                    case 'slipper':
+                        ctx.fillStyle = item.color;
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, s/2, s/3, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = '#ff4444';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.moveTo(-s/4, -s/6);
+                        ctx.quadraticCurveTo(0, -s/3, s/4, -s/6);
+                        ctx.stroke();
+                        break;
+                    case 'hanger':
+                        ctx.strokeStyle = item.color;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(-s/2, s/4);
+                        ctx.lineTo(0, -s/3);
+                        ctx.lineTo(s/2, s/4);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.arc(0, -s/3, 4, -Math.PI, 0);
+                        ctx.stroke();
+                        break;
+                    case 'vase':
+                        ctx.fillStyle = item.color;
+                        ctx.beginPath();
+                        ctx.moveTo(-s/4, -s/2);
+                        ctx.lineTo(s/4, -s/2);
+                        ctx.lineTo(s/3, s/4);
+                        ctx.lineTo(-s/3, s/4);
+                        ctx.closePath();
+                        ctx.fill();
+                        break;
+                    case 'book':
+                        ctx.fillStyle = item.color;
+                        ctx.fillRect(-s/3, -s/2, s*2/3, s);
+                        ctx.fillStyle = '#2a4a9a';
+                        ctx.fillRect(-s/3, -s/2, s/6, s);
+                        break;
+                    case 'pencil':
+                        ctx.fillStyle = item.color;
+                        ctx.fillRect(-s/2+2, -2, s*0.8, 4);
+                        ctx.fillStyle = '#deb887';
+                        ctx.beginPath();
+                        ctx.moveTo(s/2-2, -2);
+                        ctx.lineTo(s/2+4, 0);
+                        ctx.lineTo(s/2-2, 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#333';
+                        ctx.fillRect(s/2+2, -1, 2, 2);
+                        break;
+                    case 'console':
+                        ctx.fillStyle = item.color;
+                        ctx.fillRect(-s/3, -s/3, s*2/3, s*2/3);
+                        ctx.fillStyle = '#87ceeb';
+                        ctx.fillRect(-s/4, -s/4, s/2, s/3);
+                        ctx.fillStyle = '#ff4444';
+                        ctx.beginPath();
+                        ctx.arc(s/6, s/6, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                    case 'controller':
+                        ctx.fillStyle = item.color;
+                        ctx.fillRect(-s/2+4, -s/4, s-8, s/2);
+                        ctx.fillStyle = '#333';
+                        ctx.beginPath();
+                        ctx.arc(-s/4, 0, 4, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(s/4, 0, 4, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                    case 'plush':
+                        ctx.fillStyle = item.color;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, s/2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(-s/3, -s/3, s/4, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(s/3, -s/3, s/4, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                    case 'sock':
+                        ctx.fillStyle = item.color;
+                        ctx.fillRect(-s/4, -s/2, s/2, s*0.6);
+                        ctx.fillRect(-s/4, 0, s*0.6, s/3);
+                        break;
+                    case 'underwear':
+                        ctx.fillStyle = item.color;
+                        ctx.beginPath();
+                        ctx.moveTo(-s/2, -s/3);
+                        ctx.lineTo(s/2, -s/3);
+                        ctx.lineTo(0, s/3);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                        ctx.fillRect(-s/2, -s/3, s, 4);
+                        break;
+                    case 'bra':
+                        ctx.fillStyle = item.color;
+                        ctx.beginPath();
+                        ctx.arc(-s/3, 0, s/3, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(s/3, 0, s/3, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillRect(-s/6, -2, s/3, 4);
+                        break;
+                    default:
+                        ctx.fillStyle = item.color;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, s/2, 0, Math.PI * 2);
+                        ctx.fill();
+                }
+            }
+
             drawProjectile(ctx) {
                 if (!this.projectile) return;
                 
                 const p = this.projectile;
-                const item = p.itemData;
                 
                 ctx.save();
                 ctx.translate(p.position.x, p.position.y);
                 ctx.rotate(p.angle);
                 
-                ctx.fillStyle = item.color;
-                
-                if (item.thin) {
-                    ctx.fillRect(-item.size/2, -2, item.size, 4);
-                } else if (item.large) {
-                    ctx.fillRect(-item.size/2, -5, item.size, 10);
-                } else {
-                    ctx.beginPath();
-                    ctx.arc(0, 0, item.size/2, 0, Math.PI * 2);
-                    ctx.fill();
-                }
+                // 使用辅助函数绘制物品造型
+                this.drawItemShape(ctx, p.itemData, 1);
                 
                 ctx.restore();
             }
