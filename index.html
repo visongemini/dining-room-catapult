@@ -1911,251 +1911,173 @@
                     b.hitFlash--;
                 }
                 
-                // ========== 邪恶光环 ==========
-                const auraGradient = ctx.createRadialGradient(0, 0, size/2, 0, 0, size);
-                auraGradient.addColorStop(0, 'rgba(255, 0, 255, 0)');
-                auraGradient.addColorStop(0.5, 'rgba(255, 0, 255, 0.2)');
-                auraGradient.addColorStop(1, 'rgba(255, 0, 255, 0.5)');
-                ctx.fillStyle = auraGradient;
-                ctx.beginPath();
-                ctx.arc(0, 0, size * (1 + Math.sin(b.auraRotation) * 0.1), 0, Math.PI * 2);
-                ctx.fill();
-                
-                // 旋转的符文环
-                ctx.save();
-                ctx.rotate(b.auraRotation);
-                ctx.strokeStyle = '#ff00ff';
-                ctx.lineWidth = 2;
-                for (let i = 0; i < 8; i++) {
-                    const angle = (Math.PI * 2 * i) / 8;
-                    ctx.beginPath();
-                    ctx.arc(Math.cos(angle) * size * 0.7, Math.sin(angle) * size * 0.7, 8, 0, Math.PI * 2);
-                    ctx.stroke();
-                }
-                ctx.restore();
-                
                 // Boss 阴影
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
                 ctx.beginPath();
-                ctx.ellipse(0, size/2 + 15, size/2, size/6, 0, 0, Math.PI * 2);
+                ctx.ellipse(0, size/2 + 10, size/2.2, size/8, 0, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // ========== 恶魔身体 ==========
-                // 主体渐变 - 深紫到黑
-                const bodyGradient = ctx.createRadialGradient(-size/4, -size/4, 0, 0, 0, size/2);
-                bodyGradient.addColorStop(0, '#a020f0');
-                bodyGradient.addColorStop(0.4, '#4a0080');
-                bodyGradient.addColorStop(0.8, '#1a0033');
-                bodyGradient.addColorStop(1, '#0a0011');
-                ctx.fillStyle = bodyGradient;
+                // ========== 女人头部 ==========
+                // 脸型 - 椭圆形
+                const faceGradient = ctx.createRadialGradient(0, -size/8, 0, 0, 0, size/2.2);
+                faceGradient.addColorStop(0, '#f5d0c5'); // 皮肤色
+                faceGradient.addColorStop(0.7, '#e8c4b8');
+                faceGradient.addColorStop(1, '#8b7355'); // 边缘阴影
+                ctx.fillStyle = faceGradient;
                 ctx.beginPath();
-                ctx.arc(0, 0, size/2, 0, Math.PI * 2);
+                ctx.ellipse(0, 0, size/2.2, size/2.5, 0, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // 外圈发光
-                ctx.strokeStyle = '#ff00ff';
-                ctx.lineWidth = 3;
-                ctx.shadowColor = '#ff00ff';
-                ctx.shadowBlur = 20;
-                ctx.stroke();
-                ctx.shadowBlur = 0;
-                
-                // ========== 恶魔角 ==========
-                ctx.fillStyle = '#2a004a';
-                // 左角
-                ctx.beginPath();
-                ctx.moveTo(-size/3, -size/3);
-                ctx.lineTo(-size/2 - 20, -size/2 - 40);
-                ctx.lineTo(-size/4, -size/2 - 10);
-                ctx.closePath();
-                ctx.fill();
-                // 角尖发光
-                ctx.fillStyle = '#ff00ff';
-                ctx.beginPath();
-                ctx.arc(-size/2 - 20, -size/2 - 40, 5, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // 右角
-                ctx.fillStyle = '#2a004a';
-                ctx.beginPath();
-                ctx.moveTo(size/3, -size/3);
-                ctx.lineTo(size/2 + 20, -size/2 - 40);
-                ctx.lineTo(size/4, -size/2 - 10);
-                ctx.closePath();
-                ctx.fill();
-                // 角尖发光
-                ctx.fillStyle = '#ff00ff';
-                ctx.beginPath();
-                ctx.arc(size/2 + 20, -size/2 - 40, 5, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // ========== 血红大眼睛 ==========
-                const eyeGlow = b.eyeGlow || 0.5;
-                const pulse = Math.sin(Date.now() / 150) * 0.2 + 1; // 脉动效果
-                
-                // 眼睛位置
-                const leftEyeX = -size/3;
-                const rightEyeX = size/3;
-                const eyeY = -size/10;
-                const eyeWidth = size/3 * pulse;  // 更大的眼睛
-                const eyeHeight = size/2.5 * pulse;
-                
-                // 左眼窝 - 黑色凹陷
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-                ctx.beginPath();
-                ctx.ellipse(leftEyeX, eyeY, eyeWidth * 0.9, eyeHeight * 0.9, -0.2, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // 右眼窝
-                ctx.beginPath();
-                ctx.ellipse(rightEyeX, eyeY, eyeWidth * 0.9, eyeHeight * 0.9, 0.2, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // 左眼白 - 血红色发光
-                const leftEyeGradient = ctx.createRadialGradient(leftEyeX, eyeY, 0, leftEyeX, eyeY, eyeWidth);
-                leftEyeGradient.addColorStop(0, '#ff4444');
-                leftEyeGradient.addColorStop(0.3, '#ff0000');
-                leftEyeGradient.addColorStop(0.7, '#aa0000');
-                leftEyeGradient.addColorStop(1, '#440000');
-                ctx.fillStyle = leftEyeGradient;
-                ctx.shadowColor = '#ff0000';
-                ctx.shadowBlur = 25 + eyeGlow * 15;
-                ctx.beginPath();
-                ctx.ellipse(leftEyeX, eyeY, eyeWidth * 0.8, eyeHeight * 0.8, -0.2, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // 右眼白 - 血红色发光
-                const rightEyeGradient = ctx.createRadialGradient(rightEyeX, eyeY, 0, rightEyeX, eyeY, eyeWidth);
-                rightEyeGradient.addColorStop(0, '#ff4444');
-                rightEyeGradient.addColorStop(0.3, '#ff0000');
-                rightEyeGradient.addColorStop(0.7, '#aa0000');
-                rightEyeGradient.addColorStop(1, '#440000');
-                ctx.fillStyle = rightEyeGradient;
-                ctx.beginPath();
-                ctx.ellipse(rightEyeX, eyeY, eyeWidth * 0.8, eyeHeight * 0.8, 0.2, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // 眼睛内部发光核心
-                ctx.fillStyle = '#ffff00';
-                ctx.shadowColor = '#ffff00';
-                ctx.shadowBlur = 20;
-                ctx.beginPath();
-                ctx.ellipse(leftEyeX, eyeY, eyeWidth * 0.3, eyeHeight * 0.3, -0.2, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.ellipse(rightEyeX, eyeY, eyeWidth * 0.3, eyeHeight * 0.3, 0.2, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // 瞳孔 - 细长的黑色竖瞳
-                ctx.fillStyle = '#000';
-                ctx.shadowBlur = 5;
-                ctx.shadowColor = '#000';
-                const pupilWidth = eyeWidth * 0.15;
-                const pupilHeight = eyeHeight * 0.7;
-                ctx.beginPath();
-                ctx.ellipse(leftEyeX, eyeY, pupilWidth, pupilHeight, -0.2, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.ellipse(rightEyeX, eyeY, pupilWidth, pupilHeight, 0.2, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // 眼神高光（增强邪恶感）
-                ctx.fillStyle = '#fff';
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = '#fff';
-                ctx.beginPath();
-                ctx.arc(leftEyeX - pupilWidth * 2, eyeY - pupilHeight * 0.3, 6, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(rightEyeX - pupilWidth * 2, eyeY - pupilHeight * 0.3, 6, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // 眼睛血管
-                ctx.strokeStyle = 'rgba(100, 0, 0, 0.5)';
+                // 阴沉的紫色光晕
+                ctx.strokeStyle = 'rgba(138, 43, 226, 0.3)';
                 ctx.lineWidth = 2;
-                ctx.shadowBlur = 0;
-                for (let i = 0; i < 5; i++) {
-                    const angle = (Math.PI * 2 * i) / 5;
-                    ctx.beginPath();
-                    ctx.moveTo(leftEyeX + Math.cos(angle) * pupilWidth * 2, eyeY + Math.sin(angle) * pupilHeight * 0.3);
-                    ctx.lineTo(leftEyeX + Math.cos(angle) * eyeWidth * 0.7, eyeY + Math.sin(angle) * eyeHeight * 0.6);
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.moveTo(rightEyeX + Math.cos(angle) * pupilWidth * 2, eyeY + Math.sin(angle) * pupilHeight * 0.3);
-                    ctx.lineTo(rightEyeX + Math.cos(angle) * eyeWidth * 0.7, eyeY + Math.sin(angle) * eyeHeight * 0.6);
-                    ctx.stroke();
-                }
-                
-                // ========== 邪恶笑容 ==========
-                ctx.strokeStyle = '#ff0066';
-                ctx.lineWidth = 5;
-                ctx.lineCap = 'round';
-                ctx.shadowColor = '#ff0066';
-                ctx.shadowBlur = 10;
                 ctx.beginPath();
-                ctx.moveTo(-size/2.5, size/8);
-                // 更夸张的弯曲
-                ctx.bezierCurveTo(-size/4, size/2, size/4, size/2, size/2.5, size/8);
+                ctx.ellipse(0, 0, size/2, size/2.3, 0, 0, Math.PI * 2);
                 ctx.stroke();
-                ctx.shadowBlur = 0;
                 
-                // 尖牙 - 更尖锐
-                ctx.fillStyle = '#fff';
-                const fangs = [
-                    {x: -size/4, y: size/4, w: size/12, h: size/6},
-                    {x: -size/8, y: size/3, w: size/14, h: size/8},
-                    {x: size/8 - size/14, y: size/3, w: size/14, h: size/8},
-                    {x: size/4 - size/12, y: size/4, w: size/12, h: size/6}
-                ];
-                fangs.forEach(fang => {
-                    ctx.beginPath();
-                    ctx.moveTo(fang.x, fang.y);
-                    ctx.lineTo(fang.x + fang.w/2, fang.y + fang.h);
-                    ctx.lineTo(fang.x + fang.w, fang.y);
-                    ctx.fill();
-                });
-                
-                // ========== 额头邪恶印记 ==========
-                ctx.fillStyle = '#ff0000';
-                ctx.shadowColor = '#ff0000';
-                ctx.shadowBlur = 10;
+                // ========== 头发 ==========
+                // 深色长发
+                ctx.fillStyle = '#1a1a2e';
                 ctx.beginPath();
-                ctx.moveTo(0, -size/2.5);
-                ctx.lineTo(-size/10, -size/3.5);
-                ctx.lineTo(0, -size/4);
-                ctx.lineTo(size/10, -size/3.5);
+                ctx.arc(0, -size/6, size/2, Math.PI, 0, true);
+                ctx.lineTo(size/2.5, size/3);
+                ctx.quadraticCurveTo(size/3, size/2, size/4, size/2.5);
+                ctx.lineTo(-size/4, size/2.5);
+                ctx.quadraticCurveTo(-size/3, size/2, -size/2.5, size/3);
                 ctx.closePath();
+                ctx.fill();
+                
+                // 刘海
+                ctx.beginPath();
+                ctx.moveTo(-size/2.5, -size/6);
+                ctx.quadraticCurveTo(-size/4, -size/3, 0, -size/4);
+                ctx.quadraticCurveTo(size/4, -size/3, size/2.5, -size/6);
+                ctx.lineTo(size/2.5, -size/10);
+                ctx.quadraticCurveTo(size/4, -size/5, 0, -size/6);
+                ctx.quadraticCurveTo(-size/4, -size/5, -size/2.5, -size/10);
+                ctx.closePath();
+                ctx.fill();
+                
+                // ========== 阴沉的眼睛 ==========
+                const eyeY = -size/12;
+                const eyeSize = size/8;
+                
+                // 左眼 - 半睁的阴沉眼神
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.ellipse(-size/5, eyeY, eyeSize, eyeSize * 0.6, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 右眼
+                ctx.beginPath();
+                ctx.ellipse(size/5, eyeY, eyeSize, eyeSize * 0.6, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 眼白阴影（疲惫感）
+                ctx.fillStyle = 'rgba(100, 50, 100, 0.2)';
+                ctx.beginPath();
+                ctx.ellipse(-size/5, eyeY, eyeSize * 0.9, eyeSize * 0.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(size/5, eyeY, eyeSize * 0.9, eyeSize * 0.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 瞳孔 - 深紫色，较小
+                ctx.fillStyle = '#4a0080';
+                ctx.shadowColor = '#800080';
+                ctx.shadowBlur = 5;
+                ctx.beginPath();
+                ctx.arc(-size/5, eyeY, eyeSize * 0.35, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(size/5, eyeY, eyeSize * 0.35, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.shadowBlur = 0;
                 
-                // ========== 头发 - 飘动的触手状 ==========
-                ctx.strokeStyle = '#1a0033';
-                ctx.lineWidth = 8;
+                // 眼神光（但位置偏下，显得阴沉）
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.beginPath();
+                ctx.arc(-size/5 - eyeSize * 0.15, eyeY + eyeSize * 0.1, 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(size/5 - eyeSize * 0.15, eyeY + eyeSize * 0.1, 3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 上眼睑 - 半垂（阴沉感关键）
+                ctx.strokeStyle = '#6b4423';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(-size/5 - eyeSize, eyeY - eyeSize * 0.3);
+                ctx.quadraticCurveTo(-size/5, eyeY - eyeSize * 0.6, -size/5 + eyeSize, eyeY - eyeSize * 0.3);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(size/5 - eyeSize, eyeY - eyeSize * 0.3);
+                ctx.quadraticCurveTo(size/5, eyeY - eyeSize * 0.6, size/5 + eyeSize, eyeY - eyeSize * 0.3);
+                ctx.stroke();
+                
+                // 黑眼圈
+                ctx.fillStyle = 'rgba(80, 60, 80, 0.3)';
+                ctx.beginPath();
+                ctx.ellipse(-size/5, eyeY + eyeSize * 0.5, eyeSize * 1.2, eyeSize * 0.4, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(size/5, eyeY + eyeSize * 0.5, eyeSize * 1.2, eyeSize * 0.4, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // ========== 眉毛 - 愤怒/阴沉 ==========
+                ctx.strokeStyle = '#2a004a';
+                ctx.lineWidth = 4;
                 ctx.lineCap = 'round';
-                for (let i = 0; i < 6; i++) {
-                    const angle = Math.PI + (Math.PI * i) / 5;
-                    const wave = Math.sin(Date.now() / 200 + i) * 10;
-                    ctx.beginPath();
-                    ctx.moveTo(Math.cos(angle) * size/2.2, Math.sin(angle) * size/2.2);
-                    ctx.quadraticCurveTo(
-                        Math.cos(angle) * size - wave, 
-                        Math.sin(angle) * size * 0.8,
-                        Math.cos(angle) * size * 0.8 + wave * 2,
-                        Math.sin(angle) * size + 20
-                    );
-                    ctx.stroke();
-                }
+                // 左眉 - 倒八字
+                ctx.beginPath();
+                ctx.moveTo(-size/3.5, eyeY - eyeSize * 1.2);
+                ctx.lineTo(-size/6, eyeY - eyeSize * 0.9);
+                ctx.stroke();
+                // 右眉
+                ctx.beginPath();
+                ctx.moveTo(size/3.5, eyeY - eyeSize * 1.2);
+                ctx.lineTo(size/6, eyeY - eyeSize * 0.9);
+                ctx.stroke();
+                
+                // ========== 鼻子 ==========
+                ctx.strokeStyle = 'rgba(139, 115, 85, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, eyeY + eyeSize * 0.8);
+                ctx.lineTo(-size/20, eyeY + eyeSize * 1.5);
+                ctx.lineTo(size/20, eyeY + eyeSize * 1.5);
+                ctx.stroke();
+                
+                // ========== 阴沉的笑容 ==========
+                ctx.strokeStyle = '#8b0000';
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(-size/6, size/6);
+                // 不对称的冷笑
+                ctx.quadraticCurveTo(-size/12, size/4, 0, size/5);
+                ctx.quadraticCurveTo(size/12, size/6, size/6, size/5);
+                ctx.stroke();
+                
+                // 嘴角阴影
+                ctx.fillStyle = 'rgba(139, 0, 0, 0.3)';
+                ctx.beginPath();
+                ctx.arc(-size/6, size/5, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(size/6, size/5, 4, 0, Math.PI * 2);
+                ctx.fill();
                 
                 // ========== 名称 ==========
-                ctx.font = 'bold 20px Arial, sans-serif';
-                ctx.fillStyle = '#ff00ff';
-                ctx.shadowColor = '#ff00ff';
-                ctx.shadowBlur = 15;
+                ctx.font = 'bold 18px Arial, sans-serif';
+                ctx.fillStyle = '#4a0080';
+                ctx.shadowColor = '#800080';
+                ctx.shadowBlur = 10;
                 ctx.textAlign = 'center';
-                ctx.fillText('★ LOLA ★', 0, -size/2 - 20);
-                ctx.font = '12px Arial';
-                ctx.fillStyle = '#ff6666';
-                ctx.fillText('THE DESTROYER', 0, -size/2 - 5);
+                ctx.fillText('LOLA', 0, -size/2 - 15);
+                ctx.font = '11px Arial';
+                ctx.fillStyle = '#666';
+                ctx.fillText('Matt\'s Wife', 0, -size/2);
                 ctx.shadowBlur = 0;
                 
                 ctx.restore();
