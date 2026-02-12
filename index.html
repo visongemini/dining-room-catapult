@@ -493,7 +493,7 @@
                 
                 this.score = 0;
                 this.gameState = 'aiming';
-                this.projectile = null;
+                this.projectiles = [];  // 改为数组存储多个投射物
                 this.dragStart = null;
                 this.dragCurrent = null;
                 this.damageTexts = [];
@@ -586,7 +586,7 @@
 
             bindEvents() {
                 const handleStart = (e) => {
-                    if (this.gameState !== 'aiming') return;
+                    // 移除 gameState 检查，随时可以发射新的大便
                     const pos = this.getPointerPos(e);
                     const dist = Math.hypot(pos.x - CONFIG.slingshotX, pos.y - CONFIG.slingshotY);
                     if (dist < 80) {
@@ -669,21 +669,22 @@
                     y: Math.sin(angle) * force * item.weight
                 });
                 
-                this.projectile = body;
-                this.gameState = 'flying';
+                // 添加到投射物数组
+                this.projectiles.push(body);
                 
                 // 播放发射音效
                 this.audio.playLaunch();
                 if (navigator.vibrate) navigator.vibrate(30);
                 
-                this.projectileTimeout = setTimeout(() => this.removeProjectile(), 8000);
+                // 8秒后自动清理这个投射物
+                setTimeout(() => this.removeProjectile(body), 8000);
             }
 
-            removeProjectile() {
-                if (this.projectile) {
-                    Matter.World.remove(this.world, this.projectile);
-                    this.projectile = null;
-                    this.gameState = 'aiming';
+            removeProjectile(projectile) {
+                const index = this.projectiles.indexOf(projectile);
+                if (index > -1) {
+                    Matter.World.remove(this.world, projectile);
+                    this.projectiles.splice(index, 1);
                 }
             }
 
@@ -971,7 +972,7 @@
                 this.characters.forEach((char, index) => { if (char.hp > 0) this.drawCharacter(ctx, char, index); });
                 this.drawVison(ctx);
                 this.drawSlingshot(ctx);
-                if (this.projectile) this.drawProjectile(ctx);
+                this.projectiles.forEach(p => this.drawProjectile(ctx, p));
                 if (this.dragStart && this.dragCurrent) this.drawTrajectory(ctx);
                 this.drawParticles(ctx);
                 this.drawHealthBars();
@@ -1258,9 +1259,9 @@
                 }
             }
 
-            drawProjectile(ctx) {
-                if (!this.projectile) return;
-                const p = this.projectile;
+            drawProjectile(ctx, projectile) {
+                if (!projectile) return;
+                const p = projectile;
                 ctx.save();
                 ctx.translate(p.position.x, p.position.y);
                 ctx.rotate(p.angle);
