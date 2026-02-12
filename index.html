@@ -270,23 +270,23 @@
             <button id="restartBtn2" style="background:#ff6600;color:#fff;border:none;padding:10px 20px;font-size:14px;cursor:pointer;margin-top:10px;">再玩一次</button>
         </div>
         <div id="storyScreen">
-            <h2>📖 剧情发展</h2>
-            <p class="story-happy">大魔王Lola被打败了！魔气退散...</p>
-            <p class="story-happy">Lola变回了原来的样子，温柔地看向Matt。</p>
-            <p class="story-happy">"亲爱的，对不起...我回来了..."</p>
-            <p class="story-happy">Matt冲上前紧紧抱住了她。</p>
-            <p style="color:#ffd700;">从此他们幸福地生活在一起...但是——</p>
-            <p class="story-dark">Vison因为投出了太多武器，杀气太重...</p>
-            <p class="story-dark">魔气缠身，头上长出了恶魔之角！</p>
-            <p class="story-dark">他变成了比Lola更强大的大魔王！</p>
-            <p style="color:#ff4444;font-size:15px;">现在，全家必须联手击败Vison！</p>
+            <h2 id="storyTitle">📖 剧情发展</h2>
+            <p id="story1" class="story-happy">大魔王Lola被打败了！魔气退散...</p>
+            <p id="story2" class="story-happy">Lola变回了原来的样子，温柔地看向Matt。</p>
+            <p id="story3" class="story-happy">"亲爱的，对不起...我回来了..."</p>
+            <p id="story4" class="story-happy">Matt冲上前紧紧抱住了她。</p>
+            <p id="story5" style="color:#ffd700;">从此他们幸福地生活在一起...但是——</p>
+            <p id="story6" class="story-dark">Vison因为投出了太多武器，杀气太重...</p>
+            <p id="story7" class="story-dark">魔气缠身，头上长出了恶魔之角！</p>
+            <p id="story8" class="story-dark">他变成了比Lola更强大的大魔王！</p>
+            <p id="story9" style="color:#ff4444;font-size:15px;">现在，全家必须联手击败Vison！</p>
             <button id="continueStoryBtn">继续剧情</button>
         </div>
         <div id="finalBossWarning">
-            <h2>⚠️ 最终决战 ⚠️</h2>
-            <p style="font-size: 14px; margin: 10px 0;">曾经的战友 <span style="color:#ff0000;font-size:18px;">Vison</span> 堕落成魔！</p>
-            <p style="font-size: 12px; color:#ccc;">他比以前强百倍！全家人必须联手！</p>
-            <p style="font-size: 11px; color:#ff6666;">警告：如果家人被打败，游戏结束！</p>
+            <h2 id="finalBossTitle">⚠️ 最终决战 ⚠️</h2>
+            <p id="finalBossP1" style="font-size: 14px; margin: 10px 0;">曾经的战友 <span style="color:#ff0000;font-size:18px;">Vison</span> 堕落成魔！</p>
+            <p id="finalBossP2" style="font-size: 12px; color:#ccc;">他比以前强百倍！全家人必须联手！</p>
+            <p id="finalBossP3" style="font-size: 11px; color:#ff6666;">警告：如果家人被打败，游戏结束！</p>
             <button id="continueFinalBossBtn">最终决战</button>
         </div>
     </div>
@@ -322,6 +322,25 @@
                 victoryTitle: '🎉 恭喜通关！🎉',
                 victoryText: '你击败了所有敌人！',
                 finalScore: '最终得分',
+                // Story translations
+                storyLolaDefeated: '大魔王Lola被打败了！魔气退散...',
+                storyLolaBack: 'Lola变回了原来的样子，温柔地看向Matt。',
+                storyMattHug: 'Matt冲上前紧紧抱住了她。',
+                storyHappyEnding: '从此他们幸福地生活在一起...但是——',
+                storyVisonCorrupt: 'Vison因为投出了太多武器，杀气太重...',
+                storyVisonDemon: '魔气缠身，头上长出了恶魔之角！',
+                storyVisonBoss: '他变成了比Lola更强大的大魔王！',
+                storyFinalBattle: '现在，全家必须联手击败Vison！',
+                storyContinue: '继续剧情',
+                finalBossTitle: '⚠️ 最终决战 ⚠️',
+                finalBossText1: '曾经的战友 ',
+                finalBossText2: ' 堕落成魔！',
+                finalBossSubtitle: '他比以前强百倍！全家人必须联手！',
+                finalBossWarning: '警告：如果家人被打败，游戏结束！',
+                finalBattleBtn: '最终决战',
+                // God mode
+                godModeActivate: '🔥 神力模式! 🔥',
+                godModeActive: '50倍伤害! 100%命中!',
                 furniture: {
                     table: '餐桌', chair: '椅子', microwave: '微波炉',
                     stool: '凳子', plant: '盆栽', 'glass_cabinet': '橱柜',
@@ -357,6 +376,26 @@
                 victoryTitle: '🎉 VICTORY! 🎉',
                 victoryText: 'You defeated all enemies!',
                 finalScore: 'Final Score',
+                // Story translations
+                storyLolaDefeated: 'The Demon King Lola has been defeated! The evil energy dissipates...',
+                storyLolaBack: 'Lola returned to her normal self, looking gently at Matt.',
+                storyLolaQuote: '"My dear, I\'m sorry... I\'m back..."',
+                storyMattHug: 'Matt rushed forward and hugged her tightly.',
+                storyHappyEnding: 'They lived happily ever after... BUT——',
+                storyVisonCorrupt: 'Vison had thrown too many weapons, accumulated too much killing intent...',
+                storyVisonDemon: 'Demonic energy surrounded him, horns grew from his head!',
+                storyVisonBoss: 'He transformed into a Demon King stronger than Lola!',
+                storyFinalBattle: 'Now, the whole family must unite to defeat Vison!',
+                storyContinue: 'Continue Story',
+                finalBossTitle: '⚠️ FINAL BATTLE ⚠️',
+                finalBossText1: 'Former ally ',
+                finalBossText2: ' has fallen into demonhood!',
+                finalBossSubtitle: 'He is 100x stronger! The family must unite!',
+                finalBossWarning: 'Warning: If family members fall, game over!',
+                finalBattleBtn: 'Final Battle',
+                // God mode
+                godModeActivate: '🔥 GOD MODE! 🔥',
+                godModeActive: '50x Damage! 100% Hit!',
                 furniture: {
                     table: 'Table', chair: 'Chair', microwave: 'Microwave',
                     stool: 'Stool', plant: 'Plant', 'glass_cabinet': 'Cabinet',
@@ -1157,6 +1196,26 @@
                 
                 // Update title
                 document.title = t('title');
+                
+                // Update story screen
+                document.getElementById('storyTitle').textContent = currentLang === 'zh' ? '📖 剧情发展' : '📖 Story';
+                document.getElementById('story1').textContent = t('storyLolaDefeated');
+                document.getElementById('story2').textContent = t('storyLolaBack');
+                document.getElementById('story3').textContent = currentLang === 'zh' ? '"亲爱的，对不起...我回来了..."' : '"My dear, I\'m sorry... I\'m back..."';
+                document.getElementById('story4').textContent = t('storyMattHug');
+                document.getElementById('story5').textContent = currentLang === 'zh' ? '从此他们幸福地生活在一起...但是——' : 'They lived happily ever after... BUT——';
+                document.getElementById('story6').textContent = t('storyVisonCorrupt');
+                document.getElementById('story7').textContent = t('storyVisonDemon');
+                document.getElementById('story8').textContent = t('storyVisonBoss');
+                document.getElementById('story9').textContent = t('storyFinalBattle');
+                document.getElementById('continueStoryBtn').textContent = t('storyContinue');
+                
+                // Update final boss warning
+                document.getElementById('finalBossTitle').textContent = t('finalBossTitle');
+                document.getElementById('finalBossP1').innerHTML = `${t('finalBossText1')}<span style="color:#ff0000;font-size:18px;">Vison</span>${t('finalBossText2')}`;
+                document.getElementById('finalBossP2').textContent = t('finalBossSubtitle');
+                document.getElementById('finalBossP3').textContent = t('finalBossWarning');
+                document.getElementById('continueFinalBossBtn').textContent = t('finalBattleBtn');
             }
 
             fireProjectile() {
