@@ -1079,29 +1079,239 @@
             }
             
             drawItemShape(ctx, item, size) {
-                if (item.type === 'poop') {
-                    ctx.fillStyle = '#8B4513';
-                    ctx.beginPath();
-                    ctx.arc(0, size/3, size/3, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.beginPath();
-                    ctx.arc(0, 0, size/2.5, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.beginPath();
-                    ctx.ellipse(0, -size/2.5, size/4, size/3, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = '#A0522D';
-                    ctx.beginPath();
-                    ctx.arc(-size/6, -size/4, size/8, 0, Math.PI * 2);
-                    ctx.fill();
-                } else {
-                    ctx.fillStyle = item.color;
-                    ctx.beginPath();
-                    ctx.arc(0, 0, size/2, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.strokeStyle = '#000';
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
+                ctx.fillStyle = item.color;
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1;
+                
+                switch(item.type) {
+                    case 'poop':
+                        ctx.fillStyle = '#8B4513';
+                        ctx.beginPath();
+                        ctx.arc(0, size/3, size/3, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(0, 0, size/2.5, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.ellipse(0, -size/2.5, size/4, size/3, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#A0522D';
+                        ctx.beginPath();
+                        ctx.arc(-size/6, -size/4, size/8, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                    
+                    case 'plate':
+                        // 陶瓷盘子 - 扁圆
+                        ctx.fillStyle = item.color;
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, size/2, size/6, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, size/3, size/10, 0, 0, Math.PI * 2);
+                        ctx.strokeStyle = '#ccc';
+                        ctx.stroke();
+                        break;
+                    
+                    case 'cup':
+                        // 玻璃杯 - 圆柱
+                        ctx.fillStyle = item.color;
+                        ctx.fillRect(-size/4, -size/2, size/2, size);
+                        ctx.strokeRect(-size/4, -size/2, size/2, size);
+                        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                        ctx.fillRect(-size/6, -size/2 + 2, size/8, size - 4);
+                        break;
+                    
+                    case 'mug':
+                        // 马克杯 - 圆柱+把手
+                        ctx.fillStyle = item.color;
+                        ctx.fillRect(-size/4, -size/2, size/2, size * 0.8);
+                        ctx.strokeRect(-size/4, -size/2, size/2, size * 0.8);
+                        ctx.beginPath();
+                        ctx.arc(size/4, -size/8, size/4, -Math.PI/2, Math.PI/2);
+                        ctx.stroke();
+                        break;
+                    
+                    case 'cutlery':
+                        // 刀叉 - 细长条
+                        ctx.fillStyle = item.color;
+                        ctx.fillRect(-size/8, -size/2, size/4, size);
+                        ctx.strokeRect(-size/8, -size/2, size/4, size);
+                        for(let i=0; i<3; i++) {
+                            ctx.beginPath();
+                            ctx.moveTo(-size/8 + i*size/8, -size/2);
+                            ctx.lineTo(-size/8 + i*size/8 + size/16, -size/2 - size/4);
+                            ctx.stroke();
+                        }
+                        break;
+                    
+                    case 'bat':
+                        // 棒球棍 - 长条锥形
+                        ctx.fillStyle = item.color;
+                        ctx.beginPath();
+                        ctx.moveTo(-size/6, -size/2);
+                        ctx.lineTo(size/6, -size/2);
+                        ctx.lineTo(size/4, size/2);
+                        ctx.lineTo(-size/4, size/2);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                        break;
+                    
+                    case 'ball':
+                        // 棒球 - 圆球+缝线
+                        ctx.fillStyle = item.color;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, size/2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+                        ctx.strokeStyle = '#ff0000';
+                        ctx.beginPath();
+                        ctx.arc(0, 0, size/3, 0.5, Math.PI - 0.5);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.arc(0, 0, size/3, Math.PI + 0.5, -0.5);
+                        ctx.stroke();
+                        break;
+                    
+                    case 'toilet_paper':
+                        // 卷纸 - 圆柱体
+                        ctx.fillStyle = item.color;
+                        ctx.beginPath();
+                        ctx.ellipse(0, -size/3, size/3, size/6, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+                        ctx.fillRect(-size/3, -size/3, size/1.5, size/1.5);
+                        ctx.strokeRect(-size/3, -size/3, size/1.5, size/1.5);
+                        ctx.beginPath();
+                        ctx.ellipse(0, size/3, size/3, size/6, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.arc(0, 0, size/6, 0, Math.PI * 2);
+                        ctx.strokeStyle = '#ddd';
+                        ctx.stroke();
+                        break;
+                    
+                    case 'slipper':
+                        // 拖鞋 - 椭圆
+                        ctx.fillStyle = item.color;
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, size/2, size/3, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+                        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                        ctx.fillRect(-size/4, -size/6, size/2, size/8);
+                        break;
+                    
+                    case 'vase':
+                        // 花瓶 - 瓶状
+                        ctx.fillStyle = item.color;
+                        ctx.beginPath();
+                        ctx.moveTo(-size/6, -size/2);
+                        ctx.quadraticCurveTo(-size/3, -size/4, -size/4, 0);
+                        ctx.quadraticCurveTo(-size/3, size/4, -size/6, size/2);
+                        ctx.lineTo(size/6, size/2);
+                        ctx.quadraticCurveTo(size/3, size/4, size/4, 0);
+                        ctx.quadraticCurveTo(size/3, -size/4, size/6, -size/2);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                        break;
+                    
+                    case 'book':
+                        // 书本 - 矩形
+                        ctx.fillStyle = item.color;
+                        ctx.fillRect(-size/3, -size/2, size/1.5, size);
+                        ctx.strokeRect(-size/3, -size/2, size/1.5, size);
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(-size/3 + 3, -size/2 + 3, size/2, size - 6);
+                        ctx.strokeStyle = '#gold';
+                        ctx.strokeRect(-size/3 + 3, -size/2 + 3, size/2, size - 6);
+                        break;
+                    
+                    case 'pencil':
+                        // 铅笔 - 长条六边形
+                        ctx.fillStyle = item.color;
+                        ctx.fillRect(-size/8, -size/2, size/4, size * 0.8);
+                        ctx.strokeRect(-size/8, -size/2, size/4, size * 0.8);
+                        ctx.fillStyle = '#deb887';
+                        ctx.beginPath();
+                        ctx.moveTo(-size/8, size * 0.3);
+                        ctx.lineTo(0, size/2);
+                        ctx.lineTo(size/8, size * 0.3);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                        break;
+                    
+                    case 'console':
+                        // 游戏机 - 矩形带按钮
+                        ctx.fillStyle = item.color;
+                        ctx.fillRect(-size/3, -size/3, size/1.5, size/1.5);
+                        ctx.strokeRect(-size/3, -size/3, size/1.5, size/1.5);
+                        ctx.fillStyle = '#000';
+                        ctx.fillRect(-size/5, -size/6, size/2.5, size/4);
+                        ctx.fillStyle = '#ff0000';
+                        ctx.beginPath();
+                        ctx.arc(size/5, size/6, size/10, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                    
+                    case 'plush':
+                        // 毛绒玩具 - 圆形+耳朵
+                        ctx.fillStyle = item.color;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, size/2.5, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.arc(-size/3, -size/3, size/5, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.arc(size/3, -size/3, size/5, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+                        ctx.fillStyle = '#000';
+                        ctx.beginPath();
+                        ctx.arc(-size/8, -size/12, size/12, 0, Math.PI * 2);
+                        ctx.arc(size/8, -size/12, size/12, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                    
+                    case 'sock':
+                        // 袜子 - L形
+                        ctx.fillStyle = item.color;
+                        ctx.fillRect(-size/4, -size/2, size/2, size * 0.7);
+                        ctx.fillRect(-size/4, size * 0.1, size/2.5, size * 0.4);
+                        ctx.strokeRect(-size/4, -size/2, size/2, size * 0.7);
+                        ctx.strokeRect(-size/4, size * 0.1, size/2.5, size * 0.4);
+                        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                        ctx.fillRect(-size/4, -size/2, size/2, size/8);
+                        ctx.fillRect(-size/4, size * 0.1, size/2.5, size/8);
+                        break;
+                    
+                    case 'underwear':
+                        // 内裤 - 三角裤形状
+                        ctx.fillStyle = item.color;
+                        ctx.beginPath();
+                        ctx.moveTo(-size/3, -size/4);
+                        ctx.lineTo(size/3, -size/4);
+                        ctx.quadraticCurveTo(size/4, size/3, 0, size/2);
+                        ctx.quadraticCurveTo(-size/4, size/3, -size/3, -size/4);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                        break;
+                    
+                    default:
+                        ctx.fillStyle = item.color;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, size/2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
                 }
             }
 
