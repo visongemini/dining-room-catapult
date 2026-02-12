@@ -466,17 +466,19 @@
 
         // ==================== 盟友配置 (下方战斗角色) ====================
         const ALLY_POSITIONS = [
-            { x: 80, y: 520 },   // Coco
-            { x: 170, y: 530 },  // Cola  
-            { x: 260, y: 520 },  // Vina
-            { x: 340, y: 500 }   // Matt
+            { x: 60, y: 520 },   // Coco
+            { x: 135, y: 530 },  // Cola  
+            { x: 210, y: 520 },  // Vina
+            { x: 285, y: 530 },  // Matt
+            { x: 360, y: 510 }   // Lola (新加入！)
         ];
 
         const ALLIES = [
-            { name: 'Coco', maxHp: BASE_HP * 2, hp: BASE_HP * 2, color: '#ffb6c1', size: 50 },
-            { name: 'Cola', maxHp: BASE_HP * 2.5, hp: BASE_HP * 2.5, color: '#87ceeb', size: 55 },
-            { name: 'Vina', maxHp: BASE_HP * 3, hp: BASE_HP * 3, color: '#dda0dd', size: 60 },
-            { name: 'Matt', maxHp: BASE_HP * 4, hp: BASE_HP * 4, color: '#deb887', size: 65 }
+            { name: 'Coco', maxHp: BASE_HP * 2, hp: BASE_HP * 2, color: '#ffb6c1', size: 48, dodgeChance: 0.3 },
+            { name: 'Cola', maxHp: BASE_HP * 2.5, hp: BASE_HP * 2.5, color: '#87ceeb', size: 52, dodgeChance: 0.3 },
+            { name: 'Vina', maxHp: BASE_HP * 3, hp: BASE_HP * 3, color: '#dda0dd', size: 56, dodgeChance: 0.3 },
+            { name: 'Matt', maxHp: BASE_HP * 4, hp: BASE_HP * 4, color: '#deb887', size: 60, dodgeChance: 0.3 },
+            { name: 'Lola', maxHp: BASE_HP * 3.5, hp: BASE_HP * 3.5, color: '#f5d0c5', size: 58, dodgeChance: 0.3 }
         ];
         class AudioSystem {
             constructor() {
@@ -1238,12 +1240,9 @@
                     if (other.label?.startsWith('ally_') && this.finalBattleMode) {
                         const allyIndex = parseInt(other.label.match(/ally_(\d)/)?.[1]);
                         const ally = this.allies[allyIndex];
-                        if (ally && !ally.defeated) {
-                            // 检查是否是boss_projectile
-                            if (projectile.label === 'boss_projectile' || bodyA.label === 'boss_projectile' || bodyB.label === 'boss_projectile') {
-                                this.hitAlly(ally, 20 + Math.random() * 15);
-                                Matter.World.remove(this.world, projectile);
-                            }
+                        if (ally && !ally.defeated && projectile.label === 'boss_projectile') {
+                            this.hitAlly(ally, 20 + Math.random() * 15);
+                            Matter.World.remove(this.world, projectile);
                         }
                         continue;
                     }
@@ -1673,12 +1672,13 @@
                 const { World, Bodies } = Matter;
                 this.furniture = [];
                 
-                // 为下方盟友创建掩体
+                // 为下方5个盟友创建掩体
                 const items = [
-                    { x: 80, y: 480, w: 50, h: 40, type: 'chair', hp: 40, nameKey: 'furniture.chair' },
-                    { x: 170, y: 490, w: 50, h: 40, type: 'chair', hp: 40, nameKey: 'furniture.chair' },
-                    { x: 260, y: 480, w: 50, h: 40, type: 'chair', hp: 40, nameKey: 'furniture.chair' },
-                    { x: 340, y: 460, w: 60, h: 50, type: 'table', hp: 80, nameKey: 'furniture.table' }
+                    { x: 60, y: 470, w: 45, h: 35, type: 'chair', hp: 40, nameKey: 'furniture.chair' },
+                    { x: 135, y: 480, w: 45, h: 35, type: 'chair', hp: 40, nameKey: 'furniture.chair' },
+                    { x: 210, y: 470, w: 45, h: 35, type: 'chair', hp: 40, nameKey: 'furniture.chair' },
+                    { x: 285, y: 480, w: 45, h: 35, type: 'chair', hp: 40, nameKey: 'furniture.chair' },
+                    { x: 360, y: 460, w: 50, h: 40, type: 'table', hp: 80, nameKey: 'furniture.table' }
                 ];
                 
                 items.forEach(item => {
@@ -1824,6 +1824,13 @@
             }
 
             hitAlly(ally, damage) {
+                // 闪避检查 - 30%几率闪避
+                if (Math.random() < ally.dodgeChance) {
+                    const pos = ALLY_POSITIONS[ally.index];
+                    this.showDamageText(pos.x, pos.y - 30, '闪避!', false, '#00ff00');
+                    return;
+                }
+                
                 ally.hp -= damage;
                 ally.hitFlash = 10;
                 
@@ -2029,6 +2036,27 @@
                     ally.hitFlash--;
                     ctx.globalAlpha = 0.5;
                 }
+                
+                // 绘制弹弓（在角色后方）
+                ctx.strokeStyle = '#8b4513';
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                // 弹弓叉
+                ctx.beginPath();
+                ctx.moveTo(0, -size/2);
+                ctx.lineTo(-12, -size/2 - 25);
+                ctx.moveTo(0, -size/2);
+                ctx.lineTo(12, -size/2 - 25);
+                ctx.stroke();
+                
+                // 弹弓皮筋
+                ctx.strokeStyle = '#4a3728';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(-12, -size/2 - 25);
+                ctx.lineTo(0, -size/2 - 15);
+                ctx.lineTo(12, -size/2 - 25);
+                ctx.stroke();
                 
                 // 身体
                 ctx.fillStyle = ally.color;
