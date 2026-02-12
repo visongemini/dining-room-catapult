@@ -723,8 +723,6 @@
                     injured: false, injuryLevel: 0
                 }));
                 
-                console.log('Characters initialized:', this.characters.map(c => ({name: c.name, hp: c.hp, maxHp: c.maxHp})));
-                
                 this.createBoundaries();
                 this.createFurniture();
                 this.loadNextItem();
@@ -1112,7 +1110,6 @@
             hitCharacter(character, item, position, projectile) {
                 const damage = item.damage;
                 character.hp -= damage;
-                console.log(`Hit ${character.name}, damage: ${damage}, remaining hp: ${character.hp}`);
                 
                 character.hitFlash = 15;
                 character.hitReaction = 20;
@@ -1141,7 +1138,6 @@
                 });
                 
                 if (character.hp <= 0) {
-                    console.log(`${character.name} defeated!`);
                     this.createParticles(position.x, position.y, character.color, 30);
                     if (character.body) {
                         Matter.World.remove(this.world, character.body);
@@ -1334,15 +1330,12 @@
 
             checkGameEnd() {
                 const aliveCharacters = this.characters.filter(c => c.hp > 0);
-                console.log('Checking game end, alive characters:', aliveCharacters.length, 'bossMode:', this.bossMode);
                 if (aliveCharacters.length === 0 && !this.bossMode) {
-                    console.log('All characters defeated! Showing boss warning...');
                     this.showBossWarning();
                 }
             }
 
             showBossWarning() {
-                console.log('Showing boss warning!');
                 document.getElementById('bossWarning').style.display = 'block';
                 this.audio.playBossAppearSound();
             }
