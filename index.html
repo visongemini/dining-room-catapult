@@ -1658,28 +1658,44 @@
                 // 不切换角色，玩家自由选择
 
                 if (b.hp <= 0) {
+                    // 防止重复触发
+                    if (this.bossDefeated) return;
+                    
                     this.createParticles(position.x, position.y, '#8b0000', 80);
                     if (b.body) {
                         Matter.World.remove(this.world, b.body);
+                        b.body = null;
                     }
                     this.bossDefeated = true;
+                    b.hp = 0; // 确保血量不会变成负数
 
                     // 延迟显示结局画面，等待粒子效果
                     setTimeout(() => {
                         this.showEnding();
-                    }, 500);
+                    }, 800);
                 }
             }
 
             showEnding() {
+                // 防止重复调用
+                if (this.gameEnded) return;
+                
                 // 先停止游戏循环，防止渲染覆盖
                 this.gameEnded = true;
                 
-                // Vison恢复正常
-                this.audio.playVictoryMusic();
+                // Vison恢复正常 - 带错误处理
+                try {
+                    this.audio.playVictoryMusic();
+                } catch (e) {
+                    console.log('Audio error:', e);
+                }
 
                 // 创建结局画面
                 const container = document.getElementById('gameContainer');
+                if (!container) {
+                    console.error('Game container not found!');
+                    return;
+                }
                 
                 // 如果已存在结局画面，先移除
                 const existingEnding = document.getElementById('endingScreen');
@@ -1756,6 +1772,9 @@
                 `;
 
                 container.appendChild(endingDiv);
+                
+                // 确保结局画面在最上层
+                endingDiv.scrollIntoView({ behavior: 'instant', block: 'center' });
             }
 
             createExplosion(x, y) {
