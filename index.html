@@ -769,7 +769,7 @@
                 
                 items.forEach(item => {
                     const body = Bodies.rectangle(item.x, item.y, item.w, item.h, {
-                        isStatic: false,
+                        isStatic: true,
                         density: 0.005, friction: 0.6, restitution: 0.2,
                         label: `furniture_${item.type}`
                     });
