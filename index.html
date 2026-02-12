@@ -1493,6 +1493,14 @@
                 const b = this.boss;
                 const currentAlly = this.allies[this.currentAllyIndex];
 
+                // 调试日志
+                console.log('=== hitFinalBoss DEBUG ===');
+                console.log('currentAllyIndex:', this.currentAllyIndex);
+                console.log('currentAlly:', currentAlly ? currentAlly.name : 'null');
+                if (currentAlly) {
+                    console.log('HP:', currentAlly.hp, 'MaxHP:', currentAlly.maxHp, 'Ratio:', (currentAlly.hp / currentAlly.maxHp).toFixed(2));
+                }
+
                 // 瞬移中或无敌时不受伤害
                 if (b.isTeleporting || b.invulnerable > 0) {
                     this.showDamageText(position.x, position.y, 'MISS!', false, '#888');
@@ -1504,6 +1512,7 @@
                 if (currentAlly && !currentAlly.defeated && currentAlly.maxHp > 0) {
                     isGodMode = currentAlly.hp / currentAlly.maxHp < 0.25;
                 }
+                console.log('isGodMode:', isGodMode);
 
                 // 计算实际闪避率（巨硬大便有50%命中率加成）
                 let actualDodgeChance = b.dodgeChance;
@@ -1520,10 +1529,14 @@
 
                 // 计算伤害（神力模式下50倍伤害）
                 let damage = item.damage;
+                console.log('Base damage:', damage);
                 if (isGodMode) {
                     damage = item.damage * 50;
-                    this.showDamageText(position.x, position.y - 60, '🔥GOD MODE!', false, '#ffd700');
+                    console.log('GOD MODE damage:', damage);
+                    this.showDamageText(position.x, position.y - 80, '🔥 GOD MODE! 🔥', false, '#ffd700');
+                    this.showDamageText(position.x, position.y - 60, '50x DAMAGE!', false, '#ff6600');
                 }
+                console.log('Final damage:', damage);
                 
                 // 爆炸效果！额外500点爆炸伤害
                 const explosionDamage = 500;
