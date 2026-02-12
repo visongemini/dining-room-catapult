@@ -449,6 +449,13 @@
             type: 'poop', color: '#8B4513', penetrating: true
         };
 
+        // ==================== 最终决战专用 - 巨硬大便 ====================
+        const SUPER_POOP_FINAL = {
+            nameKey: 'items.poop', damage: 130, weight: 10, size: 70,
+            type: 'super_poop_final', color: '#654321', penetrating: true,
+            hasFace: true, hitBonus: 0.5 // 50%命中率加成
+        };
+
         // ==================== 角色数据 (新血条设定) ====================
         const BASE_HP = 100;
         const CHARACTERS = [
@@ -1487,8 +1494,14 @@
                     isGodMode = currentAlly.hp / currentAlly.maxHp < 0.25;
                 }
 
+                // 计算实际闪避率（巨硬大便有50%命中率加成）
+                let actualDodgeChance = b.dodgeChance;
+                if (item.hitBonus) {
+                    actualDodgeChance = Math.max(0, b.dodgeChance - item.hitBonus);
+                }
+
                 // 闪避几率（神力模式下100%命中）
-                if (!isGodMode && Math.random() < b.dodgeChance) {
+                if (!isGodMode && Math.random() < actualDodgeChance) {
                     this.showDamageText(position.x, position.y, '闪避!', false, '#ffff00');
                     this.bossTeleport();
                     return;
@@ -1942,9 +1955,10 @@
                     return;
                 }
 
-                this.currentItem = { ...POOP_ITEM };
-                document.getElementById('currentItemName').textContent = `${ally.name} 攻击中`;
-                document.getElementById('modeDisplay').textContent = '💩终极大便模式!';
+                // 使用最终决战专用巨硬大便
+                this.currentItem = { ...SUPER_POOP_FINAL };
+                document.getElementById('currentItemName').textContent = `${ally.name} 攻击中 (巨硬大便)`;
+                document.getElementById('modeDisplay').textContent = '💩巨硬大便模式! (+50%命中)';
                 document.getElementById('ammoDisplay').textContent = '无限弹药';
 
                 // 切换弹弓位置
@@ -3206,6 +3220,59 @@
                         ctx.beginPath();
                         ctx.arc(-size/6, -size/4, size/8, 0, Math.PI * 2);
                         ctx.fill();
+                        break;
+
+                    case 'super_poop_final':
+                        // 巨硬大便 - 更大更硬的颜色
+                        ctx.fillStyle = '#4a3728';
+                        ctx.beginPath();
+                        ctx.arc(0, size/3, size/2.5, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.arc(0, 0, size/2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.ellipse(0, -size/2.5, size/3, size/2.5, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+                        
+                        // 人脸绘制
+                        ctx.fillStyle = '#fdbcb4'; // 肤色
+                        // 脸
+                        ctx.beginPath();
+                        ctx.arc(0, -size/8, size/3, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        // 眼睛
+                        ctx.fillStyle = '#000';
+                        ctx.beginPath();
+                        ctx.arc(-size/8, -size/6, size/12, 0, Math.PI * 2);
+                        ctx.arc(size/8, -size/6, size/12, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        // 愤怒眉毛
+                        ctx.strokeStyle = '#000';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(-size/4, -size/4);
+                        ctx.lineTo(-size/8, -size/5);
+                        ctx.moveTo(size/4, -size/4);
+                        ctx.lineTo(size/8, -size/5);
+                        ctx.stroke();
+                        
+                        // 嘴巴（愤怒）
+                        ctx.beginPath();
+                        ctx.moveTo(-size/10, size/12);
+                        ctx.lineTo(size/10, size/12);
+                        ctx.stroke();
+                        
+                        // 标注文字
+                        ctx.font = 'bold 8px Arial';
+                        ctx.fillStyle = '#fff';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('130', 0, size/2);
                         break;
 
                     case 'plate':
