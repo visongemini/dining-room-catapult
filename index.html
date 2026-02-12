@@ -1482,7 +1482,10 @@
                 }
 
                 // 检查当前盟友是否处于神力模式（红血时100%命中）
-                const isGodMode = currentAlly && currentAlly.hp / currentAlly.maxHp < 0.25;
+                let isGodMode = false;
+                if (currentAlly && !currentAlly.defeated && currentAlly.maxHp > 0) {
+                    isGodMode = currentAlly.hp / currentAlly.maxHp < 0.25;
+                }
 
                 // 闪避几率（神力模式下100%命中）
                 if (!isGodMode && Math.random() < b.dodgeChance) {
