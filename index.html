@@ -1571,13 +1571,15 @@
                     }
                     this.bossDefeated = true;
 
-                    // 显示结局画面
-                    this.showEnding();
+                    // 延迟显示结局画面，等待粒子效果
+                    setTimeout(() => {
+                        this.showEnding();
+                    }, 500);
                 }
             }
 
             showEnding() {
-                // 设置游戏结束标志，停止游戏循环
+                // 先停止游戏循环，防止渲染覆盖
                 this.gameEnded = true;
                 
                 // Vison恢复正常
@@ -1585,6 +1587,13 @@
 
                 // 创建结局画面
                 const container = document.getElementById('gameContainer');
+                
+                // 如果已存在结局画面，先移除
+                const existingEnding = document.getElementById('endingScreen');
+                if (existingEnding) {
+                    existingEnding.remove();
+                }
+                
                 const endingDiv = document.createElement('div');
                 endingDiv.id = 'endingScreen';
                 endingDiv.style.cssText = `
@@ -1598,8 +1607,8 @@
                     flex-direction: column;
                     justify-content: center;
                     align-items: center;
-                    z-index: 300;
-                    animation: fadeIn 2s ease-in;
+                    z-index: 999;
+                    animation: fadeIn 1s ease-in;
                 `;
 
                 const isZh = currentLang === 'zh';
@@ -2459,6 +2468,8 @@
                 if (endingScreen) {
                     endingScreen.remove();
                 }
+                // 重置游戏结束标志
+                this.gameEnded = false;
                 document.getElementById('gameOver').style.display = 'none';
                 document.getElementById('bossWarning').style.display = 'none';
                 document.getElementById('victoryScreen').style.display = 'none';
