@@ -507,10 +507,10 @@
         // ==================== 盟友配置 (下方战斗角色) ====================
         const ALLY_POSITIONS = [
             { x: 60, y: 520 },   // Coco
-            { x: 135, y: 530 },  // Cola
-            { x: 210, y: 520 },  // Vina
-            { x: 285, y: 530 },  // Matt
-            { x: 360, y: 510 }   // Lola (新加入！)
+            { x: 125, y: 530 },  // Cola
+            { x: 190, y: 520 },  // Vina
+            { x: 255, y: 530 },  // Matt
+            { x: 320, y: 510 }   // Lola (调整到更左)
         ];
 
         const ALLIES = [
@@ -1495,7 +1495,7 @@
                 let damage = item.damage;
                 if (isGodMode) {
                     damage = item.damage * 50;
-                    this.showDamageText(position.x, position.y - 40, '🔥神力!', false, '#ffd700');
+                    this.showDamageText(position.x, position.y - 60, '🔥GOD MODE!', false, '#ffd700');
                 }
                 b.hp -= damage;
                 b.hitFlash = 15;
@@ -2056,8 +2056,9 @@
             showGameOver() {
                 this.audio.stopMusic();
                 document.getElementById('gameOver').style.display = 'block';
-                document.getElementById('gameOverTitle').textContent = '游戏结束';
-                document.getElementById('gameOverText').textContent = 'Vison太强大了...全家都被打败了...';
+                const isZh = currentLang === 'zh';
+                document.getElementById('gameOverTitle').textContent = isZh ? '游戏结束' : 'GAME OVER';
+                document.getElementById('gameOverText').textContent = isZh ? 'Vison太强大了...全家都被打败了...' : 'Vison is too powerful... The whole family was defeated...';
             }
 
             drawFinalBoss(ctx) {
