@@ -1329,29 +1329,122 @@
                     }
                     this.hitCooldowns.set(cooldownKey, now);
                     
+                    // 检查是否是穿透性武器（大便）
+                    const isPenetrating = item.penetrating || item.type === 'poop' || item.type === 'super_poop_final';
+                    
+                    // 击中家具 - 直接处理
+                    if (other.label?.startsWith('furniture_')) {
+                        this.hitFurniture(other, item, projectile);
+                        // 如果不是穿透性武器，停止投射物
+                        if (!isPenetrating) {
+                            Matter.Body.setVelocity(projectile, {
+                                x: projectile.velocity.x * 0.2,
+                                y: projectile.velocity.y * 0.2
+                            });
+                        }
+                        continue;
+                    }
+                    
+                    // 击中Boss（Lola）
                     if (other.label === 'boss_lola' && this.boss && this.boss.hp > 0) {
+                        // 检查是否有家具挡住
+                        if (this.isBlockedByFurniture(projectile, other)) {
+                            // 被挡住，不造成伤害
+                            continue;
+                        }
                         this.hitBoss(item, other.position, projectile);
                         continue;
                     }
                     
                     // 最终战斗模式 - 击中Vison
                     if (other.label === 'boss_vison' && this.boss && this.boss.hp > 0) {
+                        // 检查是否有家具挡住
+                        if (this.isBlockedByFurniture(projectile, other)) {
+                            continue;
+                        }
                         this.hitFinalBoss(item, other.position, projectile);
                         continue;
                     }
                     
+                    // 击中角色
                     const charIndex = other.label?.match(/character_(\d)/)?.[1];
                     if (charIndex !== undefined) {
                         const character = this.characters[parseInt(charIndex)];
                         if (character && character.hp > 0) {
+                            // 检查是否有家具挡住
+                            if (this.isBlockedByFurniture(projectile, other)) {
+                                // 被家具挡住，不造成伤害
+                                continue;
+                            }
                             this.hitCharacter(character, item, other.position, projectile);
                         }
                     }
+                }
+            }
+
+            // 检查投射物是否被家具挡住
+            isBlockedByFurniture(projectile, target) {
+                const projPos = projectile.position;
+                const targetPos = target.position;
+                
+                // 检查所有存活的家具有没有挡在投射物和目标之间
+                for (const furniture of this.furniture) {
+                    if (furniture.hp <= 0) continue; // 已破坏的家具不阻挡
                     
-                    if (other.label?.startsWith('furniture_')) {
-                        this.hitFurniture(other, item, projectile);
+                    const fPos = furniture.body.position;
+                    const fW = furniture.body.bounds.max.x - furniture.body.bounds.min.x;
+                    const fH = furniture.body.bounds.max.y - furniture.body.bounds.min.y;
+                    
+                    // 检查投射物到目标的连线是否穿过家具
+                    if (this.lineIntersectsRect(
+                        projPos.x, projPos.y,
+                        targetPos.x, targetPos.y,
+                        fPos.x - fW/2, fPos.y - fH/2,
+                        fW, fH
+                    )) {
+                        // 家具在投射物和目标之间，检查家具是否比目标更靠近投射物
+                        const distToProj = Math.hypot(fPos.x - projPos.x, fPos.y - projPos.y);
+                        const distToTarget = Math.hypot(targetPos.x - projPos.x, targetPos.y - projPos.y);
+                        
+                        if (distToProj < distToTarget) {
+                            // 家具确实挡在中间
+                            return true;
+                        }
                     }
                 }
+                return false;
+            }
+
+            // 线段与矩形相交检测
+            lineIntersectsRect(x1, y1, x2, y2, rx, ry, rw, rh) {
+                // 检查线段的两个端点是否在矩形内
+                if (this.pointInRect(x1, y1, rx, ry, rw, rh) || this.pointInRect(x2, y2, rx, ry, rw, rh)) {
+                    return true;
+                }
+                
+                // 检查线段是否与矩形的四条边相交
+                const left = this.lineIntersectsLine(x1, y1, x2, y2, rx, ry, rx, ry + rh);
+                const right = this.lineIntersectsLine(x1, y1, x2, y2, rx + rw, ry, rx + rw, ry + rh);
+                const top = this.lineIntersectsLine(x1, y1, x2, y2, rx, ry, rx + rw, ry);
+                const bottom = this.lineIntersectsLine(x1, y1, x2, y2, rx, ry + rh, rx + rw, ry + rh);
+                
+                return left || right || top || bottom;
+            }
+
+            // 点是否在矩形内
+            pointInRect(px, py, rx, ry, rw, rh) {
+                return px >= rx && px <= rx + rw && py >= ry && py <= ry + rh;
+            }
+
+            // 两条线段相交检测
+            lineIntersectsLine(x1, y1, x2, y2, x3, y3, x4, y4) {
+                const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+                if (denom === 0) return false;
+                
+                const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
+                const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom;
+                
+                return t >= 0 && t <= 1 && u >= 0 && u <= 1;
             }
 
             hitCharacter(character, item, position, projectile) {
@@ -2600,143 +2693,451 @@
 
                 const hpPercent = f.hp / f.maxHp;
                 const darken = Math.floor((1 - hpPercent) * 100);
+                const damageOffset = Math.floor((1 - hpPercent) * 5); // 受损时的偏移效果
 
                 switch(f.type) {
                     case 'table':
+                        // 餐桌 - 带四条腿的木质桌子
+                        // 阴影
+                        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                        ctx.fillRect(-w/2 + 3, -h/2 + 3, w, h);
+                        // 桌面
                         ctx.fillStyle = this.darkenColor('#8b4513', darken);
-                        ctx.fillRect(-w/2, -h/2, w, h);
+                        ctx.fillRect(-w/2, -h/2, w, h/3);
+                        // 桌面高光
                         ctx.fillStyle = this.darkenColor('#a0522d', darken);
-                        ctx.fillRect(-w/2 + 5, -h/2 + 5, w - 10, 5);
-                        ctx.fillRect(-w/2 + 5, -h/2 + 25, w - 10, 5);
-                        break;
-                    case 'chair':
-                        ctx.fillStyle = this.darkenColor('#a0522d', darken);
-                        ctx.fillRect(-w/2, -h/2, w, h);
-                        ctx.fillStyle = this.darkenColor('#8b4513', darken);
-                        ctx.fillRect(-w/2 + 5, -h/2, w - 10, 18);
-                        break;
-                    case 'glass_cabinet':
-                        ctx.fillStyle = `rgba(173, 216, 230, ${0.4 + hpPercent * 0.4})`;
-                        ctx.fillRect(-w/2, -h/2, w, h);
-                        ctx.strokeStyle = this.darkenColor('#87ceeb', darken);
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(-w/2, -h/2, w, h);
-                        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-                        ctx.fillRect(-w/2 + 5, -h/2 + 5, 10, h - 10);
-                        break;
-                    case 'fridge':
-                        ctx.fillStyle = this.darkenColor('#e0e0e0', darken);
-                        ctx.fillRect(-w/2, -h/2, w, h);
-                        ctx.strokeStyle = this.darkenColor('#999', darken);
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(-w/2, -h/2, w, h);
-                        ctx.fillStyle = '#silver';
-                        ctx.fillRect(-w/2 + 5, -5, 5, 15);
-                        break;
-                    case 'sideboard':
-                        ctx.fillStyle = this.darkenColor('#cd853f', darken);
-                        ctx.fillRect(-w/2, -h/2, w, h);
-                        ctx.strokeStyle = this.darkenColor('#8b4513', darken);
-                        ctx.lineWidth = 1;
-                        ctx.strokeRect(-w/2 + 5, -h/2 + 5, w - 10, h/2 - 10);
-                        ctx.strokeRect(-w/2 + 5, 5, w - 10, h/2 - 10);
-                        break;
-                    case 'microwave':
-                        ctx.fillStyle = this.darkenColor('#c0c0c0', darken);
-                        ctx.fillRect(-w/2, -h/2, w, h);
-                        ctx.strokeStyle = this.darkenColor('#808080', darken);
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(-w/2, -h/2, w, h);
-                        ctx.fillStyle = '#333';
-                        ctx.fillRect(-w/2 + 3, -h/2 + 3, w - 15, h - 6);
-                        ctx.fillStyle = '#666';
-                        ctx.fillRect(w/2 - 10, -h/2 + 5, 6, 6);
-                        ctx.fillRect(w/2 - 10, 0, 6, 6);
-                        break;
-                    case 'stool':
-                        ctx.fillStyle = this.darkenColor('#8b4513', darken);
-                        ctx.fillRect(-w/2, -h/2, w, h);
+                        ctx.fillRect(-w/2 + 2, -h/2 + 2, w - 4, h/6);
+                        // 桌腿
                         ctx.fillStyle = this.darkenColor('#654321', darken);
-                        ctx.fillRect(-w/4, -h/2, w/2, 8);
+                        const legW = w/8;
+                        const legH = h * 2/3;
+                        // 左前腿
+                        ctx.fillRect(-w/2 + 5, -h/2 + h/3, legW, legH);
+                        // 右前腿
+                        ctx.fillRect(w/2 - 5 - legW, -h/2 + h/3, legW, legH);
+                        // 左后腿（稍短，透视效果）
+                        ctx.fillRect(-w/2 + w/4, -h/2 + h/3, legW * 0.7, legH * 0.8);
+                        // 右后腿
+                        ctx.fillRect(w/2 - w/4 - legW * 0.7, -h/2 + h/3, legW * 0.7, legH * 0.8);
+                        // 桌面边缘装饰
+                        ctx.strokeStyle = this.darkenColor('#5d3a1a', darken);
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(-w/2, -h/2, w, h/3);
                         break;
-                    case 'plant':
+
+                    case 'chair':
+                        // 椅子 - 有靠背和坐垫
+                        // 阴影
+                        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                        ctx.fillRect(-w/2 + 2, -h/2 + 2, w, h);
+                        // 靠背
                         ctx.fillStyle = this.darkenColor('#8b4513', darken);
-                        ctx.fillRect(-w/3, 0, w/1.5, h/2);
-                        ctx.fillStyle = `rgba(34, 139, 34, ${0.6 + hpPercent * 0.4})`;
-                        ctx.beginPath();
-                        ctx.arc(0, -h/4, w/2, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.beginPath();
-                        ctx.arc(-w/3, 0, w/3, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.beginPath();
-                        ctx.arc(w/3, 0, w/3, 0, Math.PI * 2);
-                        ctx.fill();
-                        break;
-                    case 'bookshelf':
+                        ctx.fillRect(-w/2 + 3, -h/2, w - 6, h * 0.55);
+                        // 靠背纹理
                         ctx.fillStyle = this.darkenColor('#a0522d', darken);
+                        ctx.fillRect(-w/2 + 6, -h/2 + 5, w - 12, h * 0.15);
+                        ctx.fillRect(-w/2 + 6, -h/2 + h * 0.25, w - 12, h * 0.15);
+                        // 坐垫
+                        ctx.fillStyle = this.darkenColor('#cd853f', darken);
+                        ctx.fillRect(-w/2 + 3, -h/2 + h * 0.5, w - 6, h * 0.25);
+                        // 坐垫高光
+                        ctx.fillStyle = this.darkenColor('#deb887', darken);
+                        ctx.fillRect(-w/2 + 5, -h/2 + h * 0.52, w - 10, h * 0.08);
+                        // 椅子腿
+                        ctx.fillStyle = this.darkenColor('#654321', darken);
+                        ctx.fillRect(-w/2 + 5, -h/2 + h * 0.75, 6, h * 0.25);
+                        ctx.fillRect(w/2 - 11, -h/2 + h * 0.75, 6, h * 0.25);
+                        break;
+
+                    case 'glass_cabinet':
+                        // 玻璃橱柜 - 带玻璃门和架子
+                        // 柜体背景
+                        ctx.fillStyle = this.darkenColor('#d4a574', darken);
                         ctx.fillRect(-w/2, -h/2, w, h);
+                        // 玻璃门（半透明）
+                        ctx.fillStyle = `rgba(200, 230, 255, ${0.3 + hpPercent * 0.3})`;
+                        ctx.fillRect(-w/2 + 4, -h/2 + 4, w - 8, h - 8);
+                        // 门框
                         ctx.strokeStyle = this.darkenColor('#8b4513', darken);
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(-w/2, -h/2, w, h);
+                        ctx.strokeRect(-w/2 + 4, -h/2 + 4, w - 8, h - 8);
+                        // 隔板
+                        ctx.strokeStyle = this.darkenColor('#a0522d', darken);
                         ctx.lineWidth = 2;
-                        for(let i=1; i<4; i++) {
+                        for(let i=1; i<3; i++) {
                             ctx.beginPath();
-                            ctx.moveTo(-w/2, -h/2 + i*h/4);
-                            ctx.lineTo(w/2, -h/2 + i*h/4);
+                            ctx.moveTo(-w/2 + 4, -h/2 + i*h/3);
+                            ctx.lineTo(w/2 - 4, -h/2 + i*h/3);
                             ctx.stroke();
                         }
-                        break;
-                    case 'picture_frame':
-                        ctx.fillStyle = this.darkenColor('#8b4513', darken);
-                        ctx.fillRect(-w/2, -h/2, w, h);
-                        ctx.fillStyle = '#fff';
-                        ctx.fillRect(-w/2 + 3, -h/2 + 3, w - 6, h - 6);
-                        ctx.fillStyle = '#87ceeb';
-                        ctx.fillRect(-w/2 + 6, -h/2 + 6, w - 12, h - 12);
-                        break;
-                    case 'wall_clock':
-                        ctx.fillStyle = this.darkenColor('#fff', darken);
+                        // 门把手
+                        ctx.fillStyle = '#ffd700';
                         ctx.beginPath();
-                        ctx.arc(0, 0, w/2, 0, Math.PI * 2);
+                        ctx.arc(w/2 - 10, 0, 4, 0, Math.PI*2);
                         ctx.fill();
-                        ctx.strokeStyle = this.darkenColor('#333', darken);
-                        ctx.lineWidth = 2;
-                        ctx.stroke();
-                        ctx.fillStyle = '#000';
-                        ctx.beginPath();
-                        ctx.moveTo(0, 0);
-                        ctx.lineTo(0, -w/4);
-                        ctx.moveTo(0, 0);
-                        ctx.lineTo(w/5, 0);
-                        ctx.stroke();
+                        // 玻璃反光
+                        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                        ctx.fillRect(-w/2 + 8, -h/2 + 8, 6, h - 16);
                         break;
-                    case 'shoe_rack':
-                        ctx.fillStyle = this.darkenColor('#cd853f', darken);
+
+                    case 'fridge':
+                        // 冰箱 - 双门冰箱
+                        // 主体
+                        ctx.fillStyle = this.darkenColor('#e8e8e8', darken);
                         ctx.fillRect(-w/2, -h/2, w, h);
-                        ctx.strokeStyle = this.darkenColor('#8b4513', darken);
-                        ctx.lineWidth = 1;
-                        ctx.strokeRect(-w/2, -h/2, w, h);
+                        // 上下门分割线
+                        ctx.strokeStyle = this.darkenColor('#999', darken);
+                        ctx.lineWidth = 2;
                         ctx.beginPath();
                         ctx.moveTo(-w/2, 0);
                         ctx.lineTo(w/2, 0);
                         ctx.stroke();
+                        // 门缝
+                        ctx.strokeRect(-w/2, -h/2, w, h);
+                        // 上门把手
+                        ctx.fillStyle = '#silver';
+                        ctx.fillRect(w/2 - 12, -h/4 - 5, 4, 15);
+                        // 下门把手
+                        ctx.fillRect(w/2 - 12, h/4 - 5, 4, 15);
+                        // 品牌logo区域
+                        ctx.fillStyle = this.darkenColor('#ccc', darken);
+                        ctx.fillRect(-w/2 + 5, -h/2 + 5, w/3, 8);
                         break;
+
+                    case 'sideboard':
+                        // 餐边柜 - 带抽屉和柜门
+                        // 柜体
+                        ctx.fillStyle = this.darkenColor('#cd853f', darken);
+                        ctx.fillRect(-w/2, -h/2, w, h);
+                        // 顶部
+                        ctx.fillStyle = this.darkenColor('#deb887', darken);
+                        ctx.fillRect(-w/2 - 2, -h/2 - 3, w + 4, 5);
+                        // 抽屉（上排）
+                        ctx.strokeStyle = this.darkenColor('#8b4513', darken);
+                        ctx.lineWidth = 2;
+                        const drawerW = (w - 12) / 3;
+                        for(let i=0; i<3; i++) {
+                            ctx.strokeRect(-w/2 + 6 + i*drawerW, -h/2 + 8, drawerW - 2, h/3 - 10);
+                            // 抽屉把手
+                            ctx.fillStyle = '#4a3728';
+                            ctx.beginPath();
+                            ctx.arc(-w/2 + 6 + i*drawerW + drawerW/2 - 1, -h/2 + 8 + (h/3 - 10)/2, 3, 0, Math.PI*2);
+                            ctx.fill();
+                        }
+                        // 柜门（下排）
+                        ctx.strokeRect(-w/2 + 6, 5, (w - 14)/2, h/2 - 10);
+                        ctx.strokeRect(-w/2 + 6 + (w - 14)/2 + 2, 5, (w - 14)/2, h/2 - 10);
+                        // 柜门把手
+                        ctx.fillStyle = '#4a3728';
+                        ctx.beginPath();
+                        ctx.arc(-w/2 + (w - 14)/2, 5 + (h/2 - 10)/2, 3, 0, Math.PI*2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(-w/2 + (w - 14)/2 + 4, 5 + (h/2 - 10)/2, 3, 0, Math.PI*2);
+                        ctx.fill();
+                        break;
+
+                    case 'microwave':
+                        // 微波炉 - 带显示屏和按钮
+                        // 主体
+                        ctx.fillStyle = this.darkenColor('#c0c0c0', darken);
+                        ctx.fillRect(-w/2, -h/2, w, h);
+                        // 边框
+                        ctx.strokeStyle = this.darkenColor('#808080', darken);
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(-w/2, -h/2, w, h);
+                        // 炉门（黑色玻璃）
+                        ctx.fillStyle = '#1a1a1a';
+                        ctx.fillRect(-w/2 + 3, -h/2 + 3, w - 25, h - 6);
+                        // 炉门反光
+                        ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                        ctx.fillRect(-w/2 + 5, -h/2 + 5, 8, h - 10);
+                        // 控制面板区域
+                        ctx.fillStyle = this.darkenColor('#d0d0d0', darken);
+                        ctx.fillRect(w/2 - 20, -h/2 + 3, 17, h - 6);
+                        // 显示屏
+                        ctx.fillStyle = '#2d5016';
+                        ctx.fillRect(w/2 - 18, -h/2 + 6, 13, 10);
+                        // 数字
+                        ctx.fillStyle = '#7fff00';
+                        ctx.font = '8px monospace';
+                        ctx.fillText('0:00', w/2 - 17, -h/2 + 13);
+                        // 按钮
+                        ctx.fillStyle = '#666';
+                        ctx.fillRect(w/2 - 16, -h/2 + 20, 10, 6);
+                        ctx.fillRect(w/2 - 16, -h/2 + 28, 10, 6);
+                        ctx.fillRect(w/2 - 16, -h/2 + 36, 10, 6);
+                        break;
+
+                    case 'stool':
+                        // 凳子 - 圆凳
+                        // 阴影
+                        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                        ctx.beginPath();
+                        ctx.ellipse(3, h/2 - 3, w/2, 5, 0, 0, Math.PI*2);
+                        ctx.fill();
+                        // 凳腿
+                        ctx.fillStyle = this.darkenColor('#654321', darken);
+                        ctx.fillRect(-w/4 + 3, -h/4, 4, h * 3/4);
+                        ctx.fillRect(w/4 - 7, -h/4, 4, h * 3/4);
+                        ctx.fillRect(-3, -h/4, 6, h * 3/4);
+                        // 凳面（圆形）
+                        ctx.fillStyle = this.darkenColor('#8b4513', darken);
+                        ctx.beginPath();
+                        ctx.ellipse(0, -h/4, w/2, h/5, 0, 0, Math.PI*2);
+                        ctx.fill();
+                        // 凳面高光
+                        ctx.fillStyle = this.darkenColor('#a0522d', darken);
+                        ctx.beginPath();
+                        ctx.ellipse(-2, -h/4 - 2, w/3, h/8, 0, 0, Math.PI*2);
+                        ctx.fill();
+                        break;
+
+                    case 'plant':
+                        // 盆栽 - 花盆和绿叶
+                        // 花盆阴影
+                        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                        ctx.beginPath();
+                        ctx.ellipse(3, h/2 - 3, w/2.5, 4, 0, 0, Math.PI*2);
+                        ctx.fill();
+                        // 花盆
+                        ctx.fillStyle = this.darkenColor('#d2691e', darken);
+                        ctx.beginPath();
+                        ctx.moveTo(-w/3 + 5, 0);
+                        ctx.lineTo(w/3 - 5, 0);
+                        ctx.lineTo(w/2.5 - 3, h/2 - 5);
+                        ctx.lineTo(-w/2.5 + 3, h/2 - 5);
+                        ctx.closePath();
+                        ctx.fill();
+                        // 花盆边缘
+                        ctx.fillStyle = this.darkenColor('#8b4513', darken);
+                        ctx.fillRect(-w/2.5, -5, w/1.25, 8);
+                        // 植物（多层叶子）
+                        ctx.fillStyle = `rgba(34, 139, 34, ${0.7 + hpPercent * 0.3})`;
+                        // 中心大叶子
+                        ctx.beginPath();
+                        ctx.ellipse(0, -h/3, w/2.5, h/3, 0, 0, Math.PI*2);
+                        ctx.fill();
+                        // 左叶子
+                        ctx.beginPath();
+                        ctx.ellipse(-w/3, -h/6, w/3.5, h/4, -0.5, 0, Math.PI*2);
+                        ctx.fill();
+                        // 右叶子
+                        ctx.beginPath();
+                        ctx.ellipse(w/3, -h/6, w/3.5, h/4, 0.5, 0, Math.PI*2);
+                        ctx.fill();
+                        // 顶部小叶子
+                        ctx.beginPath();
+                        ctx.ellipse(0, -h/2, w/4, h/5, 0, 0, Math.PI*2);
+                        ctx.fill();
+                        // 叶脉
+                        ctx.strokeStyle = `rgba(0, 100, 0, ${0.5 + hpPercent * 0.5})`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(0, -h/2 + 5);
+                        ctx.stroke();
+                        break;
+
+                    case 'bookshelf':
+                        // 书架 - 多层带书本
+                        // 外框
+                        ctx.fillStyle = this.darkenColor('#a0522d', darken);
+                        ctx.fillRect(-w/2, -h/2, w, h);
+                        // 内部背景
+                        ctx.fillStyle = this.darkenColor('#8b4513', darken);
+                        ctx.fillRect(-w/2 + 3, -h/2 + 3, w - 6, h - 6);
+                        // 层板
+                        ctx.fillStyle = this.darkenColor('#cd853f', darken);
+                        for(let i=1; i<4; i++) {
+                            ctx.fillRect(-w/2 + 3, -h/2 + i*h/4 - 2, w - 6, 4);
+                        }
+                        // 书本（随机颜色）
+                        const bookColors = ['#4169e1', '#dc143c', '#228b22', '#ff8c00', '#9932cc', '#ff6347'];
+                        for(let shelf=0; shelf<3; shelf++) {
+                            let bookX = -w/2 + 6;
+                            const shelfY = -h/2 + shelf*h/4 + 3;
+                            while(bookX < w/2 - 10) {
+                                const bookW = 4 + Math.random() * 6;
+                                const bookH = h/4 - 8;
+                                if(bookX + bookW > w/2 - 6) break;
+                                ctx.fillStyle = bookColors[Math.floor(Math.random() * bookColors.length)];
+                                ctx.fillRect(bookX, shelfY, bookW, bookH);
+                                // 书脊高光
+                                ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                                ctx.fillRect(bookX + 1, shelfY, 1, bookH);
+                                bookX += bookW + 1;
+                            }
+                        }
+                        break;
+
+                    case 'picture_frame':
+                        // 相框 - 带照片
+                        // 外框
+                        ctx.fillStyle = this.darkenColor('#8b4513', darken);
+                        ctx.fillRect(-w/2, -h/2, w, h);
+                        // 内框装饰
+                        ctx.fillStyle = this.darkenColor('#a0522d', darken);
+                        ctx.fillRect(-w/2 + 3, -h/2 + 3, w - 6, h - 6);
+                        // 照片区域
+                        ctx.fillStyle = '#87ceeb';
+                        ctx.fillRect(-w/2 + 6, -h/2 + 6, w - 12, h - 12);
+                        // 简单的风景画
+                        ctx.fillStyle = '#228b22';
+                        ctx.fillRect(-w/2 + 6, h/2 - 15, w - 12, 9);
+                        ctx.fillStyle = '#ffd700';
+                        ctx.beginPath();
+                        ctx.arc(5, -h/4, 6, 0, Math.PI*2);
+                        ctx.fill();
+                        break;
+
+                    case 'wall_clock':
+                        // 挂钟 - 带指针和刻度
+                        // 外圈
+                        ctx.fillStyle = this.darkenColor('#fff', darken);
+                        ctx.beginPath();
+                        ctx.arc(0, 0, w/2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = this.darkenColor('#8b4513', darken);
+                        ctx.lineWidth = 4;
+                        ctx.stroke();
+                        // 内圈装饰
+                        ctx.strokeStyle = this.darkenColor('#d4a574', darken);
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, w/2 - 5, 0, Math.PI * 2);
+                        ctx.stroke();
+                        // 刻度
+                        ctx.strokeStyle = '#333';
+                        ctx.lineWidth = 2;
+                        for(let i=0; i<12; i++) {
+                            const angle = i * Math.PI / 6;
+                            ctx.beginPath();
+                            ctx.moveTo(Math.cos(angle) * (w/2 - 10), Math.sin(angle) * (w/2 - 10));
+                            ctx.lineTo(Math.cos(angle) * (w/2 - 6), Math.sin(angle) * (w/2 - 6));
+                            ctx.stroke();
+                        }
+                        // 中心点
+                        ctx.fillStyle = '#333';
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 3, 0, Math.PI*2);
+                        ctx.fill();
+                        // 时针
+                        ctx.strokeStyle = '#000';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(-w/6, 0);
+                        ctx.stroke();
+                        // 分针
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(0, -w/3);
+                        ctx.stroke();
+                        break;
+
+                    case 'shoe_rack':
+                        // 鞋架 - 多层放鞋子
+                        // 框架
+                        ctx.fillStyle = this.darkenColor('#cd853f', darken);
+                        ctx.fillRect(-w/2, -h/2, w, h);
+                        // 层板
+                        ctx.fillStyle = this.darkenColor('#deb887', darken);
+                        ctx.fillRect(-w/2 + 2, -h/6 - 1, w - 4, 3);
+                        ctx.fillRect(-w/2 + 2, h/6 - 1, w - 4, 3);
+                        // 鞋子（简化的鞋子形状）
+                        ctx.fillStyle = '#333';
+                        // 上层鞋子
+                        ctx.fillRect(-w/2 + 5, -h/6 - 6, 12, 5);
+                        ctx.fillRect(-w/2 + 20, -h/6 - 6, 12, 5);
+                        // 下层鞋子
+                        ctx.fillStyle = '#654321';
+                        ctx.fillRect(-w/2 + 5, h/6 - 6, 12, 5);
+                        ctx.fillRect(-w/2 + 20, h/6 - 6, 12, 5);
+                        break;
+
                     case 'rug':
+                        // 地毯 - 带花纹
+                        // 底色
                         ctx.fillStyle = this.darkenColor('#b22222', darken);
                         ctx.fillRect(-w/2, -h/2, w, h);
-                        ctx.strokeStyle = this.darkenColor('#8b0000', darken);
+                        // 边框花纹
+                        ctx.strokeStyle = this.darkenColor('#ffd700', darken);
                         ctx.lineWidth = 2;
-                        ctx.strokeRect(-w/2 + 2, -h/2 + 2, w - 4, h - 4);
+                        ctx.strokeRect(-w/2 + 3, -h/2 + 3, w - 6, h - 6);
+                        // 内部装饰图案
+                        ctx.fillStyle = this.darkenColor('#8b0000', darken);
+                        ctx.fillRect(-w/2 + 6, -h/2 + 6, w - 12, h - 12);
+                        // 中心图案
+                        ctx.fillStyle = this.darkenColor('#ffd700', darken);
+                        ctx.beginPath();
+                        ctx.arc(0, 0, Math.min(w, h)/4, 0, Math.PI*2);
+                        ctx.fill();
+                        // 花纹线条
+                        ctx.strokeStyle = this.darkenColor('#b22222', darken);
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(-w/4, 0);
+                        ctx.lineTo(w/4, 0);
+                        ctx.moveTo(0, -h/4);
+                        ctx.lineTo(0, h/4);
+                        ctx.stroke();
                         break;
+
                     case 'vase_stand':
+                        // 花架 - 带花瓶
+                        // 架子
                         ctx.fillStyle = this.darkenColor('#8b4513', darken);
                         ctx.fillRect(-w/4, -h/2, w/2, h);
-                        ctx.fillStyle = this.darkenColor('#deb887', darken);
-                        ctx.fillRect(-w/2, -h/2, w, 5);
-                        ctx.fillRect(-w/2, h/2 - 5, w, 5);
+                        // 顶部平台
+                        ctx.fillStyle = this.darkenColor('#a0522d', darken);
+                        ctx.fillRect(-w/2, -h/2, w, 6);
+                        // 底部装饰
+                        ctx.fillRect(-w/2, h/2 - 6, w, 6);
+                        // 花瓶
+                        ctx.fillStyle = `rgba(135, 206, 235, ${0.6 + hpPercent * 0.4})`;
+                        ctx.beginPath();
+                        ctx.moveTo(-3, -h/2 + 6);
+                        ctx.lineTo(3, -h/2 + 6);
+                        ctx.lineTo(6, -h/2 + 20);
+                        ctx.lineTo(0, -h/2 + 30);
+                        ctx.lineTo(-6, -h/2 + 20);
+                        ctx.closePath();
+                        ctx.fill();
+                        // 花
+                        ctx.fillStyle = `rgba(255, 105, 180, ${0.7 + hpPercent * 0.3})`;
+                        ctx.beginPath();
+                        ctx.arc(0, -h/2 - 5, 5, 0, Math.PI*2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(-4, -h/2, 4, 0, Math.PI*2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(4, -h/2, 4, 0, Math.PI*2);
+                        ctx.fill();
                         break;
                 }
+
+                // 受损效果 - 裂纹和碎片
+                if (hpPercent < 1) {
+                    ctx.strokeStyle = `rgba(0,0,0,${0.3 + (1-hpPercent) * 0.5})`;
+                    ctx.lineWidth = 1;
+                    const crackCount = Math.floor((1 - hpPercent) * 5);
+                    for(let i=0; i<crackCount; i++) {
+                        ctx.beginPath();
+                        const startX = (Math.random() - 0.5) * w;
+                        const startY = (Math.random() - 0.5) * h;
+                        ctx.moveTo(startX, startY);
+                        ctx.lineTo(startX + (Math.random() - 0.5) * 15, startY + (Math.random() - 0.5) * 15);
+                        ctx.stroke();
+                    }
+                }
+
                 ctx.restore();
 
+                // 血条
                 if (hpPercent < 1) {
                     const barWidth = Math.min(w, 60);
                     ctx.fillStyle = '#333';
