@@ -52,8 +52,8 @@
         
         .health-bar {
             position: absolute;
-            width: 60px;
-            height: 8px;
+            width: 80px;
+            height: 10px;
             background: #333;
             border: 1px solid #000;
             image-rendering: pixelated;
@@ -66,7 +66,7 @@
         
         .character-name {
             position: absolute;
-            font-size: 8px;
+            font-size: 10px;
             color: #fff;
             text-shadow: 1px 1px 0 #000;
             font-weight: bold;
@@ -131,24 +131,44 @@
             background: #45a049;
         }
         
+        #musicToggle {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            background: rgba(0,0,0,0.7);
+            color: #fff;
+            padding: 5px 10px;
+            font-size: 12px;
+            border: 2px solid #ffd700;
+            cursor: pointer;
+            pointer-events: auto;
+            z-index: 100;
+        }
+        
+        #musicToggle:hover {
+            background: rgba(255,215,0,0.3);
+        }
+        
         .damage-text {
             position: absolute;
             color: #ff0000;
-            font-size: 14px;
+            font-size: 18px;
             font-weight: bold;
-            text-shadow: 1px 1px 0 #fff;
+            text-shadow: 2px 2px 0 #fff;
             pointer-events: none;
             animation: floatUp 1s ease-out forwards;
         }
         
         @keyframes floatUp {
-            0% { transform: translateY(0); opacity: 1; }
-            100% { transform: translateY(-30px); opacity: 0; }
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            50% { transform: translateY(-20px) scale(1.3); }
+            100% { transform: translateY(-40px) scale(1); opacity: 0; }
         }
     </style>
 </head>
 <body>
     <div id="gameContainer">
+        <button id="musicToggle" onclick="game.toggleMusic()">🎵 音乐: 关</button>
         <canvas id="gameCanvas"></canvas>
         <div id="ui"></div>
         <div id="scorePanel">
@@ -175,27 +195,266 @@
             slingshotX: 80,
             slingshotY: 520,
             maxPullDistance: 120,
-            launchPower: 0.28  // 增加发射力度
+            launchPower: 0.28
         };
 
         // ==================== 超级大便配置 ====================
         const POOP_ITEM = {
             name: '💩超级大便',
-            damage: 50,        // 最高伤害
-            weight: 8,         // 重量大
-            size: 60,          // 体积巨大
+            damage: 50,
+            weight: 8,
+            size: 60,
             type: 'poop',
             color: '#8B4513',
-            penetrating: true  // 穿透性强
+            penetrating: true
         };
 
-        // ==================== 角色数据 ====================
+        // ==================== 角色数据 (尺寸翻倍) ====================
         const CHARACTERS = [
-            { name: 'Coco', maxHp: 80, hp: 80, color: '#ffb6c1', freq: 0.08, duration: 40, size: 28, yOffset: 0 },
-            { name: 'Cola', maxHp: 100, hp: 100, color: '#87ceeb', freq: 0.05, duration: 60, size: 32, yOffset: 5 },
-            { name: 'Vina', maxHp: 120, hp: 120, color: '#dda0dd', freq: 0.03, duration: 90, size: 36, yOffset: 10 },
-            { name: 'Matt', maxHp: 200, hp: 200, color: '#deb887', freq: 0.015, duration: 30, size: 42, yOffset: 15 }
+            { name: 'Coco', maxHp: 80, hp: 80, color: '#ffb6c1', freq: 0.08, duration: 40, size: 56, yOffset: 0 },
+            { name: 'Cola', maxHp: 100, hp: 100, color: '#87ceeb', freq: 0.05, duration: 60, size: 64, yOffset: 5 },
+            { name: 'Vina', maxHp: 120, hp: 120, color: '#dda0dd', freq: 0.03, duration: 90, size: 72, yOffset: 10 },
+            { name: 'Matt', maxHp: 200, hp: 200, color: '#deb887', freq: 0.015, duration: 30, size: 84, yOffset: 15 }
         ];
+
+        // ==================== 音频系统 ====================
+        class AudioSystem {
+            constructor() {
+                this.audioCtx = null;
+                this.musicOscillators = [];
+                this.isMusicPlaying = false;
+                this.musicGain = null;
+                this.masterGain = null;
+                this.init();
+            }
+            
+            init() {
+                try {
+                    this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    this.masterGain = this.audioCtx.createGain();
+                    this.masterGain.gain.value = 0.3;
+                    this.masterGain.connect(this.audioCtx.destination);
+                } catch (e) {
+                    console.log('Audio not supported');
+                }
+            }
+            
+            resume() {
+                if (this.audioCtx && this.audioCtx.state === 'suspended') {
+                    this.audioCtx.resume();
+                }
+            }
+            
+            // 背景音乐 - 欢快的8-bit风格
+            startMusic() {
+                if (!this.audioCtx || this.isMusicPlaying) return;
+                this.resume();
+                
+                this.isMusicPlaying = true;
+                this.musicGain = this.audioCtx.createGain();
+                this.musicGain.gain.value = 0.15;
+                this.musicGain.connect(this.masterGain);
+                
+                // 简单的8-bit循环旋律
+                const melody = [
+                    { note: 261.63, duration: 0.25 }, // C4
+                    { note: 293.66, duration: 0.25 }, // D4
+                    { note: 329.63, duration: 0.25 }, // E4
+                    { note: 349.23, duration: 0.25 }, // F4
+                    { note: 392.00, duration: 0.5 },  // G4
+                    { note: 392.00, duration: 0.25 }, // G4
+                    { note: 349.23, duration: 0.25 }, // F4
+                    { note: 329.63, duration: 0.25 }, // E4
+                    { note: 293.66, duration: 0.25 }, // D4
+                    { note: 261.63, duration: 0.5 },  // C4
+                ];
+                
+                let currentTime = this.audioCtx.currentTime;
+                
+                const playLoop = () => {
+                    if (!this.isMusicPlaying) return;
+                    
+                    melody.forEach(({ note, duration }) => {
+                        const osc = this.audioCtx.createOscillator();
+                        const gain = this.audioCtx.createGain();
+                        
+                        osc.type = 'square';
+                        osc.frequency.value = note;
+                        
+                        gain.gain.setValueAtTime(0.1, currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, currentTime + duration * 0.8);
+                        
+                        osc.connect(gain);
+                        gain.connect(this.musicGain);
+                        
+                        osc.start(currentTime);
+                        osc.stop(currentTime + duration);
+                        
+                        currentTime += duration;
+                    });
+                    
+                    // 循环播放
+                    setTimeout(() => {
+                        if (this.isMusicPlaying) {
+                            currentTime = this.audioCtx.currentTime;
+                            playLoop();
+                        }
+                    }, (currentTime - this.audioCtx.currentTime) * 1000);
+                };
+                
+                playLoop();
+            }
+            
+            stopMusic() {
+                this.isMusicPlaying = false;
+                if (this.musicGain) {
+                    this.musicGain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.5);
+                    setTimeout(() => {
+                        if (this.musicGain) {
+                            this.musicGain.disconnect();
+                            this.musicGain = null;
+                        }
+                    }, 500);
+                }
+            }
+            
+            toggleMusic() {
+                if (this.isMusicPlaying) {
+                    this.stopMusic();
+                    return false;
+                } else {
+                    this.startMusic();
+                    return true;
+                }
+            }
+            
+            // 打击音效 - 更强的冲击力
+            playHit() {
+                if (!this.audioCtx) return;
+                this.resume();
+                
+                // 创建复合音效模拟打击感
+                const now = this.audioCtx.currentTime;
+                
+                // 低频冲击
+                const osc1 = this.audioCtx.createOscillator();
+                const gain1 = this.audioCtx.createGain();
+                osc1.type = 'sawtooth';
+                osc1.frequency.setValueAtTime(150, now);
+                osc1.frequency.exponentialRampToValueAtTime(50, now + 0.15);
+                gain1.gain.setValueAtTime(0.4, now);
+                gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc1.connect(gain1);
+                gain1.connect(this.masterGain);
+                osc1.start(now);
+                osc1.stop(now + 0.15);
+                
+                // 中频打击
+                const osc2 = this.audioCtx.createOscillator();
+                const gain2 = this.audioCtx.createGain();
+                osc2.type = 'square';
+                osc2.frequency.setValueAtTime(300, now);
+                osc2.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+                gain2.gain.setValueAtTime(0.3, now);
+                gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc2.connect(gain2);
+                gain2.connect(this.masterGain);
+                osc2.start(now);
+                osc2.stop(now + 0.1);
+                
+                // 高频清脆声
+                const osc3 = this.audioCtx.createOscillator();
+                const gain3 = this.audioCtx.createGain();
+                osc3.type = 'triangle';
+                osc3.frequency.setValueAtTime(800, now);
+                osc3.frequency.exponentialRampToValueAtTime(400, now + 0.08);
+                gain3.gain.setValueAtTime(0.2, now);
+                gain3.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc3.connect(gain3);
+                gain3.connect(this.masterGain);
+                osc3.start(now);
+                osc3.stop(now + 0.08);
+            }
+            
+            // 发射音效
+            playLaunch() {
+                if (!this.audioCtx) return;
+                this.resume();
+                
+                const osc = this.audioCtx.createOscillator();
+                const gain = this.audioCtx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, this.audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, this.audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.3, this.audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + 0.3);
+                
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+                osc.start();
+                osc.stop(this.audioCtx.currentTime + 0.3);
+            }
+            
+            // 受伤音效 - 惨叫声
+            playHurt() {
+                if (!this.audioCtx) return;
+                this.resume();
+                
+                const now = this.audioCtx.currentTime;
+                
+                // 下滑的惨叫
+                const osc = this.audioCtx.createOscillator();
+                const gain = this.audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.4);
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+                osc.start(now);
+                osc.stop(now + 0.4);
+                
+                // 添加颤音效果
+                const lfo = this.audioCtx.createOscillator();
+                const lfoGain = this.audioCtx.createGain();
+                lfo.type = 'sine';
+                lfo.frequency.value = 20;
+                lfoGain.gain.value = 50;
+                lfo.connect(lfoGain);
+                lfoGain.connect(osc.frequency);
+                lfo.start(now);
+                lfo.stop(now + 0.4);
+            }
+            
+            // 破碎音效
+            playBreak() {
+                if (!this.audioCtx) return;
+                this.resume();
+                
+                const now = this.audioCtx.currentTime;
+                
+                // 多个快速衰减的高频音模拟破碎
+                for (let i = 0; i < 5; i++) {
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    const freq = 800 + Math.random() * 1000;
+                    const delay = i * 0.02;
+                    
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(freq, now + delay);
+                    osc.frequency.exponentialRampToValueAtTime(freq * 0.5, now + delay + 0.1);
+                    gain.gain.setValueAtTime(0.25, now + delay);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + delay + 0.1);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.masterGain);
+                    osc.start(now + delay);
+                    osc.stop(now + delay + 0.1);
+                }
+            }
+        }
 
         // ==================== 游戏主类 ====================
         class Game {
@@ -205,6 +464,9 @@
                 this.canvas.width = CONFIG.width;
                 this.canvas.height = CONFIG.height;
                 this.ctx.imageSmoothingEnabled = false;
+                
+                // 初始化音频系统
+                this.audio = new AudioSystem();
                 
                 this.setupPhysics();
                 this.initGame();
@@ -219,7 +481,6 @@
                 this.world = this.engine.world;
                 this.engine.gravity.y = CONFIG.gravity;
                 
-                // 碰撞检测 - 使用 collisionActive 持续检测
                 Events.on(this.engine, 'collisionStart', (e) => this.handleCollisions(e));
                 Events.on(this.engine, 'collisionActive', (e) => this.handleCollisions(e));
             }
@@ -227,11 +488,9 @@
             initGame() {
                 const { World, Engine } = Matter;
                 
-                // 清空世界
                 World.clear(this.world);
                 Engine.clear(this.engine);
                 
-                // 游戏状态
                 this.score = 0;
                 this.gameState = 'aiming';
                 this.projectile = null;
@@ -239,9 +498,9 @@
                 this.dragCurrent = null;
                 this.damageTexts = [];
                 this.particles = [];
-                this.hitCooldowns = new Map(); // 碰撞冷却，防止重复伤害
+                this.hitCooldowns = new Map();
                 
-                // 重置角色
+                // 角色尺寸已翻倍
                 this.characters = CHARACTERS.map((c, index) => ({
                     ...c,
                     hp: c.maxHp,
@@ -257,13 +516,8 @@
                     index: index
                 }));
                 
-                // 创建边界
                 this.createBoundaries();
-                
-                // 创建家具
                 this.createFurniture();
-                
-                // 更新UI
                 this.updateUI();
             }
 
@@ -273,16 +527,13 @@
                 
                 const walls = [
                     Bodies.rectangle(CONFIG.width/2, CONFIG.height + thickness/2, CONFIG.width, thickness, { 
-                        isStatic: true,
-                        label: 'ground'
+                        isStatic: true, label: 'ground'
                     }),
                     Bodies.rectangle(-thickness/2, CONFIG.height/2, thickness, CONFIG.height, { 
-                        isStatic: true,
-                        label: 'wall_left'
+                        isStatic: true, label: 'wall_left'
                     }),
                     Bodies.rectangle(CONFIG.width + thickness/2, CONFIG.height/2, thickness, CONFIG.height, { 
-                        isStatic: true,
-                        label: 'wall_right'
+                        isStatic: true, label: 'wall_right'
                     })
                 ];
                 
@@ -293,62 +544,39 @@
                 const { World, Bodies } = Matter;
                 this.furniture = [];
                 
-                // 木质餐桌 - 中央
-                const table = Bodies.rectangle(CONFIG.width/2, 350, 140, 80, {
-                    isStatic: false,
-                    density: 0.008,
-                    friction: 0.8,
-                    restitution: 0.3,
+                // 调整家具位置以适应更大的人物
+                const table = Bodies.rectangle(CONFIG.width/2, 380, 160, 90, {
+                    isStatic: false, density: 0.008, friction: 0.8, restitution: 0.3,
                     label: 'furniture_table'
                 });
                 this.furniture.push({ body: table, type: 'table', hp: 80, maxHp: 80, name: '餐桌' });
                 
-                // 餐椅 - 左
-                const chair1 = Bodies.rectangle(80, 320, 40, 60, {
-                    isStatic: false,
-                    density: 0.005,
-                    friction: 0.7,
-                    restitution: 0.2,
+                const chair1 = Bodies.rectangle(70, 340, 50, 70, {
+                    isStatic: false, density: 0.005, friction: 0.7, restitution: 0.2,
                     label: 'furniture_chair'
                 });
                 this.furniture.push({ body: chair1, type: 'chair', hp: 40, maxHp: 40, name: '椅子' });
                 
-                // 餐椅 - 右
-                const chair2 = Bodies.rectangle(280, 320, 40, 60, {
-                    isStatic: false,
-                    density: 0.005,
-                    friction: 0.7,
-                    restitution: 0.2,
+                const chair2 = Bodies.rectangle(290, 340, 50, 70, {
+                    isStatic: false, density: 0.005, friction: 0.7, restitution: 0.2,
                     label: 'furniture_chair'
                 });
                 this.furniture.push({ body: chair2, type: 'chair', hp: 40, maxHp: 40, name: '椅子' });
                 
-                // 玻璃橱柜 - 右上
-                const cabinet = Bodies.rectangle(300, 200, 80, 120, {
-                    isStatic: false,
-                    density: 0.006,
-                    friction: 0.5,
-                    restitution: 0.1,
+                const cabinet = Bodies.rectangle(310, 180, 90, 130, {
+                    isStatic: false, density: 0.006, friction: 0.5, restitution: 0.1,
                     label: 'furniture_cabinet'
                 });
                 this.furniture.push({ body: cabinet, type: 'glass_cabinet', hp: 30, maxHp: 30, name: '橱柜' });
                 
-                // 冰箱 - 左后
-                const fridge = Bodies.rectangle(60, 220, 70, 140, {
-                    isStatic: true,
-                    density: 0.02,
-                    friction: 0.9,
-                    restitution: 0.1,
+                const fridge = Bodies.rectangle(50, 200, 80, 150, {
+                    isStatic: true, density: 0.02, friction: 0.9, restitution: 0.1,
                     label: 'furniture_fridge'
                 });
                 this.furniture.push({ body: fridge, type: 'fridge', hp: 150, maxHp: 150, name: '冰箱' });
                 
-                // 餐边柜 - 右后
-                const sideboard = Bodies.rectangle(260, 240, 100, 80, {
-                    isStatic: true,
-                    density: 0.01,
-                    friction: 0.8,
-                    restitution: 0.1,
+                const sideboard = Bodies.rectangle(270, 220, 110, 90, {
+                    isStatic: true, density: 0.01, friction: 0.8, restitution: 0.1,
                     label: 'furniture_sideboard'
                 });
                 this.furniture.push({ body: sideboard, type: 'sideboard', hp: 80, maxHp: 80, name: '餐边柜' });
@@ -359,10 +587,8 @@
             bindEvents() {
                 const handleStart = (e) => {
                     if (this.gameState !== 'aiming') return;
-                    
                     const pos = this.getPointerPos(e);
                     const dist = Math.hypot(pos.x - CONFIG.slingshotX, pos.y - CONFIG.slingshotY);
-                    
                     if (dist < 80) {
                         this.dragStart = { x: CONFIG.slingshotX, y: CONFIG.slingshotY };
                         this.dragCurrent = pos;
@@ -371,14 +597,10 @@
 
                 const handleMove = (e) => {
                     if (!this.dragStart) return;
-                    
                     this.dragCurrent = this.getPointerPos(e);
-                    
-                    // 限制最大拉伸距离
                     const dx = this.dragCurrent.x - this.dragStart.x;
                     const dy = this.dragCurrent.y - this.dragStart.y;
                     const dist = Math.hypot(dx, dy);
-                    
                     if (dist > CONFIG.maxPullDistance) {
                         const angle = Math.atan2(dy, dx);
                         this.dragCurrent = {
@@ -390,7 +612,6 @@
 
                 const handleEnd = () => {
                     if (!this.dragStart || !this.dragCurrent) return;
-                    
                     this.fireProjectile();
                     this.dragStart = null;
                     this.dragCurrent = null;
@@ -399,7 +620,6 @@
                 this.canvas.addEventListener('mousedown', handleStart);
                 this.canvas.addEventListener('mousemove', handleMove);
                 window.addEventListener('mouseup', handleEnd);
-                
                 this.canvas.addEventListener('touchstart', handleStart, { passive: false });
                 this.canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleMove(e); }, { passive: false });
                 window.addEventListener('touchend', handleEnd);
@@ -409,7 +629,6 @@
                 const rect = this.canvas.getBoundingClientRect();
                 const scaleX = this.canvas.width / rect.width;
                 const scaleY = this.canvas.height / rect.height;
-                
                 if (e.touches && e.touches.length > 0) {
                     return {
                         x: (e.touches[0].clientX - rect.left) * scaleX,
@@ -422,28 +641,27 @@
                 };
             }
 
+            toggleMusic() {
+                const isPlaying = this.audio.toggleMusic();
+                document.getElementById('musicToggle').textContent = isPlaying ? '🎵 音乐: 开' : '🎵 音乐: 关';
+            }
+
             fireProjectile() {
                 const { World, Bodies, Body } = Matter;
-                
                 const dx = this.dragStart.x - this.dragCurrent.x;
                 const dy = this.dragStart.y - this.dragCurrent.y;
                 const dist = Math.hypot(dx, dy);
                 const power = Math.min(dist / CONFIG.maxPullDistance, 1);
                 
-                // 创建大便投射物
                 const item = POOP_ITEM;
                 const body = Bodies.circle(this.dragStart.x, this.dragStart.y, item.size/2, {
-                    density: item.weight * 0.001,
-                    friction: 0.4,
-                    restitution: 0.6,
-                    frictionAir: 0.005,
-                    label: 'projectile'
+                    density: item.weight * 0.001, friction: 0.4, restitution: 0.6,
+                    frictionAir: 0.005, label: 'projectile'
                 });
                 
                 body.itemData = item;
                 World.add(this.world, body);
                 
-                // 施加发射力
                 const force = CONFIG.launchPower * power;
                 const angle = Math.atan2(dy, dx);
                 Body.applyForce(body, body.position, {
@@ -455,15 +673,10 @@
                 this.gameState = 'flying';
                 
                 // 播放发射音效
-                this.playSound('launch');
-                
-                // 手机震动反馈
+                this.audio.playLaunch();
                 if (navigator.vibrate) navigator.vibrate(30);
                 
-                // 8秒后清理投射物
-                this.projectileTimeout = setTimeout(() => {
-                    this.removeProjectile();
-                }, 8000);
+                this.projectileTimeout = setTimeout(() => this.removeProjectile(), 8000);
             }
 
             removeProjectile() {
@@ -481,36 +694,22 @@
                 for (let pair of pairs) {
                     const bodyA = pair.bodyA;
                     const bodyB = pair.bodyB;
+                    let projectile = null, other = null;
                     
-                    // 获取投射物和其他物体
-                    let projectile = null;
-                    let other = null;
-                    
-                    if (bodyA.label === 'projectile') {
-                        projectile = bodyA;
-                        other = bodyB;
-                    } else if (bodyB.label === 'projectile') {
-                        projectile = bodyB;
-                        other = bodyA;
-                    }
-                    
+                    if (bodyA.label === 'projectile') { projectile = bodyA; other = bodyB; }
+                    else if (bodyB.label === 'projectile') { projectile = bodyB; other = bodyA; }
                     if (!projectile || !other) continue;
                     
-                    // 计算碰撞速度
                     const speed = Math.hypot(projectile.velocity.x, projectile.velocity.y);
-                    if (speed < 1) continue; // 速度太低不造成伤害
+                    if (speed < 1) continue;
                     
-                    // 获取投射物数据
                     const item = projectile.itemData || POOP_ITEM;
-                    
-                    // 碰撞冷却检查 - 防止同一帧多次伤害
                     const cooldownKey = `${projectile.id}_${other.id}`;
                     if (this.hitCooldowns.has(cooldownKey)) {
                         if (now - this.hitCooldowns.get(cooldownKey) < 200) continue;
                     }
                     this.hitCooldowns.set(cooldownKey, now);
                     
-                    // 检查是否击中角色
                     const charIndex = other.label?.match(/character_(\d)/)?.[1];
                     if (charIndex !== undefined) {
                         const character = this.characters[parseInt(charIndex)];
@@ -519,7 +718,6 @@
                         }
                     }
                     
-                    // 检查是否击中家具
                     if (other.label?.startsWith('furniture_')) {
                         this.hitFurniture(other, item, projectile);
                     }
@@ -535,31 +733,23 @@
                 character.hitOffsetY = -Math.random() * 15;
                 
                 // 播放受伤音效
-                this.playSound('hurt');
-                
-                // 手机震动反馈
+                this.audio.playHurt();
                 if (navigator.vibrate) navigator.vibrate(25);
                 
-                // 显示伤害数字
                 this.showDamageText(position.x, position.y, damage, true);
-                
-                // 增加分数
                 this.score += damage;
                 this.updateUI();
                 
-                // 创建击中特效
-                this.createParticles(position.x, position.y, '#8B4513', 15);
-                this.createShatterEffect(position.x, position.y, { color: '#654321', size: 8 });
+                this.createParticles(position.x, position.y, '#8B4513', 20);
+                this.createShatterEffect(position.x, position.y, { color: '#654321', size: 10 });
                 
-                // 大便会粘在角色身上然后掉落
                 Matter.Body.setVelocity(projectile, {
                     x: projectile.velocity.x * 0.5,
                     y: projectile.velocity.y * 0.3
                 });
                 
-                // 检查角色死亡
                 if (character.hp <= 0) {
-                    this.createParticles(position.x, position.y, character.color, 30);
+                    this.createParticles(position.x, position.y, character.color, 40);
                     if (character.body) {
                         Matter.World.remove(this.world, character.body);
                         character.body = null;
@@ -575,31 +765,26 @@
                 const damage = item.damage;
                 furniture.hp -= damage;
                 
-                // 显示伤害数字
                 this.showDamageText(
                     furnitureBody.position.x, 
-                    furnitureBody.position.y - furnitureBody.bounds.max.y + furnitureBody.bounds.min.y, 
-                    damage,
-                    false
+                    furnitureBody.position.y - 50, 
+                    damage, false
                 );
                 
-                // 播放击中音效
-                this.playSound('hit');
+                // 播放打击音效
+                this.audio.playHit();
                 
-                // 创建击中特效
                 const hitX = (projectile.position.x + furnitureBody.position.x) / 2;
                 const hitY = (projectile.position.y + furnitureBody.position.y) / 2;
-                this.createParticles(hitX, hitY, '#8B4513', 10);
+                this.createParticles(hitX, hitY, '#8B4513', 15);
                 
-                // 给家具施加冲击力
                 if (!furnitureBody.isStatic) {
                     Matter.Body.applyForce(furnitureBody, projectile.position, {
-                        x: projectile.velocity.x * 0.001,
-                        y: projectile.velocity.y * 0.001
+                        x: projectile.velocity.x * 0.002,
+                        y: projectile.velocity.y * 0.002
                     });
                 }
                 
-                // 家具被摧毁
                 if (furniture.hp <= 0) {
                     this.breakFurniture(furniture);
                 }
@@ -607,24 +792,15 @@
 
             breakFurniture(furniture) {
                 const { World } = Matter;
-                
-                // 移除家具物理体
                 World.remove(this.world, furniture.body);
-                
-                // 创建爆炸特效
                 const pos = furniture.body.position;
-                this.createParticles(pos.x, pos.y, '#8b4513', 25);
+                this.createParticles(pos.x, pos.y, '#8b4513', 35);
                 this.createShatterEffect(pos.x, pos.y, { 
                     color: furniture.type === 'glass_cabinet' ? '#add8e6' : '#a0522d',
-                    size: 12
+                    size: 15
                 });
-                
-                // 播放破碎音效
-                this.playSound('break');
-                
-                // 显示破坏提示
+                this.audio.playBreak();
                 this.showDamageText(pos.x, pos.y, `${furniture.name} 碎了!`, false, '#ff6600');
-                
                 furniture.hp = 0;
             }
 
@@ -635,16 +811,14 @@
                 el.style.left = (x / CONFIG.width * 100) + '%';
                 el.style.top = (y / CONFIG.height * 100) + '%';
                 
-                if (color) {
-                    el.style.color = color;
-                } else if (isCharacter) {
+                if (color) el.style.color = color;
+                else if (isCharacter) {
                     el.style.color = '#ff0000';
-                    el.style.fontSize = '16px';
+                    el.style.fontSize = '20px';
                 } else {
                     el.style.color = '#ffaa00';
-                    el.style.fontSize = '12px';
+                    el.style.fontSize = '14px';
                 }
-                
                 document.getElementById('ui').appendChild(el);
                 setTimeout(() => el.remove(), 1000);
             }
@@ -652,13 +826,11 @@
             createParticles(x, y, color, count) {
                 for (let i = 0; i < count; i++) {
                     this.particles.push({
-                        x: x,
-                        y: y,
-                        vx: (Math.random() - 0.5) * 10,
-                        vy: (Math.random() - 0.5) * 10 - 3,
-                        life: 50,
-                        color: color,
-                        size: Math.random() * 6 + 3
+                        x: x, y: y,
+                        vx: (Math.random() - 0.5) * 12,
+                        vy: (Math.random() - 0.5) * 12 - 4,
+                        life: 60, color: color,
+                        size: Math.random() * 8 + 4
                     });
                 }
             }
@@ -667,65 +839,18 @@
                 const shardCount = item.size || 10;
                 for (let i = 0; i < shardCount; i++) {
                     const angle = (Math.PI * 2 / shardCount) * i + Math.random() * 0.5;
-                    const speed = Math.random() * 8 + 4;
+                    const speed = Math.random() * 10 + 5;
                     this.particles.push({
-                        x: x,
-                        y: y,
+                        x: x, y: y,
                         vx: Math.cos(angle) * speed,
-                        vy: Math.sin(angle) * speed - 3,
-                        life: 60,
-                        color: item.color,
-                        size: Math.random() * 8 + 4,
+                        vy: Math.sin(angle) * speed - 4,
+                        life: 70, color: item.color,
+                        size: Math.random() * 10 + 5,
                         isShard: true,
                         rotation: Math.random() * Math.PI * 2,
-                        rotationSpeed: (Math.random() - 0.5) * 0.4
+                        rotationSpeed: (Math.random() - 0.5) * 0.5
                     });
                 }
-            }
-
-            playSound(type) {
-                try {
-                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                    const oscillator = audioCtx.createOscillator();
-                    const gainNode = audioCtx.createGain();
-                    
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioCtx.destination);
-                    
-                    if (type === 'break') {
-                        oscillator.type = 'sawtooth';
-                        oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
-                        oscillator.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
-                        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-                        oscillator.start(audioCtx.currentTime);
-                        oscillator.stop(audioCtx.currentTime + 0.2);
-                    } else if (type === 'hit') {
-                        oscillator.type = 'square';
-                        oscillator.frequency.setValueAtTime(250, audioCtx.currentTime);
-                        oscillator.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.15);
-                        gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
-                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-                        oscillator.start(audioCtx.currentTime);
-                        oscillator.stop(audioCtx.currentTime + 0.15);
-                    } else if (type === 'launch') {
-                        oscillator.type = 'sine';
-                        oscillator.frequency.setValueAtTime(350, audioCtx.currentTime);
-                        oscillator.frequency.linearRampToValueAtTime(120, audioCtx.currentTime + 0.25);
-                        gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                        gainNode.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
-                        oscillator.start(audioCtx.currentTime);
-                        oscillator.stop(audioCtx.currentTime + 0.25);
-                    } else if (type === 'hurt') {
-                        oscillator.type = 'sawtooth';
-                        oscillator.frequency.setValueAtTime(500, audioCtx.currentTime);
-                        oscillator.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.35);
-                        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
-                        oscillator.start(audioCtx.currentTime);
-                        oscillator.stop(audioCtx.currentTime + 0.35);
-                    }
-                } catch (e) {}
             }
 
             updateCharacters() {
@@ -734,12 +859,12 @@
                 this.characters.forEach((char, index) => {
                     if (char.hp <= 0) return;
                     
-                    // 角色位置
+                    // 调整后的角色位置（适应更大的人物）
                     const positions = [
-                        { x: 100, y: 280 },  // Coco
-                        { x: 260, y: 290 },  // Cola
-                        { x: 180, y: 270 },  // Vina
-                        { x: 300, y: 170 }   // Matt
+                        { x: 90, y: 300 },   // Coco
+                        { x: 270, y: 310 },  // Cola
+                        { x: 180, y: 290 },  // Vina
+                        { x: 310, y: 160 }   // Matt
                     ];
                     const pos = positions[index];
                     
@@ -747,15 +872,13 @@
                     
                     if (char.visible) {
                         char.visibleTimer--;
-                        char.faceOffset = Math.min(char.faceOffset + 3, char.size * 0.8);
-                        
+                        char.faceOffset = Math.min(char.faceOffset + 4, char.size * 0.8);
                         if (char.visibleTimer <= 0) {
                             char.visible = false;
                             char.nextToggle = Math.random() * 100 + 50;
                         }
                     } else {
-                        char.faceOffset = Math.max(char.faceOffset - 4, 0);
-                        
+                        char.faceOffset = Math.max(char.faceOffset - 5, 0);
                         if (char.nextToggle <= 0) {
                             char.visible = true;
                             char.visibleTimer = char.duration;
@@ -763,8 +886,6 @@
                     }
                     
                     if (char.hitFlash > 0) char.hitFlash--;
-                    
-                    // 受伤动作恢复
                     if (char.hitReaction > 0) {
                         char.hitReaction--;
                         char.hitOffsetX *= 0.85;
@@ -774,18 +895,14 @@
                         char.hitOffsetY = 0;
                     }
                     
-                    // 更新物理碰撞体
                     const drawX = pos.x + char.hitOffsetX;
                     const drawY = pos.y + char.hitOffsetY;
                     const faceHeight = char.faceOffset * 0.8;
                     
-                    // 只有当脸露出足够多才创建碰撞体
                     if (char.visible && char.faceOffset > char.size * 0.3) {
                         if (!char.body) {
                             char.body = Bodies.rectangle(drawX, drawY - faceHeight/2, char.size * 0.7, faceHeight, {
-                                isStatic: true,
-                                isSensor: false,
-                                label: `character_${index}`
+                                isStatic: true, isSensor: false, label: `character_${index}`
                             });
                             World.add(this.world, char.body);
                         } else {
@@ -800,12 +917,12 @@
 
             checkGameEnd() {
                 const aliveCharacters = this.characters.filter(c => c.hp > 0);
-                
                 if (aliveCharacters.length === 0) {
                     this.gameState = 'ended';
                     document.getElementById('gameOver').style.display = 'block';
                     document.getElementById('gameOverTitle').textContent = '🎉 通关成功！';
                     document.getElementById('gameOverText').textContent = `最终得分: ${this.score}`;
+                    this.audio.stopMusic();
                 }
             }
 
@@ -816,83 +933,47 @@
             restart() {
                 document.getElementById('gameOver').style.display = 'none';
                 this.initGame();
+                if (this.audio.isMusicPlaying) {
+                    this.audio.startMusic();
+                }
             }
 
             loop() {
                 const { Engine } = Matter;
-                
                 Engine.update(this.engine, 1000 / 60);
-                
                 this.updateCharacters();
                 this.updateParticles();
                 this.render();
-                
                 requestAnimationFrame(() => this.loop());
             }
 
             updateParticles() {
                 this.particles = this.particles.filter(p => {
-                    p.x += p.vx;
-                    p.y += p.vy;
-                    p.vy += 0.25; // 重力
+                    p.x += p.vx; p.y += p.vy;
+                    p.vy += 0.25;
                     p.life--;
-                    if (p.isShard) {
-                        p.rotation += p.rotationSpeed;
-                    }
+                    if (p.isShard) p.rotation += p.rotationSpeed;
                     return p.life > 0;
                 });
             }
 
             render() {
                 const ctx = this.ctx;
-                
-                // 清空画布
                 ctx.fillStyle = '#f5e6d3';
                 ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
-                
-                // 绘制地板
                 ctx.fillStyle = '#d4c4b0';
                 ctx.fillRect(0, CONFIG.height - 40, CONFIG.width, 40);
-                
-                // 绘制地毯
                 ctx.fillStyle = '#c49a6c';
                 ctx.fillRect(20, CONFIG.height - 50, CONFIG.width - 40, 30);
                 
-                // 绘制吊灯
                 this.drawLamp(ctx, CONFIG.width/2, 50);
-                
-                // 绘制家具
-                this.furniture.forEach(f => {
-                    if (f.hp > 0) {
-                        this.drawFurniture(ctx, f);
-                    }
-                });
-                
-                // 绘制角色
-                this.characters.forEach((char, index) => {
-                    if (char.hp > 0) {
-                        this.drawCharacter(ctx, char, index);
-                    }
-                });
-                
-                // 绘制Vison和弹弓
+                this.furniture.forEach(f => { if (f.hp > 0) this.drawFurniture(ctx, f); });
+                this.characters.forEach((char, index) => { if (char.hp > 0) this.drawCharacter(ctx, char, index); });
                 this.drawVison(ctx);
                 this.drawSlingshot(ctx);
-                
-                // 绘制投射物
-                if (this.projectile) {
-                    this.drawProjectile(ctx);
-                }
-                
-                // 绘制拖拽线和轨迹
-                if (this.dragStart && this.dragCurrent) {
-                    this.drawTrajectory(ctx);
-                }
-                
-                // 绘制粒子效果
+                if (this.projectile) this.drawProjectile(ctx);
+                if (this.dragStart && this.dragCurrent) this.drawTrajectory(ctx);
                 this.drawParticles(ctx);
-                
-                // 绘制角色血条
                 this.drawHealthBars();
             }
 
@@ -903,7 +984,6 @@
                 ctx.moveTo(x, 0);
                 ctx.lineTo(x, y);
                 ctx.stroke();
-                
                 ctx.fillStyle = '#ffd700';
                 ctx.beginPath();
                 ctx.moveTo(x - 20, y);
@@ -911,7 +991,6 @@
                 ctx.lineTo(x + 15, y + 25);
                 ctx.lineTo(x - 15, y + 25);
                 ctx.fill();
-                
                 ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
                 ctx.beginPath();
                 ctx.arc(x, y + 40, 30, 0, Math.PI * 2);
@@ -920,8 +999,7 @@
 
             drawFurniture(ctx, f) {
                 const b = f.body;
-                const x = b.position.x;
-                const y = b.position.y;
+                const x = b.position.x, y = b.position.y;
                 const w = b.bounds.max.x - b.bounds.min.x;
                 const h = b.bounds.max.y - b.bounds.min.y;
                 
@@ -929,7 +1007,6 @@
                 ctx.translate(x, y);
                 ctx.rotate(b.angle);
                 
-                // 根据血量改变颜色（受损变暗）
                 const hpPercent = f.hp / f.maxHp;
                 const darken = Math.floor((1 - hpPercent) * 100);
                 
@@ -939,16 +1016,14 @@
                         ctx.fillRect(-w/2, -h/2, w, h);
                         ctx.fillStyle = this.darkenColor('#a0522d', darken);
                         ctx.fillRect(-w/2 + 5, -h/2 + 5, w - 10, 5);
-                        ctx.fillRect(-w/2 + 5, -h/2 + 20, w - 10, 5);
+                        ctx.fillRect(-w/2 + 5, -h/2 + 25, w - 10, 5);
                         break;
-                        
                     case 'chair':
                         ctx.fillStyle = this.darkenColor('#a0522d', darken);
                         ctx.fillRect(-w/2, -h/2, w, h);
                         ctx.fillStyle = this.darkenColor('#8b4513', darken);
-                        ctx.fillRect(-w/2 + 5, -h/2, w - 10, 15);
+                        ctx.fillRect(-w/2 + 5, -h/2, w - 10, 18);
                         break;
-                        
                     case 'glass_cabinet':
                         ctx.fillStyle = `rgba(173, 216, 230, ${0.4 + hpPercent * 0.4})`;
                         ctx.fillRect(-w/2, -h/2, w, h);
@@ -958,7 +1033,6 @@
                         ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
                         ctx.fillRect(-w/2 + 5, -h/2 + 5, 10, h - 10);
                         break;
-                        
                     case 'fridge':
                         ctx.fillStyle = this.darkenColor('#e0e0e0', darken);
                         ctx.fillRect(-w/2, -h/2, w, h);
@@ -968,7 +1042,6 @@
                         ctx.fillStyle = '#silver';
                         ctx.fillRect(-w/2 + 5, -5, 5, 15);
                         break;
-                        
                     case 'sideboard':
                         ctx.fillStyle = this.darkenColor('#cd853f', darken);
                         ctx.fillRect(-w/2, -h/2, w, h);
@@ -978,19 +1051,17 @@
                         ctx.strokeRect(-w/2 + 5, 5, w - 10, h/2 - 10);
                         break;
                 }
-                
                 ctx.restore();
                 
-                // 绘制家具血条
                 if (hpPercent < 1) {
-                    const barWidth = Math.min(w, 50);
+                    const barWidth = Math.min(w, 60);
                     ctx.fillStyle = '#333';
-                    ctx.fillRect(x - barWidth/2, y - h/2 - 15, barWidth, 6);
+                    ctx.fillRect(x - barWidth/2, y - h/2 - 18, barWidth, 8);
                     ctx.fillStyle = hpPercent > 0.6 ? '#4CAF50' : hpPercent > 0.3 ? '#ff9800' : '#ff4444';
-                    ctx.fillRect(x - barWidth/2, y - h/2 - 15, barWidth * hpPercent, 6);
+                    ctx.fillRect(x - barWidth/2, y - h/2 - 18, barWidth * hpPercent, 8);
                     ctx.strokeStyle = '#000';
                     ctx.lineWidth = 1;
-                    ctx.strokeRect(x - barWidth/2, y - h/2 - 15, barWidth, 6);
+                    ctx.strokeRect(x - barWidth/2, y - h/2 - 18, barWidth, 8);
                 }
             }
             
@@ -1004,16 +1075,15 @@
             }
 
             drawCharacter(ctx, char, index) {
+                // 调整后的位置（适应更大的人物）
                 const positions = [
-                    { x: 100, y: 280 },
-                    { x: 260, y: 290 },
-                    { x: 180, y: 270 },
-                    { x: 300, y: 170 }
+                    { x: 90, y: 300 },
+                    { x: 270, y: 310 },
+                    { x: 180, y: 290 },
+                    { x: 310, y: 160 }
                 ];
-                
                 const pos = positions[index];
                 const faceOffset = char.faceOffset;
-                
                 if (faceOffset <= 0) return;
                 
                 ctx.save();
@@ -1022,129 +1092,114 @@
                 ctx.translate(drawX, drawY);
                 
                 if (char.hitReaction > 0) {
-                    ctx.translate((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4);
+                    ctx.translate((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6);
                 }
-                
                 if (char.hitFlash > 0 && Math.floor(Date.now() / 50) % 2) {
                     ctx.globalAlpha = 0.5;
                 }
                 
                 const size = char.size;
-                
-                // 绘制各个角色
                 ctx.fillStyle = char.color;
                 
+                // 绘制角色（尺寸已翻倍）
                 if (char.name === 'Coco') {
                     ctx.fillRect(-size/2, -faceOffset, size, faceOffset);
                     ctx.fillStyle = '#5c4033';
-                    ctx.fillRect(-size/2 - 3, -faceOffset, size + 6, 8);
-                    ctx.fillRect(-size/2 - 3, -faceOffset, 6, faceOffset);
-                    ctx.fillRect(size/2 - 3, -faceOffset, 6, faceOffset);
+                    ctx.fillRect(-size/2 - 4, -faceOffset, size + 8, 12);
+                    ctx.fillRect(-size/2 - 4, -faceOffset, 8, faceOffset);
+                    ctx.fillRect(size/2 - 4, -faceOffset, 8, faceOffset);
                     ctx.fillStyle = '#000';
-                    ctx.fillRect(-size/4 - 2, -faceOffset + 10, 4, 4);
-                    ctx.fillRect(size/4 - 2, -faceOffset + 10, 4, 4);
+                    ctx.fillRect(-size/4 - 3, -faceOffset + 16, 6, 6);
+                    ctx.fillRect(size/4 - 3, -faceOffset + 16, 6, 6);
                     ctx.fillStyle = '#ff6b6b';
-                    ctx.fillRect(-3, -faceOffset + 18, 6, 2);
+                    ctx.fillRect(-4, -faceOffset + 30, 8, 3);
                 } else if (char.name === 'Cola') {
                     ctx.fillStyle = char.color;
                     ctx.fillRect(-size/2, -faceOffset, size, faceOffset);
                     ctx.fillStyle = '#333';
-                    ctx.fillRect(-size/2 - 2, -faceOffset, size + 4, 6);
+                    ctx.fillRect(-size/2 - 3, -faceOffset, size + 6, 10);
                     ctx.fillStyle = '#000';
-                    ctx.fillRect(-size/4 - 2, -faceOffset + 8, 4, 4);
-                    ctx.fillRect(size/4 - 2, -faceOffset + 8, 4, 4);
+                    ctx.fillRect(-size/4 - 3, -faceOffset + 14, 6, 6);
+                    ctx.fillRect(size/4 - 3, -faceOffset + 14, 6, 6);
                     ctx.strokeStyle = '#000';
-                    ctx.lineWidth = 2;
+                    ctx.lineWidth = 3;
                     ctx.beginPath();
-                    ctx.arc(0, -faceOffset + 16, 4, 0, Math.PI);
+                    ctx.arc(0, -faceOffset + 28, 6, 0, Math.PI);
                     ctx.stroke();
                 } else if (char.name === 'Vina') {
                     ctx.fillStyle = char.color;
                     ctx.fillRect(-size/2, -faceOffset, size, faceOffset);
                     ctx.fillStyle = '#4a3728';
-                    ctx.fillRect(-size/2 - 5, -faceOffset, 8, faceOffset);
-                    ctx.fillRect(size/2 - 3, -faceOffset, 8, faceOffset);
-                    ctx.fillRect(-size/2 - 5, -faceOffset, size + 10, 6);
+                    ctx.fillRect(-size/2 - 8, -faceOffset, 12, faceOffset);
+                    ctx.fillRect(size/2 - 4, -faceOffset, 12, faceOffset);
+                    ctx.fillRect(-size/2 - 8, -faceOffset, size + 16, 10);
                     ctx.fillStyle = '#000';
-                    ctx.fillRect(-size/4 - 2, -faceOffset + 8, 3, 3);
-                    ctx.fillRect(size/4 - 2, -faceOffset + 8, 3, 3);
+                    ctx.fillRect(-size/4 - 3, -faceOffset + 14, 4, 4);
+                    ctx.fillRect(size/4 - 3, -faceOffset + 14, 4, 4);
                     ctx.strokeStyle = '#d47878';
-                    ctx.lineWidth = 2;
+                    ctx.lineWidth = 3;
                     ctx.beginPath();
-                    ctx.arc(0, -faceOffset + 15, 4, 0.2, Math.PI - 0.2);
+                    ctx.arc(0, -faceOffset + 26, 6, 0.2, Math.PI - 0.2);
                     ctx.stroke();
                 } else if (char.name === 'Matt') {
                     ctx.fillStyle = char.color;
                     ctx.fillRect(-size/2, -faceOffset, size, faceOffset);
                     ctx.fillStyle = '#daa520';
-                    ctx.fillRect(-size/2 - 2, -faceOffset, size + 4, 5);
+                    ctx.fillRect(-size/2 - 3, -faceOffset, size + 6, 8);
                     ctx.fillStyle = '#8b4513';
-                    ctx.fillRect(-size/3 - 4, -faceOffset + 6, 8, 3);
-                    ctx.fillRect(size/3 - 4, -faceOffset + 6, 8, 3);
+                    ctx.fillRect(-size/3 - 6, -faceOffset + 10, 12, 4);
+                    ctx.fillRect(size/3 - 6, -faceOffset + 10, 12, 4);
                     ctx.fillStyle = '#4682b4';
-                    ctx.fillRect(-size/3 - 3, -faceOffset + 10, 6, 5);
-                    ctx.fillRect(size/3 - 3, -faceOffset + 10, 6, 5);
+                    ctx.fillRect(-size/3 - 4, -faceOffset + 18, 8, 8);
+                    ctx.fillRect(size/3 - 4, -faceOffset + 18, 8, 8);
                     ctx.fillStyle = '#8b0000';
-                    ctx.fillRect(-6, -faceOffset + 20, 12, 2);
+                    ctx.fillRect(-8, -faceOffset + 36, 16, 3);
                 }
                 
                 ctx.restore();
                 
-                // 绘制角色名字
                 ctx.save();
-                ctx.font = 'bold 12px Arial, sans-serif';
+                ctx.font = 'bold 14px Arial, sans-serif';
                 ctx.fillStyle = '#fff';
                 ctx.strokeStyle = '#000';
-                ctx.lineWidth = 3;
+                ctx.lineWidth = 4;
                 const nameText = char.name;
                 const textWidth = ctx.measureText(nameText).width;
                 const nameX = drawX - textWidth/2;
-                const nameY = drawY - faceOffset - 8;
+                const nameY = drawY - faceOffset - 12;
                 ctx.strokeText(nameText, nameX, nameY);
                 ctx.fillText(nameText, nameX, nameY);
                 ctx.restore();
             }
 
             drawVison(ctx) {
-                const x = 60;
-                const y = CONFIG.height - 80;
-                
+                const x = 60, y = CONFIG.height - 80;
                 ctx.save();
                 ctx.translate(x, y);
-                
                 ctx.fillStyle = '#4682b4';
                 ctx.fillRect(-15, 0, 30, 50);
-                
                 ctx.fillStyle = '#fdbcb4';
                 ctx.fillRect(-12, -20, 24, 22);
-                
                 ctx.fillStyle = '#4a4a4a';
                 ctx.fillRect(-12, -20, 24, 8);
-                
                 ctx.fillStyle = '#000';
                 ctx.fillRect(-6, -12, 3, 3);
                 ctx.fillRect(2, -12, 3, 3);
-                
                 ctx.strokeStyle = '#fdbcb4';
                 ctx.lineWidth = 6;
                 ctx.beginPath();
                 ctx.moveTo(15, 20);
                 ctx.lineTo(25, 10);
                 ctx.stroke();
-                
                 ctx.restore();
             }
 
             drawSlingshot(ctx) {
-                const sx = CONFIG.slingshotX;
-                const sy = CONFIG.slingshotY;
-                
+                const sx = CONFIG.slingshotX, sy = CONFIG.slingshotY;
                 ctx.save();
-                
                 ctx.strokeStyle = '#8b4513';
                 ctx.lineWidth = 6;
                 ctx.lineCap = 'round';
-                
                 ctx.beginPath();
                 ctx.moveTo(sx, sy);
                 ctx.lineTo(sx - 15, sy + 40);
@@ -1155,15 +1210,12 @@
                 if (this.dragStart && this.dragCurrent) {
                     ctx.strokeStyle = '#654321';
                     ctx.lineWidth = 4;
-                    
                     ctx.beginPath();
                     ctx.moveTo(sx - 15, sy);
                     ctx.lineTo(this.dragCurrent.x, this.dragCurrent.y);
                     ctx.moveTo(sx + 15, sy);
                     ctx.lineTo(this.dragCurrent.x, this.dragCurrent.y);
                     ctx.stroke();
-                    
-                    // 大便预览
                     ctx.save();
                     ctx.translate(this.dragCurrent.x, this.dragCurrent.y);
                     this.drawPoopShape(ctx, POOP_ITEM.size * 0.5);
@@ -1175,7 +1227,6 @@
                     ctx.moveTo(sx - 15, sy);
                     ctx.lineTo(sx + 15, sy);
                     ctx.stroke();
-                    
                     if (this.gameState === 'aiming') {
                         ctx.save();
                         ctx.translate(sx, sy);
@@ -1183,41 +1234,33 @@
                         ctx.restore();
                     }
                 }
-                
                 ctx.restore();
             }
             
             drawPoopShape(ctx, size) {
                 ctx.fillStyle = '#8B4513';
-                // 底部圆球
                 ctx.beginPath();
                 ctx.arc(0, size/3, size/3, 0, Math.PI * 2);
                 ctx.fill();
-                // 中间圆球
                 ctx.beginPath();
                 ctx.arc(0, 0, size/2.5, 0, Math.PI * 2);
                 ctx.fill();
-                // 顶部
                 ctx.beginPath();
                 ctx.ellipse(0, -size/2.5, size/4, size/3, 0, 0, Math.PI * 2);
                 ctx.fill();
-                // 光泽
                 ctx.fillStyle = '#A0522D';
                 ctx.beginPath();
                 ctx.arc(-size/6, -size/4, size/8, 0, Math.PI * 2);
                 ctx.fill();
-                // 苍蝇
                 if (Math.random() > 0.7) {
                     ctx.fillStyle = '#000';
-                    ctx.fillRect(size/4, -size/3, 2, 2);
+                    ctx.fillRect(size/4, -size/3, 3, 3);
                 }
             }
 
             drawProjectile(ctx) {
                 if (!this.projectile) return;
-                
                 const p = this.projectile;
-                
                 ctx.save();
                 ctx.translate(p.position.x, p.position.y);
                 ctx.rotate(p.angle);
@@ -1227,26 +1270,19 @@
 
             drawTrajectory(ctx) {
                 if (!this.dragStart || !this.dragCurrent) return;
-                
                 const dx = this.dragStart.x - this.dragCurrent.x;
                 const dy = this.dragStart.y - this.dragCurrent.y;
                 const dist = Math.hypot(dx, dy);
                 const power = Math.min(dist / CONFIG.maxPullDistance, 1);
                 const angle = Math.atan2(dy, dx);
-                
                 ctx.fillStyle = `rgba(139, 69, 19, ${0.3 + power * 0.4})`;
-                
-                let simX = this.dragStart.x;
-                let simY = this.dragStart.y;
+                let simX = this.dragStart.x, simY = this.dragStart.y;
                 const force = CONFIG.launchPower * power * 0.5;
                 let simVx = Math.cos(angle) * force * 20;
                 let simVy = Math.sin(angle) * force * 20;
-                
                 for (let i = 0; i < 12; i++) {
-                    simX += simVx;
-                    simY += simVy;
+                    simX += simVx; simY += simVy;
                     simVy += CONFIG.gravity * 0.5;
-                    
                     ctx.beginPath();
                     ctx.arc(simX, simY, 4, 0, Math.PI * 2);
                     ctx.fill();
@@ -1256,7 +1292,7 @@
             drawParticles(ctx) {
                 this.particles.forEach(p => {
                     if (p.isShard) {
-                        ctx.globalAlpha = p.life / 60;
+                        ctx.globalAlpha = p.life / 70;
                         ctx.save();
                         ctx.translate(p.x, p.y);
                         ctx.rotate(p.rotation);
@@ -1264,7 +1300,7 @@
                         ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
                         ctx.restore();
                     } else {
-                        ctx.globalAlpha = p.life / 50;
+                        ctx.globalAlpha = p.life / 60;
                         ctx.fillStyle = p.color;
                         ctx.beginPath();
                         ctx.arc(p.x, p.y, p.size/2, 0, Math.PI * 2);
@@ -1284,18 +1320,14 @@
                     const barContainer = document.createElement('div');
                     barContainer.className = 'health-bar';
                     barContainer.style.left = (10 + index * 85) + 'px';
-                    barContainer.style.top = '30px';
+                    barContainer.style.top = '35px';
                     
                     const fill = document.createElement('div');
                     fill.className = 'health-fill';
                     fill.style.width = (char.hp / char.maxHp * 100) + '%';
-                    if (char.hp / char.maxHp > 0.5) {
-                        fill.style.background = '#4CAF50';
-                    } else if (char.hp / char.maxHp > 0.25) {
-                        fill.style.background = '#ff9800';
-                    } else {
-                        fill.style.background = '#f44336';
-                    }
+                    if (char.hp / char.maxHp > 0.5) fill.style.background = '#4CAF50';
+                    else if (char.hp / char.maxHp > 0.25) fill.style.background = '#ff9800';
+                    else fill.style.background = '#f44336';
                     
                     barContainer.appendChild(fill);
                     ui.appendChild(barContainer);
@@ -1304,18 +1336,15 @@
                     name.className = 'character-name';
                     name.textContent = char.name;
                     name.style.left = (10 + index * 85) + 'px';
-                    name.style.top = '20px';
+                    name.style.top = '22px';
                     ui.appendChild(name);
                 });
             }
         }
 
-        // 启动游戏
         let game;
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                game = new Game();
-            });
+            document.addEventListener('DOMContentLoaded', () => { game = new Game(); });
         } else {
             game = new Game();
         }
