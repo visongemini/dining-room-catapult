@@ -64,7 +64,7 @@
             border: 2px solid #ffd700;
             text-align: center;
         }
-        #gameOver {
+        #gameOver, #bossWarning, #victoryScreen {
             position: absolute;
             top: 50%;
             left: 50%;
@@ -76,9 +76,27 @@
             border: 3px solid #ffd700;
             display: none;
             pointer-events: auto;
+            z-index: 200;
         }
-        #gameOver h2 { color: #ffd700; margin-bottom: 10px; font-size: 18px; }
-        #restartBtn {
+        #bossWarning {
+            background: rgba(50,0,50,0.95);
+            border-color: #ff00ff;
+            animation: bossPulse 0.5s ease-in-out infinite alternate;
+        }
+        @keyframes bossPulse {
+            from { box-shadow: 0 0 20px #ff00ff; transform: translate(-50%, -50%) scale(1); }
+            to { box-shadow: 0 0 40px #ff00ff, 0 0 60px #800080; transform: translate(-50%, -50%) scale(1.05); }
+        }
+        #victoryScreen {
+            background: rgba(255,215,0,0.95);
+            border-color: #ff6600;
+            color: #333;
+        }
+        #gameOver h2, #bossWarning h2, #victoryScreen h2 { margin-bottom: 10px; font-size: 22px; }
+        #gameOver h2 { color: #ffd700; }
+        #bossWarning h2 { color: #ff00ff; text-shadow: 0 0 10px #ff00ff; }
+        #victoryScreen h2 { color: #ff6600; font-size: 26px; }
+        #restartBtn, #continueBossBtn {
             background: #4CAF50;
             color: white;
             border: none;
@@ -87,7 +105,9 @@
             cursor: pointer;
             margin-top: 10px;
         }
+        #continueBossBtn { background: #ff00ff; }
         #restartBtn:hover { background: #45a049; }
+        #continueBossBtn:hover { background: #cc00cc; }
         #musicToggle {
             position: absolute;
             top: 5px;
@@ -116,6 +136,26 @@
             50% { transform: translateY(-20px) scale(1.3); }
             100% { transform: translateY(-40px) scale(1); opacity: 0; }
         }
+        .firework {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        @keyframes fireworkBurst {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+        .screen-shake {
+            animation: shake 0.3s ease-in-out;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(-5px, 5px); }
+            50% { transform: translate(5px, -5px); }
+            75% { transform: translate(-5px, -5px); }
+        }
     </style>
 </head>
 <body>
@@ -135,6 +175,18 @@
             <h2 id="gameOverTitle">游戏结束</h2>
             <p id="gameOverText"></p>
             <button id="restartBtn">再来一局</button>
+        </div>
+        <div id="bossWarning">
+            <h2>⚠️ 大魔王降临 ⚠️</h2>
+            <p style="font-size: 14px; margin: 10px 0;">Matt 的老婆 <span style="color:#ff00ff;font-size:18px;">Lola</span> 出现了！</p>
+            <p style="font-size: 12px; color:#ccc;">她带来了毁灭性的力量...</p>
+            <button id="continueBossBtn">迎战魔王</button>
+        </div>
+        <div id="victoryScreen">
+            <h2>🎉 恭喜通关！🎉</h2>
+            <p style="font-size: 16px; margin: 10px 0;">你击败了所有敌人！</p>
+            <p id="finalScore" style="font-size: 14px; color:#666;"></p>
+            <button id="restartBtn2" style="background:#ff6600;color:#fff;border:none;padding:10px 20px;font-size:14px;cursor:pointer;margin-top:10px;">再玩一次</button>
         </div>
     </div>
 
@@ -172,22 +224,37 @@
             type: 'poop', color: '#8B4513', penetrating: true
         };
 
-        // ==================== 角色数据 (尺寸翻倍) ====================
+        // ==================== 角色数据 (新血条设定) ====================
+        const BASE_HP = 100;
         const CHARACTERS = [
-            { name: 'Coco', maxHp: 80, hp: 80, color: '#ffb6c1', freq: 0.08, duration: 40, size: 56, yOffset: 0 },
-            { name: 'Cola', maxHp: 100, hp: 100, color: '#87ceeb', freq: 0.05, duration: 60, size: 64, yOffset: 5 },
-            { name: 'Vina', maxHp: 120, hp: 120, color: '#dda0dd', freq: 0.03, duration: 90, size: 72, yOffset: 10 },
-            { name: 'Matt', maxHp: 200, hp: 200, color: '#deb887', freq: 0.015, duration: 30, size: 84, yOffset: 15 }
+            { name: 'Coco', maxHp: BASE_HP * 0.8, hp: BASE_HP * 0.8, color: '#ffb6c1', freq: 0.08, duration: 40, size: 56, yOffset: 0, hpMultiplier: 0.8 },
+            { name: 'Cola', maxHp: BASE_HP, hp: BASE_HP, color: '#87ceeb', freq: 0.05, duration: 60, size: 64, yOffset: 5, hpMultiplier: 1.0 },
+            { name: 'Vina', maxHp: BASE_HP * 1.5, hp: BASE_HP * 1.5, color: '#dda0dd', freq: 0.03, duration: 90, size: 72, yOffset: 10, hpMultiplier: 1.5 },
+            { name: 'Matt', maxHp: BASE_HP * 2.0, hp: BASE_HP * 2.0, color: '#deb887', freq: 0.015, duration: 30, size: 84, yOffset: 15, hpMultiplier: 2.0 }
         ];
+
+        // ==================== 大魔王 Lola 配置 ====================
+        const BOSS_LOLA = {
+            name: 'Lola',
+            maxHp: BASE_HP * 10,
+            hp: BASE_HP * 10,
+            color: '#4a0080',
+            size: 100,
+            x: 280,
+            y: 200,
+            hpMultiplier: 10
+        };
 
         // ==================== 音频系统 ====================
         class AudioSystem {
             constructor() {
                 this.audioCtx = null;
                 this.isMusicPlaying = false;
+                this.isBossMusic = false;
                 this.musicGain = null;
                 this.masterGain = null;
                 this.initialized = false;
+                this.musicInterval = null;
             }
             
             init() {
@@ -215,9 +282,16 @@
                 this.resume();
                 
                 this.isMusicPlaying = true;
+                this.isBossMusic = false;
                 this.musicGain = this.audioCtx.createGain();
                 this.musicGain.gain.value = 0.12;
                 this.musicGain.connect(this.masterGain);
+                
+                this.playNormalMusic();
+            }
+            
+            playNormalMusic() {
+                if (!this.isMusicPlaying) return;
                 
                 const melody = [
                     { note: 261.63, duration: 0.25 }, { note: 293.66, duration: 0.25 },
@@ -230,7 +304,7 @@
                 let currentTime = this.audioCtx.currentTime;
                 
                 const playLoop = () => {
-                    if (!this.isMusicPlaying) return;
+                    if (!this.isMusicPlaying || this.isBossMusic) return;
                     melody.forEach(({ note, duration }) => {
                         const osc = this.audioCtx.createOscillator();
                         const gain = this.audioCtx.createGain();
@@ -244,8 +318,8 @@
                         osc.stop(currentTime + duration);
                         currentTime += duration;
                     });
-                    setTimeout(() => {
-                        if (this.isMusicPlaying) {
+                    this.musicInterval = setTimeout(() => {
+                        if (this.isMusicPlaying && !this.isBossMusic) {
                             currentTime = this.audioCtx.currentTime;
                             playLoop();
                         }
@@ -254,8 +328,98 @@
                 playLoop();
             }
             
+            startBossMusic() {
+                if (!this.initialized) this.init();
+                this.isBossMusic = true;
+                if (this.musicInterval) clearTimeout(this.musicInterval);
+                
+                // 阴森恐怖的魔王音乐
+                const darkMelody = [
+                    { note: 110.00, duration: 0.4 }, { note: 87.31, duration: 0.4 },
+                    { note: 65.41, duration: 0.6 }, { note: 110.00, duration: 0.3 },
+                    { note: 92.50, duration: 0.4 }, { note: 73.42, duration: 0.5 },
+                    { note: 110.00, duration: 0.3 }, { note: 82.41, duration: 0.6 },
+                ];
+                
+                let currentTime = this.audioCtx.currentTime;
+                
+                const playDarkLoop = () => {
+                    if (!this.isMusicPlaying || !this.isBossMusic) return;
+                    darkMelody.forEach(({ note, duration }) => {
+                        // 主音
+                        const osc = this.audioCtx.createOscillator();
+                        const gain = this.audioCtx.createGain();
+                        osc.type = 'sawtooth';
+                        osc.frequency.value = note;
+                        gain.gain.setValueAtTime(0.15, currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, currentTime + duration * 0.9);
+                        osc.connect(gain);
+                        gain.connect(this.musicGain);
+                        osc.start(currentTime);
+                        osc.stop(currentTime + duration);
+                        
+                        // 不和谐音层
+                        const osc2 = this.audioCtx.createOscillator();
+                        const gain2 = this.audioCtx.createGain();
+                        osc2.type = 'square';
+                        osc2.frequency.value = note * 1.5; // 三度音程，更阴森
+                        gain2.gain.setValueAtTime(0.08, currentTime);
+                        gain2.gain.exponentialRampToValueAtTime(0.01, currentTime + duration * 0.8);
+                        osc2.connect(gain2);
+                        gain2.connect(this.musicGain);
+                        osc2.start(currentTime);
+                        osc2.stop(currentTime + duration);
+                        
+                        currentTime += duration;
+                    });
+                    this.musicInterval = setTimeout(() => {
+                        if (this.isMusicPlaying && this.isBossMusic) {
+                            currentTime = this.audioCtx.currentTime;
+                            playDarkLoop();
+                        }
+                    }, (currentTime - this.audioCtx.currentTime) * 1000);
+                };
+                playDarkLoop();
+            }
+            
+            playBossAppearSound() {
+                if (!this.initialized) return;
+                this.resume();
+                const now = this.audioCtx.currentTime;
+                
+                // 低沉的魔王登场音效
+                for (let i = 0; i < 3; i++) {
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(55, now + i * 0.5);
+                    osc.frequency.exponentialRampToValueAtTime(27.5, now + i * 0.5 + 0.8);
+                    gain.gain.setValueAtTime(0.4, now + i * 0.5);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.5 + 0.8);
+                    osc.connect(gain);
+                    gain.connect(this.masterGain);
+                    osc.start(now + i * 0.5);
+                    osc.stop(now + i * 0.5 + 0.8);
+                }
+                
+                // 尖叫效果
+                const osc3 = this.audioCtx.createOscillator();
+                const gain3 = this.audioCtx.createGain();
+                osc3.type = 'sawtooth';
+                osc3.frequency.setValueAtTime(200, now);
+                osc3.frequency.exponentialRampToValueAtTime(800, now + 1.5);
+                gain3.gain.setValueAtTime(0.2, now);
+                gain3.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
+                osc3.connect(gain3);
+                gain3.connect(this.masterGain);
+                osc3.start(now);
+                osc3.stop(now + 1.5);
+            }
+            
             stopMusic() {
                 this.isMusicPlaying = false;
+                this.isBossMusic = false;
+                if (this.musicInterval) clearTimeout(this.musicInterval);
                 if (this.musicGain) {
                     this.musicGain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.3);
                     setTimeout(() => {
@@ -371,6 +535,35 @@
                     osc.stop(now + delay + 0.08);
                 }
             }
+            
+            playVictoryMusic() {
+                if (!this.initialized) return;
+                this.stopMusic();
+                this.resume();
+                const now = this.audioCtx.currentTime;
+                
+                // 胜利音乐
+                const victoryNotes = [
+                    { note: 523.25, duration: 0.2 }, { note: 659.25, duration: 0.2 },
+                    { note: 783.99, duration: 0.2 }, { note: 1046.50, duration: 0.4 },
+                    { note: 783.99, duration: 0.2 }, { note: 1046.50, duration: 0.6 },
+                ];
+                
+                let currentTime = now;
+                victoryNotes.forEach(({ note, duration }) => {
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.value = note;
+                    gain.gain.setValueAtTime(0.15, currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, currentTime + duration * 0.8);
+                    osc.connect(gain);
+                    gain.connect(this.masterGain);
+                    osc.start(currentTime);
+                    osc.stop(currentTime + duration);
+                    currentTime += duration;
+                });
+            }
         }
 
         // ==================== 游戏主类 ====================
@@ -411,11 +604,16 @@
                 this.hitCooldowns = new Map();
                 this.poopMode = false;
                 this.currentItem = null;
+                this.bossMode = false;
+                this.bossDefeated = false;
+                this.boss = null;
+                this.fireworks = [];
                 
                 this.characters = CHARACTERS.map((c, index) => ({
                     ...c, hp: c.maxHp, visible: false, visibleTimer: 0,
                     nextToggle: Math.random() * 100, hitFlash: 0, faceOffset: 0,
-                    hitReaction: 0, hitOffsetX: 0, hitOffsetY: 0, body: null, index
+                    hitReaction: 0, hitOffsetX: 0, hitOffsetY: 0, body: null, index,
+                    injured: false, injuryLevel: 0
                 }));
                 
                 this.createBoundaries();
@@ -439,46 +637,54 @@
                 const { World, Bodies } = Matter;
                 this.furniture = [];
                 
+                // 家具集中在防守方区域（右侧 x=220~330）
                 const items = [
-                    // 中央餐桌区
-                    { x: CONFIG.width/2, y: 380, w: 160, h: 90, type: 'table', hp: 80, name: '餐桌' },
-                    { x: 70, y: 340, w: 50, h: 70, type: 'chair', hp: 40, name: '椅子' },
-                    { x: 290, y: 340, w: 50, h: 70, type: 'chair', hp: 40, name: '椅子' },
-                    { x: 130, y: 400, w: 50, h: 70, type: 'chair', hp: 40, name: '椅子' },
-                    { x: 230, y: 400, w: 50, h: 70, type: 'chair', hp: 40, name: '椅子' },
-                    
-                    // 左侧厨房区
-                    { x: 50, y: 200, w: 80, h: 150, type: 'fridge', hp: 150, name: '冰箱', static: true },
-                    { x: 120, y: 150, w: 70, h: 60, type: 'microwave', hp: 30, name: '微波炉' },
-                    { x: 60, y: 320, w: 55, h: 55, type: 'stool', hp: 25, name: '凳子' },
-                    { x: 100, y: 480, w: 45, h: 40, type: 'plant', hp: 20, name: '盆栽' },
-                    
-                    // 右侧储物区
-                    { x: 310, y: 180, w: 90, h: 130, type: 'glass_cabinet', hp: 30, name: '橱柜' },
-                    { x: 270, y: 220, w: 110, h: 90, type: 'sideboard', hp: 80, name: '餐边柜', static: true },
-                    { x: 320, y: 350, w: 60, h: 80, type: 'bookshelf', hp: 50, name: '书架' },
-                    { x: 300, y: 480, w: 50, h: 40, type: 'plant', hp: 20, name: '盆栽' },
-                    
-                    // 背景装饰
-                    { x: 180, y: 120, w: 100, h: 15, type: 'picture_frame', hp: 15, name: '相框', static: true },
-                    { x: 50, y: 80, w: 60, h: 40, type: 'wall_clock', hp: 20, name: '挂钟', static: true },
-                    
-                    // 前景小物件
-                    { x: 150, y: 520, w: 35, h: 30, type: 'shoe_rack', hp: 25, name: '鞋架' },
-                    { x: 250, y: 530, w: 40, h: 25, type: 'rug', hp: 30, name: '地毯', static: true },
-                    { x: 200, y: 280, w: 30, h: 40, type: 'vase_stand', hp: 20, name: '花瓶架' }
+                    // 核心防御 - 餐桌在中央偏右
+                    { x: 260, y: 420, w: 140, h: 80, type: 'table', hp: 80, name: '餐桌' },
+                    // 椅子围绕餐桌
+                    { x: 200, y: 380, w: 45, h: 60, type: 'chair', hp: 40, name: '椅子' },
+                    { x: 320, y: 380, w: 45, h: 60, type: 'chair', hp: 40, name: '椅子' },
+                    { x: 230, y: 480, w: 45, h: 60, type: 'chair', hp: 40, name: '椅子' },
+                    { x: 290, y: 480, w: 45, h: 60, type: 'chair', hp: 40, name: '椅子' },
+                    // 后方家具 - 堆叠物会倒
+                    { x: 300, y: 280, w: 70, h: 50, type: 'microwave', hp: 30, name: '微波炉' },
+                    { x: 330, y: 200, w: 60, h: 70, type: 'stool', hp: 25, name: '凳子' },
+                    { x: 250, y: 320, w: 80, h: 100, type: 'glass_cabinet', hp: 30, name: '橱柜' },
+                    { x: 280, y: 240, w: 100, h: 80, type: 'sideboard', hp: 80, name: '餐边柜' },
+                    { x: 320, y: 350, w: 50, h: 70, type: 'bookshelf', hp: 50, name: '书架' },
+                    { x: 240, y: 180, w: 50, h: 60, type: 'plant', hp: 20, name: '盆栽' },
+                    { x: 310, y: 150, w: 40, h: 50, type: 'plant', hp: 20, name: '盆栽' },
+                    // 地面散落物品
+                    { x: 220, y: 550, w: 40, h: 30, type: 'shoe_rack', hp: 25, name: '鞋架' },
+                    { x: 280, y: 530, w: 35, h: 25, type: 'rug', hp: 30, name: '地毯' },
+                    { x: 340, y: 450, w: 25, h: 35, type: 'vase_stand', hp: 20, name: '花瓶架' },
+                    // 后方高层堆叠 - 容易倒塌
+                    { x: 260, y: 200, w: 50, h: 40, type: 'stool', hp: 25, name: '凳子' },
+                    { x: 290, y: 150, w: 40, h: 35, type: 'plant', hp: 20, name: '盆栽' }
                 ];
                 
                 items.forEach(item => {
                     const body = Bodies.rectangle(item.x, item.y, item.w, item.h, {
-                        isStatic: item.static || false,
-                        density: 0.008, friction: 0.8, restitution: 0.4,
+                        isStatic: false,
+                        density: 0.005, friction: 0.6, restitution: 0.2,
                         label: `furniture_${item.type}`
                     });
                     this.furniture.push({ body, type: item.type, hp: item.hp, maxHp: item.hp, name: item.name });
                 });
                 
                 World.add(this.world, this.furniture.map(f => f.body));
+            }
+
+            createBoss() {
+                const { World, Bodies } = Matter;
+                this.boss = { ...BOSS_LOLA, body: null, hitFlash: 0, hitReaction: 0 };
+                
+                this.boss.body = Bodies.rectangle(this.boss.x, this.boss.y, this.boss.size * 0.8, this.boss.size, {
+                    isStatic: true,
+                    label: 'boss_lola'
+                });
+                
+                World.add(this.world, this.boss.body);
             }
 
             loadNextItem() {
@@ -542,6 +748,8 @@
                 
                 document.getElementById('musicToggle').addEventListener('click', () => this.toggleMusic());
                 document.getElementById('restartBtn').addEventListener('click', () => this.restart());
+                document.getElementById('restartBtn2').addEventListener('click', () => this.restart());
+                document.getElementById('continueBossBtn').addEventListener('click', () => this.startBossFight());
             }
 
             getPointerPos(e) {
@@ -625,6 +833,11 @@
                     }
                     this.hitCooldowns.set(cooldownKey, now);
                     
+                    if (other.label === 'boss_lola' && this.boss && this.boss.hp > 0) {
+                        this.hitBoss(item, other.position, projectile);
+                        continue;
+                    }
+                    
                     const charIndex = other.label?.match(/character_(\d)/)?.[1];
                     if (charIndex !== undefined) {
                         const character = this.characters[parseInt(charIndex)];
@@ -640,17 +853,25 @@
             }
 
             hitCharacter(character, item, position, projectile) {
-                character.hp -= item.damage;
+                const damage = item.damage;
+                character.hp -= damage;
                 character.hitFlash = 15;
                 character.hitReaction = 20;
                 character.hitOffsetX = (Math.random() - 0.5) * 20;
                 character.hitOffsetY = -Math.random() * 15;
                 
+                // 增加受伤等级
+                const hpPercent = character.hp / character.maxHp;
+                if (hpPercent < 0.3) character.injuryLevel = 3;
+                else if (hpPercent < 0.6) character.injuryLevel = 2;
+                else if (hpPercent < 0.9) character.injuryLevel = 1;
+                character.injured = character.injuryLevel > 0;
+                
                 this.audio.playHurt();
                 if (navigator.vibrate) navigator.vibrate(20);
                 
-                this.showDamageText(position.x, position.y, item.damage, true);
-                this.score += item.damage;
+                this.showDamageText(position.x, position.y, damage, true);
+                this.score += damage;
                 this.updateUI();
                 
                 this.createParticles(position.x, position.y, '#8B4513', 15);
@@ -667,6 +888,42 @@
                         character.body = null;
                     }
                     this.checkGameEnd();
+                }
+            }
+
+            hitBoss(item, position, projectile) {
+                const damage = item.damage;
+                this.boss.hp -= damage;
+                this.boss.hitFlash = 15;
+                this.boss.hitReaction = 20;
+                
+                // 屏幕震动效果
+                document.getElementById('gameContainer').classList.add('screen-shake');
+                setTimeout(() => {
+                    document.getElementById('gameContainer').classList.remove('screen-shake');
+                }, 300);
+                
+                this.audio.playHurt();
+                if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
+                
+                this.showDamageText(position.x, position.y, damage, true, '#ff00ff');
+                this.score += damage * 2;
+                this.updateUI();
+                
+                this.createParticles(position.x, position.y, '#ff00ff', 20);
+                
+                Matter.Body.setVelocity(projectile, {
+                    x: projectile.velocity.x * 0.3,
+                    y: projectile.velocity.y * 0.2
+                });
+                
+                if (this.boss.hp <= 0) {
+                    this.createParticles(position.x, position.y, '#4a0080', 50);
+                    if (this.boss.body) {
+                        Matter.World.remove(this.world, this.boss.body);
+                    }
+                    this.bossDefeated = true;
+                    this.showVictory();
                 }
             }
 
@@ -789,11 +1046,72 @@
 
             checkGameEnd() {
                 const aliveCharacters = this.characters.filter(c => c.hp > 0);
-                if (aliveCharacters.length === 0) {
-                    document.getElementById('gameOver').style.display = 'block';
-                    document.getElementById('gameOverTitle').textContent = '🎉 通关成功！';
-                    document.getElementById('gameOverText').textContent = `最终得分: ${this.score}`;
-                    this.audio.stopMusic();
+                if (aliveCharacters.length === 0 && !this.bossMode) {
+                    this.showBossWarning();
+                }
+            }
+
+            showBossWarning() {
+                document.getElementById('bossWarning').style.display = 'block';
+                this.audio.playBossAppearSound();
+            }
+
+            startBossFight() {
+                document.getElementById('bossWarning').style.display = 'none';
+                this.bossMode = true;
+                this.createBoss();
+                this.audio.startBossMusic();
+                
+                // 重置大便模式
+                this.poopMode = true;
+                this.loadNextItem();
+            }
+
+            showVictory() {
+                this.audio.playVictoryMusic();
+                document.getElementById('victoryScreen').style.display = 'block';
+                document.getElementById('finalScore').textContent = `最终得分: ${this.score}`;
+                
+                // 开始烟花
+                this.startFireworks();
+            }
+
+            startFireworks() {
+                const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffa500', '#ff6600'];
+                
+                const createFirework = () => {
+                    const container = document.getElementById('gameContainer');
+                    const x = 20 + Math.random() * 60;
+                    const y = 20 + Math.random() * 40;
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    for (let i = 0; i < 20; i++) {
+                        const particle = document.createElement('div');
+                        particle.className = 'firework';
+                        particle.style.left = x + '%';
+                        particle.style.top = y + '%';
+                        particle.style.background = color;
+                        particle.style.setProperty('--tx', (Math.random() - 0.5) * 200 + 'px');
+                        particle.style.setProperty('--ty', (Math.random() - 0.5) * 200 + 'px');
+                        particle.style.animation = `fireworkBurst ${1 + Math.random()}s ease-out forwards`;
+                        container.appendChild(particle);
+                        
+                        setTimeout(() => particle.remove(), 2000);
+                    }
+                };
+                
+                // 持续放烟花
+                const fireworkInterval = setInterval(() => {
+                    if (document.getElementById('victoryScreen').style.display === 'none') {
+                        clearInterval(fireworkInterval);
+                        return;
+                    }
+                    createFirework();
+                }, 300);
+                
+                // 立即放几个
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(createFirework, i * 100);
                 }
             }
 
@@ -808,6 +1126,8 @@
 
             restart() {
                 document.getElementById('gameOver').style.display = 'none';
+                document.getElementById('bossWarning').style.display = 'none';
+                document.getElementById('victoryScreen').style.display = 'none';
                 this.initGame();
             }
 
@@ -830,16 +1150,35 @@
 
             render() {
                 const ctx = this.ctx;
-                ctx.fillStyle = '#f5e6d3';
+                
+                // Boss模式背景变暗
+                if (this.bossMode) {
+                    ctx.fillStyle = '#2a1a2a';
+                } else {
+                    ctx.fillStyle = '#f5e6d3';
+                }
                 ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
-                ctx.fillStyle = '#d4c4b0';
+                
+                // Boss模式下添加暗紫色遮罩
+                if (this.bossMode) {
+                    ctx.fillStyle = 'rgba(74, 0, 128, 0.15)';
+                    ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+                }
+                
+                ctx.fillStyle = this.bossMode ? '#3a2a3a' : '#d4c4b0';
                 ctx.fillRect(0, CONFIG.height - 40, CONFIG.width, 40);
-                ctx.fillStyle = '#c49a6c';
+                ctx.fillStyle = this.bossMode ? '#8b4513' : '#c49a6c';
                 ctx.fillRect(20, CONFIG.height - 50, CONFIG.width - 40, 30);
                 
                 this.drawLamp(ctx, CONFIG.width/2, 50);
                 this.furniture.forEach(f => { if (f.hp > 0) this.drawFurniture(ctx, f); });
                 this.characters.forEach((char, i) => { if (char.hp > 0) this.drawCharacter(ctx, char, i); });
+                
+                // 绘制Boss
+                if (this.bossMode && this.boss && this.boss.hp > 0) {
+                    this.drawBoss(ctx);
+                }
+                
                 this.drawVison(ctx);
                 this.drawSlingshot(ctx);
                 this.projectiles.forEach(p => this.drawProjectile(ctx, p));
@@ -849,20 +1188,20 @@
             }
 
             drawLamp(ctx, x, y) {
-                ctx.strokeStyle = '#666';
+                ctx.strokeStyle = this.bossMode ? '#444' : '#666';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.moveTo(x, 0);
                 ctx.lineTo(x, y);
                 ctx.stroke();
-                ctx.fillStyle = '#ffd700';
+                ctx.fillStyle = this.bossMode ? '#800080' : '#ffd700';
                 ctx.beginPath();
                 ctx.moveTo(x - 20, y);
                 ctx.lineTo(x + 20, y);
                 ctx.lineTo(x + 15, y + 25);
                 ctx.lineTo(x - 15, y + 25);
                 ctx.fill();
-                ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+                ctx.fillStyle = this.bossMode ? 'rgba(128, 0, 128, 0.4)' : 'rgba(255, 215, 0, 0.3)';
                 ctx.beginPath();
                 ctx.arc(x, y + 40, 30, 0, Math.PI * 2);
                 ctx.fill();
@@ -1059,6 +1398,11 @@
                 const size = char.size;
                 ctx.fillStyle = char.color;
                 
+                // 绘制受伤效果 - 淤青和绷带
+                if (char.injured) {
+                    ctx.globalCompositeOperation = 'multiply';
+                }
+                
                 if (char.name === 'Coco') {
                     ctx.fillRect(-size/2, -faceOffset, size, faceOffset);
                     ctx.fillStyle = '#5c4033';
@@ -1070,6 +1414,37 @@
                     ctx.fillRect(size/4 - 3, -faceOffset + 16, 6, 6);
                     ctx.fillStyle = '#ff6b6b';
                     ctx.fillRect(-4, -faceOffset + 30, 8, 3);
+                    
+                    // 受伤效果
+                    if (char.injuryLevel >= 1) {
+                        ctx.fillStyle = 'rgba(139, 69, 19, 0.4)';
+                        ctx.beginPath();
+                        ctx.arc(-size/3, -faceOffset + 20, 8, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    if (char.injuryLevel >= 2) {
+                        // 绷带
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(-size/2 - 2, -faceOffset + 35, size + 4, 8);
+                        ctx.strokeStyle = '#ddd';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(-size/2, -faceOffset + 37);
+                        ctx.lineTo(size/2, -faceOffset + 37);
+                        ctx.moveTo(-size/2, -faceOffset + 41);
+                        ctx.lineTo(size/2, -faceOffset + 41);
+                        ctx.stroke();
+                    }
+                    if (char.injuryLevel >= 3) {
+                        // 黑眼圈
+                        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                        ctx.beginPath();
+                        ctx.ellipse(-size/4, -faceOffset + 16, 5, 4, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.ellipse(size/4, -faceOffset + 16, 5, 4, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
                 } else if (char.name === 'Cola') {
                     ctx.fillStyle = char.color;
                     ctx.fillRect(-size/2, -faceOffset, size, faceOffset);
@@ -1083,6 +1458,23 @@
                     ctx.beginPath();
                     ctx.arc(0, -faceOffset + 28, 6, 0, Math.PI);
                     ctx.stroke();
+                    
+                    if (char.injuryLevel >= 1) {
+                        ctx.fillStyle = 'rgba(139, 69, 19, 0.4)';
+                        ctx.beginPath();
+                        ctx.arc(size/3, -faceOffset + 25, 8, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    if (char.injuryLevel >= 2) {
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(-size/2 - 2, -faceOffset + 8, size + 4, 6);
+                    }
+                    if (char.injuryLevel >= 3) {
+                        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                        ctx.beginPath();
+                        ctx.ellipse(-size/4, -faceOffset + 14, 5, 4, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
                 } else if (char.name === 'Vina') {
                     ctx.fillStyle = char.color;
                     ctx.fillRect(-size/2, -faceOffset, size, faceOffset);
@@ -1098,6 +1490,30 @@
                     ctx.beginPath();
                     ctx.arc(0, -faceOffset + 26, 6, 0.2, Math.PI - 0.2);
                     ctx.stroke();
+                    
+                    if (char.injuryLevel >= 1) {
+                        ctx.fillStyle = 'rgba(139, 69, 19, 0.4)';
+                        ctx.beginPath();
+                        ctx.arc(-size/3, -faceOffset + 30, 10, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    if (char.injuryLevel >= 2) {
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(-size/2 - 6, -faceOffset + 15, 8, 6);
+                    }
+                    if (char.injuryLevel >= 3) {
+                        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                        ctx.beginPath();
+                        ctx.ellipse(size/4, -faceOffset + 14, 5, 4, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        // 口红花了
+                        ctx.fillStyle = '#cc6666';
+                        ctx.beginPath();
+                        ctx.moveTo(-8, -faceOffset + 28);
+                        ctx.lineTo(8, -faceOffset + 32);
+                        ctx.lineTo(0, -faceOffset + 34);
+                        ctx.fill();
+                    }
                 } else if (char.name === 'Matt') {
                     ctx.fillStyle = char.color;
                     ctx.fillRect(-size/2, -faceOffset, size, faceOffset);
@@ -1111,8 +1527,41 @@
                     ctx.fillRect(size/3 - 4, -faceOffset + 18, 8, 8);
                     ctx.fillStyle = '#8b0000';
                     ctx.fillRect(-8, -faceOffset + 36, 16, 3);
+                    
+                    if (char.injuryLevel >= 1) {
+                        ctx.fillStyle = 'rgba(139, 69, 19, 0.4)';
+                        ctx.beginPath();
+                        ctx.arc(0, -faceOffset + 25, 10, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    if (char.injuryLevel >= 2) {
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(-size/2 - 2, -faceOffset + 20, size + 4, 10);
+                        ctx.strokeStyle = '#ddd';
+                        ctx.lineWidth = 1;
+                        for(let i=0; i<3; i++) {
+                            ctx.beginPath();
+                            ctx.moveTo(-size/2, -faceOffset + 22 + i*3);
+                            ctx.lineTo(size/2, -faceOffset + 22 + i*3);
+                            ctx.stroke();
+                        }
+                    }
+                    if (char.injuryLevel >= 3) {
+                        // 眼镜碎了
+                        ctx.strokeStyle = '#000';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(-size/3 - 4, -faceOffset + 22);
+                        ctx.lineTo(-size/3 + 4, -faceOffset + 18);
+                        ctx.stroke();
+                        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                        ctx.beginPath();
+                        ctx.ellipse(-size/3, -faceOffset + 22, 5, 4, 0.3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
                 }
                 
+                ctx.globalCompositeOperation = 'source-over';
                 ctx.restore();
                 
                 ctx.save();
@@ -1126,6 +1575,118 @@
                 const nameY = drawY - faceOffset - 12;
                 ctx.strokeText(nameText, nameX, nameY);
                 ctx.fillText(nameText, nameX, nameY);
+                ctx.restore();
+            }
+
+            drawBoss(ctx) {
+                const b = this.boss;
+                const x = b.x;
+                const y = b.y;
+                const size = b.size;
+                
+                ctx.save();
+                ctx.translate(x, y);
+                
+                if (b.hitReaction > 0) {
+                    b.hitReaction--;
+                    ctx.translate((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10);
+                }
+                
+                if (b.hitFlash > 0 && Math.floor(Date.now() / 50) % 2) {
+                    ctx.globalAlpha = 0.5;
+                    b.hitFlash--;
+                }
+                
+                // Boss 阴影
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.beginPath();
+                ctx.ellipse(0, size/2 + 10, size/2, size/8, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Boss 身体 - 黑化紫色
+                const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size/2);
+                gradient.addColorStop(0, '#800080');
+                gradient.addColorStop(0.5, '#4a0080');
+                gradient.addColorStop(1, '#2a0040');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(-size/2, -size/2, size, size);
+                
+                // 黑化光晕效果
+                ctx.shadowColor = '#ff00ff';
+                ctx.shadowBlur = 20;
+                
+                // 邪恶眼睛
+                ctx.fillStyle = '#ff0000';
+                ctx.shadowColor = '#ff0000';
+                ctx.shadowBlur = 15;
+                ctx.beginPath();
+                ctx.ellipse(-size/4, -size/6, size/6, size/8, -0.2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(size/4, -size/6, size/6, size/8, 0.2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 瞳孔
+                ctx.fillStyle = '#000';
+                ctx.shadowBlur = 0;
+                ctx.beginPath();
+                ctx.arc(-size/4, -size/6, size/12, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(size/4, -size/6, size/12, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 邪恶笑容
+                ctx.strokeStyle = '#ff0066';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(-size/3, size/6);
+                ctx.quadraticCurveTo(0, size/3, size/3, size/6);
+                ctx.stroke();
+                
+                // 尖牙
+                ctx.fillStyle = '#fff';
+                for(let i = 0; i < 4; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(-size/4 + i * size/8, size/6);
+                    ctx.lineTo(-size/4 + i * size/8 + size/16, size/4);
+                    ctx.lineTo(-size/4 + i * size/8 + size/8, size/6);
+                    ctx.fill();
+                }
+                
+                // 黑化头发
+                ctx.fillStyle = '#1a0033';
+                ctx.beginPath();
+                    ctx.moveTo(-size/2, -size/2);
+                ctx.quadraticCurveTo(-size/2 - 20, -size/4, -size/2, 0);
+                ctx.quadraticCurveTo(-size/2 - 15, size/4, -size/2, size/2);
+                ctx.lineTo(size/2, size/2);
+                ctx.quadraticCurveTo(size/2 + 15, size/4, size/2, 0);
+                ctx.quadraticCurveTo(size/2 + 20, -size/4, size/2, -size/2);
+                ctx.closePath();
+                ctx.fill();
+                
+                // 邪恶角
+                ctx.fillStyle = '#4a004a';
+                ctx.beginPath();
+                ctx.moveTo(-size/3, -size/2);
+                ctx.lineTo(-size/2 - 10, -size/2 - 30);
+                ctx.lineTo(-size/4, -size/2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(size/3, -size/2);
+                ctx.lineTo(size/2 + 10, -size/2 - 30);
+                ctx.lineTo(size/4, -size/2);
+                ctx.fill();
+                
+                // Lola 名字
+                ctx.font = 'bold 16px Arial, sans-serif';
+                ctx.fillStyle = '#ff00ff';
+                ctx.shadowColor = '#ff00ff';
+                ctx.shadowBlur = 10;
+                ctx.textAlign = 'center';
+                ctx.fillText('LOLA', 0, -size/2 - 10);
+                
                 ctx.restore();
             }
 
@@ -1217,7 +1778,6 @@
                         break;
                     
                     case 'plate':
-                        // 陶瓷盘子 - 扁圆
                         ctx.fillStyle = item.color;
                         ctx.beginPath();
                         ctx.ellipse(0, 0, size/2, size/6, 0, 0, Math.PI * 2);
@@ -1230,7 +1790,6 @@
                         break;
                     
                     case 'cup':
-                        // 玻璃杯 - 圆柱
                         ctx.fillStyle = item.color;
                         ctx.fillRect(-size/4, -size/2, size/2, size);
                         ctx.strokeRect(-size/4, -size/2, size/2, size);
@@ -1239,7 +1798,6 @@
                         break;
                     
                     case 'mug':
-                        // 马克杯 - 圆柱+把手
                         ctx.fillStyle = item.color;
                         ctx.fillRect(-size/4, -size/2, size/2, size * 0.8);
                         ctx.strokeRect(-size/4, -size/2, size/2, size * 0.8);
@@ -1249,7 +1807,6 @@
                         break;
                     
                     case 'cutlery':
-                        // 刀叉 - 细长条
                         ctx.fillStyle = item.color;
                         ctx.fillRect(-size/8, -size/2, size/4, size);
                         ctx.strokeRect(-size/8, -size/2, size/4, size);
@@ -1262,7 +1819,6 @@
                         break;
                     
                     case 'bat':
-                        // 棒球棍 - 长条锥形
                         ctx.fillStyle = item.color;
                         ctx.beginPath();
                         ctx.moveTo(-size/6, -size/2);
@@ -1275,7 +1831,6 @@
                         break;
                     
                     case 'ball':
-                        // 棒球 - 圆球+缝线
                         ctx.fillStyle = item.color;
                         ctx.beginPath();
                         ctx.arc(0, 0, size/2, 0, Math.PI * 2);
@@ -1291,7 +1846,6 @@
                         break;
                     
                     case 'toilet_paper':
-                        // 卷纸 - 圆柱体
                         ctx.fillStyle = item.color;
                         ctx.beginPath();
                         ctx.ellipse(0, -size/3, size/3, size/6, 0, 0, Math.PI * 2);
@@ -1310,7 +1864,6 @@
                         break;
                     
                     case 'slipper':
-                        // 拖鞋 - 椭圆
                         ctx.fillStyle = item.color;
                         ctx.beginPath();
                         ctx.ellipse(0, 0, size/2, size/3, 0, 0, Math.PI * 2);
@@ -1321,7 +1874,6 @@
                         break;
                     
                     case 'vase':
-                        // 花瓶 - 瓶状
                         ctx.fillStyle = item.color;
                         ctx.beginPath();
                         ctx.moveTo(-size/6, -size/2);
@@ -1336,7 +1888,6 @@
                         break;
                     
                     case 'book':
-                        // 书本 - 矩形
                         ctx.fillStyle = item.color;
                         ctx.fillRect(-size/3, -size/2, size/1.5, size);
                         ctx.strokeRect(-size/3, -size/2, size/1.5, size);
@@ -1347,7 +1898,6 @@
                         break;
                     
                     case 'pencil':
-                        // 铅笔 - 长条六边形
                         ctx.fillStyle = item.color;
                         ctx.fillRect(-size/8, -size/2, size/4, size * 0.8);
                         ctx.strokeRect(-size/8, -size/2, size/4, size * 0.8);
@@ -1362,7 +1912,6 @@
                         break;
                     
                     case 'console':
-                        // 游戏机 - 矩形带按钮
                         ctx.fillStyle = item.color;
                         ctx.fillRect(-size/3, -size/3, size/1.5, size/1.5);
                         ctx.strokeRect(-size/3, -size/3, size/1.5, size/1.5);
@@ -1375,7 +1924,6 @@
                         break;
                     
                     case 'plush':
-                        // 毛绒玩具 - 圆形+耳朵
                         ctx.fillStyle = item.color;
                         ctx.beginPath();
                         ctx.arc(0, 0, size/2.5, 0, Math.PI * 2);
@@ -1397,7 +1945,6 @@
                         break;
                     
                     case 'sock':
-                        // 袜子 - L形
                         ctx.fillStyle = item.color;
                         ctx.fillRect(-size/4, -size/2, size/2, size * 0.7);
                         ctx.fillRect(-size/4, size * 0.1, size/2.5, size * 0.4);
@@ -1409,7 +1956,6 @@
                         break;
                     
                     case 'underwear':
-                        // 内裤 - 三角裤形状
                         ctx.fillStyle = item.color;
                         ctx.beginPath();
                         ctx.moveTo(-size/3, -size/4);
@@ -1476,6 +2022,7 @@
                 const ui = document.getElementById('ui');
                 ui.querySelectorAll('.health-bar, .character-name').forEach(el => el.remove());
                 
+                // 普通角色血条
                 this.characters.forEach((char, index) => {
                     if (char.hp <= 0) return;
                     
@@ -1501,6 +2048,34 @@
                     name.style.top = '22px';
                     ui.appendChild(name);
                 });
+                
+                // Boss血条
+                if (this.bossMode && this.boss && this.boss.hp > 0) {
+                    const bossBarContainer = document.createElement('div');
+                    bossBarContainer.className = 'health-bar';
+                    bossBarContainer.style.left = '50px';
+                    bossBarContainer.style.top = '55px';
+                    bossBarContainer.style.width = '260px';
+                    bossBarContainer.style.height = '15px';
+                    bossBarContainer.style.border = '2px solid #ff00ff';
+                    
+                    const bossFill = document.createElement('div');
+                    bossFill.className = 'health-fill';
+                    bossFill.style.width = (this.boss.hp / this.boss.maxHp * 100) + '%';
+                    bossFill.style.background = 'linear-gradient(90deg, #ff00ff, #800080)';
+                    
+                    bossBarContainer.appendChild(bossFill);
+                    ui.appendChild(bossBarContainer);
+                    
+                    const bossName = document.createElement('div');
+                    bossName.className = 'character-name';
+                    bossName.textContent = '👿 魔王 LOLA';
+                    bossName.style.left = '50px';
+                    bossName.style.top = '40px';
+                    bossName.style.color = '#ff00ff';
+                    bossName.style.fontSize = '12px';
+                    ui.appendChild(bossName);
+                }
             }
         }
 
