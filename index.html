@@ -335,13 +335,21 @@
         // ==================== 大魔王 Lola 配置 ====================
         const BOSS_LOLA = {
             name: 'Lola',
-            maxHp: BASE_HP * 10,
-            hp: BASE_HP * 10,
+            maxHp: BASE_HP * 25,
+            hp: BASE_HP * 25,
             color: '#4a0080',
             size: 100,
             x: 280,
             y: 200,
-            hpMultiplier: 10
+            hpMultiplier: 25,
+            // Boss移动相关
+            targetX: 280,
+            targetY: 200,
+            moveSpeed: 2,
+            dodgeChance: 0.4,
+            teleportCooldown: 0,
+            isTeleporting: false,
+            invulnerable: 0
         };
 
         // ==================== 音频系统 ====================
@@ -781,7 +789,19 @@
 
             createBoss() {
                 const { World, Bodies } = Matter;
-                this.boss = { ...BOSS_LOLA, body: null, hitFlash: 0, hitReaction: 0 };
+                this.boss = { 
+                    ...BOSS_LOLA, 
+                    body: null, 
+                    hitFlash: 0, 
+                    hitReaction: 0,
+                    targetX: 280,
+                    targetY: 200,
+                    teleportCooldown: 0,
+                    isTeleporting: false,
+                    invulnerable: 0,
+                    eyeGlow: 0,
+                    auraRotation: 0
+                };
                 
                 this.boss.body = Bodies.rectangle(this.boss.x, this.boss.y, this.boss.size * 0.8, this.boss.size, {
                     isStatic: true,
@@ -789,6 +809,75 @@
                 });
                 
                 World.add(this.world, this.boss.body);
+            }
+
+            updateBoss() {
+                if (!this.boss || this.boss.hp <= 0) return;
+                
+                const b = this.boss;
+                
+                // 减少冷却
+                if (b.teleportCooldown > 0) b.teleportCooldown--;
+                if (b.invulnerable > 0) b.invulnerable--;
+                b.auraRotation += 0.02;
+                
+                // 随机瞬移（闪避）
+                if (b.teleportCooldown <= 0 && Math.random() < 0.02) {
+                    this.bossTeleport();
+                }
+                
+                // 平滑移动到目标位置
+                const dx = b.targetX - b.x;
+                const dy = b.targetY - b.y;
+                b.x += dx * 0.05;
+                b.y += dy * 0.05;
+                
+                // 更新物理体位置
+                if (b.body) {
+                    Matter.Body.setPosition(b.body, { x: b.x, y: b.y });
+                }
+                
+                // 眼睛发光效果
+                b.eyeGlow = (Math.sin(Date.now() / 200) + 1) / 2;
+            }
+            
+            bossTeleport() {
+                const b = this.boss;
+                const { World, Bodies } = Matter;
+                
+                // 移除旧物理体
+                if (b.body) {
+                    World.remove(this.world, b.body);
+                }
+                
+                // 随机新位置（保持在右侧区域）
+                b.targetX = 200 + Math.random() * 120;
+                b.targetY = 100 + Math.random() * 300;
+                b.teleportCooldown = 60 + Math.random() * 60; // 1-2秒冷却
+                b.isTeleporting = true;
+                b.invulnerable = 30; // 瞬移后半秒无敌
+                
+                // 创建传送特效
+                for (let i = 0; i < 20; i++) {
+                    const angle = (Math.PI * 2 * i) / 20;
+                    this.createParticles(
+                        b.x + Math.cos(angle) * b.size/2,
+                        b.y + Math.sin(angle) * b.size/2,
+                        '#ff00ff', 5
+                    );
+                }
+                
+                // 延迟创建新物理体
+                setTimeout(() => {
+                    if (this.boss && this.boss.hp > 0) {
+                        this.boss.body = Bodies.rectangle(this.boss.x, this.boss.y, this.boss.size * 0.8, this.boss.size, {
+                            isStatic: true,
+                            label: 'boss_lola'
+                        });
+                        World.add(this.world, this.boss.body);
+                        this.boss.isTeleporting = false;
+                    }
+                }, 200);
             }
 
             loadNextItem() {
@@ -1056,10 +1145,37 @@
             }
 
             hitBoss(item, position, projectile) {
+                // 瞬移中或无敌时不受伤害
+                if (this.boss.isTeleporting || this.boss.invulnerable > 0) {
+                    this.showDamageText(position.x, position.y, 'MISS!', false, '#888');
+                    Matter.Body.setVelocity(projectile, {
+                        x: -projectile.velocity.x * 0.5,
+                        y: -projectile.velocity.y * 0.5
+                    });
+                    return;
+                }
+                
+                // 闪避几率
+                if (Math.random() < this.boss.dodgeChance) {
+                    this.showDamageText(position.x, position.y, 'DODGE!', false, '#ffff00');
+                    this.boss.targetX += (Math.random() - 0.5) * 100;
+                    this.boss.targetY += (Math.random() - 0.5) * 100;
+                    Matter.Body.setVelocity(projectile, {
+                        x: projectile.velocity.x * 0.3,
+                        y: projectile.velocity.y * 0.2
+                    });
+                    return;
+                }
+                
                 const damage = item.damage;
                 this.boss.hp -= damage;
                 this.boss.hitFlash = 15;
                 this.boss.hitReaction = 20;
+                
+                // 受伤后强制瞬移
+                if (Math.random() < 0.3) {
+                    this.bossTeleport();
+                }
                 
                 // 屏幕震动效果
                 document.getElementById('gameContainer').classList.add('screen-shake');
@@ -1302,6 +1418,7 @@
             loop() {
                 Matter.Engine.update(this.engine, 1000 / 60);
                 this.updateCharacters();
+                this.updateBoss();
                 this.updateParticles();
                 this.render();
                 requestAnimationFrame(() => this.loop());
@@ -1752,12 +1869,34 @@
                 const y = b.y;
                 const size = b.size;
                 
+                // 瞬移特效
+                if (b.isTeleporting) {
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.strokeStyle = '#ff00ff';
+                    ctx.lineWidth = 3;
+                    for (let i = 0; i < 3; i++) {
+                        ctx.beginPath();
+                        ctx.arc(0, 0, size/2 + i * 15, 0, Math.PI * 2);
+                        ctx.globalAlpha = 0.5 - i * 0.15;
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+                    return;
+                }
+                
                 ctx.save();
                 ctx.translate(x, y);
                 
+                // 受伤抖动
                 if (b.hitReaction > 0) {
                     b.hitReaction--;
-                    ctx.translate((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10);
+                    ctx.translate((Math.random() - 0.5) * 15, (Math.random() - 0.5) * 15);
+                }
+                
+                // 无敌闪烁
+                if (b.invulnerable > 0 && Math.floor(Date.now() / 50) % 2) {
+                    ctx.globalAlpha = 0.3;
                 }
                 
                 if (b.hitFlash > 0 && Math.floor(Date.now() / 50) % 2) {
@@ -1765,95 +1904,210 @@
                     b.hitFlash--;
                 }
                 
-                // Boss 阴影
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                // ========== 邪恶光环 ==========
+                const auraGradient = ctx.createRadialGradient(0, 0, size/2, 0, 0, size);
+                auraGradient.addColorStop(0, 'rgba(255, 0, 255, 0)');
+                auraGradient.addColorStop(0.5, 'rgba(255, 0, 255, 0.2)');
+                auraGradient.addColorStop(1, 'rgba(255, 0, 255, 0.5)');
+                ctx.fillStyle = auraGradient;
                 ctx.beginPath();
-                ctx.ellipse(0, size/2 + 10, size/2, size/8, 0, 0, Math.PI * 2);
+                ctx.arc(0, 0, size * (1 + Math.sin(b.auraRotation) * 0.1), 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Boss 身体 - 黑化紫色
-                const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size/2);
-                gradient.addColorStop(0, '#800080');
-                gradient.addColorStop(0.5, '#4a0080');
-                gradient.addColorStop(1, '#2a0040');
-                ctx.fillStyle = gradient;
-                ctx.fillRect(-size/2, -size/2, size, size);
+                // 旋转的符文环
+                ctx.save();
+                ctx.rotate(b.auraRotation);
+                ctx.strokeStyle = '#ff00ff';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 8; i++) {
+                    const angle = (Math.PI * 2 * i) / 8;
+                    ctx.beginPath();
+                    ctx.arc(Math.cos(angle) * size * 0.7, Math.sin(angle) * size * 0.7, 8, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+                ctx.restore();
                 
-                // 黑化光晕效果
+                // Boss 阴影
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                ctx.beginPath();
+                ctx.ellipse(0, size/2 + 15, size/2, size/6, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // ========== 恶魔身体 ==========
+                // 主体渐变 - 深紫到黑
+                const bodyGradient = ctx.createRadialGradient(-size/4, -size/4, 0, 0, 0, size/2);
+                bodyGradient.addColorStop(0, '#a020f0');
+                bodyGradient.addColorStop(0.4, '#4a0080');
+                bodyGradient.addColorStop(0.8, '#1a0033');
+                bodyGradient.addColorStop(1, '#0a0011');
+                ctx.fillStyle = bodyGradient;
+                ctx.beginPath();
+                ctx.arc(0, 0, size/2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 外圈发光
+                ctx.strokeStyle = '#ff00ff';
+                ctx.lineWidth = 3;
                 ctx.shadowColor = '#ff00ff';
                 ctx.shadowBlur = 20;
-                
-                // 邪恶眼睛
-                ctx.fillStyle = '#ff0000';
-                ctx.shadowColor = '#ff0000';
-                ctx.shadowBlur = 15;
-                ctx.beginPath();
-                ctx.ellipse(-size/4, -size/6, size/6, size/8, -0.2, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.ellipse(size/4, -size/6, size/6, size/8, 0.2, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // 瞳孔
-                ctx.fillStyle = '#000';
-                ctx.shadowBlur = 0;
-                ctx.beginPath();
-                ctx.arc(-size/4, -size/6, size/12, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(size/4, -size/6, size/12, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // 邪恶笑容
-                ctx.strokeStyle = '#ff0066';
-                ctx.lineWidth = 4;
-                ctx.beginPath();
-                ctx.moveTo(-size/3, size/6);
-                ctx.quadraticCurveTo(0, size/3, size/3, size/6);
                 ctx.stroke();
+                ctx.shadowBlur = 0;
                 
-                // 尖牙
-                ctx.fillStyle = '#fff';
-                for(let i = 0; i < 4; i++) {
-                    ctx.beginPath();
-                    ctx.moveTo(-size/4 + i * size/8, size/6);
-                    ctx.lineTo(-size/4 + i * size/8 + size/16, size/4);
-                    ctx.lineTo(-size/4 + i * size/8 + size/8, size/6);
-                    ctx.fill();
-                }
-                
-                // 黑化头发
-                ctx.fillStyle = '#1a0033';
+                // ========== 恶魔角 ==========
+                ctx.fillStyle = '#2a004a';
+                // 左角
                 ctx.beginPath();
-                    ctx.moveTo(-size/2, -size/2);
-                ctx.quadraticCurveTo(-size/2 - 20, -size/4, -size/2, 0);
-                ctx.quadraticCurveTo(-size/2 - 15, size/4, -size/2, size/2);
-                ctx.lineTo(size/2, size/2);
-                ctx.quadraticCurveTo(size/2 + 15, size/4, size/2, 0);
-                ctx.quadraticCurveTo(size/2 + 20, -size/4, size/2, -size/2);
+                ctx.moveTo(-size/3, -size/3);
+                ctx.lineTo(-size/2 - 20, -size/2 - 40);
+                ctx.lineTo(-size/4, -size/2 - 10);
                 ctx.closePath();
                 ctx.fill();
-                
-                // 邪恶角
-                ctx.fillStyle = '#4a004a';
+                // 角尖发光
+                ctx.fillStyle = '#ff00ff';
                 ctx.beginPath();
-                ctx.moveTo(-size/3, -size/2);
-                ctx.lineTo(-size/2 - 10, -size/2 - 30);
-                ctx.lineTo(-size/4, -size/2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.moveTo(size/3, -size/2);
-                ctx.lineTo(size/2 + 10, -size/2 - 30);
-                ctx.lineTo(size/4, -size/2);
+                ctx.arc(-size/2 - 20, -size/2 - 40, 5, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Lola 名字
-                ctx.font = 'bold 16px Arial, sans-serif';
+                // 右角
+                ctx.fillStyle = '#2a004a';
+                ctx.beginPath();
+                ctx.moveTo(size/3, -size/3);
+                ctx.lineTo(size/2 + 20, -size/2 - 40);
+                ctx.lineTo(size/4, -size/2 - 10);
+                ctx.closePath();
+                ctx.fill();
+                // 角尖发光
+                ctx.fillStyle = '#ff00ff';
+                ctx.beginPath();
+                ctx.arc(size/2 + 20, -size/2 - 40, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // ========== 邪恶眼睛 ==========
+                const eyeGlow = b.eyeGlow || 0.5;
+                
+                // 左眼窝阴影
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.beginPath();
+                ctx.ellipse(-size/3.5, -size/8, size/5, size/6, -0.3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 右眼窝阴影
+                ctx.beginPath();
+                ctx.ellipse(size/3.5, -size/8, size/5, size/6, 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 左眼白 - 发光
+                const leftEyeGradient = ctx.createRadialGradient(-size/3.5, -size/8, 0, -size/3.5, -size/8, size/5);
+                leftEyeGradient.addColorStop(0, '#ffff00');
+                leftEyeGradient.addColorStop(0.5, '#ff6600');
+                leftEyeGradient.addColorStop(1, '#ff0000');
+                ctx.fillStyle = leftEyeGradient;
+                ctx.shadowColor = '#ff0000';
+                ctx.shadowBlur = 15 + eyeGlow * 10;
+                ctx.beginPath();
+                ctx.ellipse(-size/3.5, -size/8, size/6, size/7, -0.3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 右眼白 - 发光
+                const rightEyeGradient = ctx.createRadialGradient(size/3.5, -size/8, 0, size/3.5, -size/8, size/5);
+                rightEyeGradient.addColorStop(0, '#ffff00');
+                rightEyeGradient.addColorStop(0.5, '#ff6600');
+                rightEyeGradient.addColorStop(1, '#ff0000');
+                ctx.fillStyle = rightEyeGradient;
+                ctx.beginPath();
+                ctx.ellipse(size/3.5, -size/8, size/6, size/7, 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                
+                // 瞳孔 - 竖瞳
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.ellipse(-size/3.5, -size/8, size/20, size/8, -0.3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(size/3.5, -size/8, size/20, size/8, 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 眼神高光（邪恶感）
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(-size/3.5 - size/20, -size/8 - size/15, 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(size/3.5 - size/20, -size/8 - size/15, 3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // ========== 邪恶笑容 ==========
+                ctx.strokeStyle = '#ff0066';
+                ctx.lineWidth = 5;
+                ctx.lineCap = 'round';
+                ctx.shadowColor = '#ff0066';
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.moveTo(-size/2.5, size/8);
+                // 更夸张的弯曲
+                ctx.bezierCurveTo(-size/4, size/2, size/4, size/2, size/2.5, size/8);
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+                
+                // 尖牙 - 更尖锐
+                ctx.fillStyle = '#fff';
+                const fangs = [
+                    {x: -size/4, y: size/4, w: size/12, h: size/6},
+                    {x: -size/8, y: size/3, w: size/14, h: size/8},
+                    {x: size/8 - size/14, y: size/3, w: size/14, h: size/8},
+                    {x: size/4 - size/12, y: size/4, w: size/12, h: size/6}
+                ];
+                fangs.forEach(fang => {
+                    ctx.beginPath();
+                    ctx.moveTo(fang.x, fang.y);
+                    ctx.lineTo(fang.x + fang.w/2, fang.y + fang.h);
+                    ctx.lineTo(fang.x + fang.w, fang.y);
+                    ctx.fill();
+                });
+                
+                // ========== 额头邪恶印记 ==========
+                ctx.fillStyle = '#ff0000';
+                ctx.shadowColor = '#ff0000';
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.moveTo(0, -size/2.5);
+                ctx.lineTo(-size/10, -size/3.5);
+                ctx.lineTo(0, -size/4);
+                ctx.lineTo(size/10, -size/3.5);
+                ctx.closePath();
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                
+                // ========== 头发 - 飘动的触手状 ==========
+                ctx.strokeStyle = '#1a0033';
+                ctx.lineWidth = 8;
+                ctx.lineCap = 'round';
+                for (let i = 0; i < 6; i++) {
+                    const angle = Math.PI + (Math.PI * i) / 5;
+                    const wave = Math.sin(Date.now() / 200 + i) * 10;
+                    ctx.beginPath();
+                    ctx.moveTo(Math.cos(angle) * size/2.2, Math.sin(angle) * size/2.2);
+                    ctx.quadraticCurveTo(
+                        Math.cos(angle) * size - wave, 
+                        Math.sin(angle) * size * 0.8,
+                        Math.cos(angle) * size * 0.8 + wave * 2,
+                        Math.sin(angle) * size + 20
+                    );
+                    ctx.stroke();
+                }
+                
+                // ========== 名称 ==========
+                ctx.font = 'bold 20px Arial, sans-serif';
                 ctx.fillStyle = '#ff00ff';
                 ctx.shadowColor = '#ff00ff';
-                ctx.shadowBlur = 10;
+                ctx.shadowBlur = 15;
                 ctx.textAlign = 'center';
-                ctx.fillText('LOLA', 0, -size/2 - 10);
+                ctx.fillText('★ LOLA ★', 0, -size/2 - 20);
+                ctx.font = '12px Arial';
+                ctx.fillStyle = '#ff6666';
+                ctx.fillText('THE DESTROYER', 0, -size/2 - 5);
+                ctx.shadowBlur = 0;
                 
                 ctx.restore();
             }
