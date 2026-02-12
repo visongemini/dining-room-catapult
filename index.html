@@ -122,6 +122,20 @@
             z-index: 100;
         }
         #musicToggle:hover { background: rgba(255,215,0,0.3); }
+        #langToggle {
+            position: absolute;
+            top: 5px;
+            left: 85px;
+            background: rgba(0,0,0,0.7);
+            color: #fff;
+            padding: 5px 10px;
+            font-size: 12px;
+            border: 2px solid #00d4ff;
+            cursor: pointer;
+            pointer-events: auto;
+            z-index: 100;
+        }
+        #langToggle:hover { background: rgba(0,212,255,0.3); }
         .damage-text {
             position: absolute;
             color: #ff0000;
@@ -161,6 +175,7 @@
 <body>
     <div id="gameContainer">
         <button id="musicToggle">🎵 音乐: 关</button>
+        <button id="langToggle">🌐 中文</button>
         <canvas id="gameCanvas"></canvas>
         <div id="ui"></div>
         <div id="scorePanel">
@@ -199,28 +214,112 @@
             totalAmmo: 30
         };
 
+        // ==================== 多语言支持 ====================
+        const TRANSLATIONS = {
+            zh: {
+                title: '家庭餐厅弹射大战',
+                musicOn: '🎵 音乐: 开',
+                musicOff: '🎵 音乐: 关',
+                langBtn: '🌐 中文',
+                score: '得分',
+                ammo: '剩余',
+                startHint: '点击开始游戏',
+                poopMode: '💩超级大便模式!',
+                gameOverTitle: '游戏结束',
+                gameWinTitle: '你赢了!',
+                restartBtn: '再来一局',
+                playAgainBtn: '再玩一次',
+                bossTitle: '⚠️ 大魔王降临 ⚠️',
+                bossText: '的老婆',
+                bossSubtitle: '她带来了毁灭性的力量...',
+                bossBtn: '迎战魔王',
+                victoryTitle: '🎉 恭喜通关！🎉',
+                victoryText: '你击败了所有敌人！',
+                finalScore: '最终得分',
+                furniture: {
+                    table: '餐桌', chair: '椅子', microwave: '微波炉',
+                    stool: '凳子', plant: '盆栽', 'glass_cabinet': '橱柜',
+                    sideboard: '餐边柜', bookshelf: '书架',
+                    'shoe_rack': '鞋架', rug: '地毯', 'vase_stand': '花瓶架'
+                },
+                items: {
+                    plate: '陶瓷盘子', cup: '玻璃杯', mug: '马克杯',
+                    cutlery: '刀叉', bat: '棒球棍', ball: '棒球',
+                    toilet_paper: '卷纸', slipper: '拖鞋', vase: '花瓶',
+                    book: '书本', pencil: '铅笔', console: '游戏机',
+                    plush: '毛绒玩具', sock: '袜子', underwear: '内裤',
+                    poop: '💩超级大便'
+                }
+            },
+            en: {
+                title: 'Dining Room Catapult',
+                musicOn: '🎵 Music: ON',
+                musicOff: '🎵 Music: OFF',
+                langBtn: '🌐 EN',
+                score: 'Score',
+                ammo: 'Ammo',
+                startHint: 'Click to Start',
+                poopMode: '💩POOP MODE!',
+                gameOverTitle: 'Game Over',
+                gameWinTitle: 'You Win!',
+                restartBtn: 'Play Again',
+                playAgainBtn: 'Play Again',
+                bossTitle: '⚠️ BOSS APPEARS ⚠️',
+                bossText: "'s wife",
+                bossSubtitle: 'She brings destruction...',
+                bossBtn: 'Fight Boss',
+                victoryTitle: '🎉 VICTORY! 🎉',
+                victoryText: 'You defeated all enemies!',
+                finalScore: 'Final Score',
+                furniture: {
+                    table: 'Table', chair: 'Chair', microwave: 'Microwave',
+                    stool: 'Stool', plant: 'Plant', 'glass_cabinet': 'Cabinet',
+                    sideboard: 'Sideboard', bookshelf: 'Bookshelf',
+                    'shoe_rack': 'Shoe Rack', rug: 'Rug', 'vase_stand': 'Vase Stand'
+                },
+                items: {
+                    plate: 'Plate', cup: 'Glass', mug: 'Mug',
+                    cutlery: 'Cutlery', bat: 'Baseball Bat', ball: 'Baseball',
+                    toilet_paper: 'Toilet Paper', slipper: 'Slipper', vase: 'Vase',
+                    book: 'Book', pencil: 'Pencil', console: 'Game Console',
+                    plush: 'Plush Toy', sock: 'Sock', underwear: 'Underwear',
+                    poop: '💩Super Poop'
+                }
+            }
+        };
+
+        let currentLang = 'zh';
+        function t(key) {
+            const keys = key.split('.');
+            let val = TRANSLATIONS[currentLang];
+            for (const k of keys) {
+                val = val?.[k];
+            }
+            return val || key;
+        }
+
         // ==================== 普通道具列表 ====================
         const ITEMS = [
-            { name: '陶瓷盘子', damage: 10, weight: 3, size: 28, type: 'plate', color: '#e8e8e8' },
-            { name: '玻璃杯', damage: 12, weight: 2, size: 22, type: 'cup', color: '#aaddff' },
-            { name: '马克杯', damage: 12, weight: 3, size: 24, type: 'mug', color: '#ff9966' },
-            { name: '刀叉', damage: 15, weight: 4, size: 32, type: 'cutlery', color: '#c0c0c0' },
-            { name: '棒球棍', damage: 25, weight: 6, size: 50, type: 'bat', color: '#deb887' },
-            { name: '棒球', damage: 18, weight: 3, size: 24, type: 'ball', color: '#fff' },
-            { name: '卷纸', damage: 5, weight: 1, size: 20, type: 'toilet_paper', color: '#fff' },
-            { name: '拖鞋', damage: 7, weight: 1, size: 26, type: 'slipper', color: '#ff6b6b' },
-            { name: '花瓶', damage: 14, weight: 3, size: 26, type: 'vase', color: '#98fb98' },
-            { name: '书本', damage: 11, weight: 3, size: 32, type: 'book', color: '#4169e1' },
-            { name: '铅笔', damage: 8, weight: 1, size: 28, type: 'pencil', color: '#ffd700' },
-            { name: '游戏机', damage: 13, weight: 3, size: 28, type: 'console', color: '#333' },
-            { name: '毛绒玩具', damage: 6, weight: 1, size: 32, type: 'plush', color: '#ffb6c1' },
-            { name: '袜子', damage: 4, weight: 0.5, size: 20, type: 'sock', color: '#fff' },
-            { name: '内裤', damage: 5, weight: 0.5, size: 24, type: 'underwear', color: '#87ceeb' },
+            { nameKey: 'items.plate', damage: 10, weight: 3, size: 28, type: 'plate', color: '#e8e8e8' },
+            { nameKey: 'items.cup', damage: 12, weight: 2, size: 22, type: 'cup', color: '#aaddff' },
+            { nameKey: 'items.mug', damage: 12, weight: 3, size: 24, type: 'mug', color: '#ff9966' },
+            { nameKey: 'items.cutlery', damage: 15, weight: 4, size: 32, type: 'cutlery', color: '#c0c0c0' },
+            { nameKey: 'items.bat', damage: 25, weight: 6, size: 50, type: 'bat', color: '#deb887' },
+            { nameKey: 'items.ball', damage: 18, weight: 3, size: 24, type: 'ball', color: '#fff' },
+            { nameKey: 'items.toilet_paper', damage: 5, weight: 1, size: 20, type: 'toilet_paper', color: '#fff' },
+            { nameKey: 'items.slipper', damage: 7, weight: 1, size: 26, type: 'slipper', color: '#ff6b6b' },
+            { nameKey: 'items.vase', damage: 14, weight: 3, size: 26, type: 'vase', color: '#98fb98' },
+            { nameKey: 'items.book', damage: 11, weight: 3, size: 32, type: 'book', color: '#4169e1' },
+            { nameKey: 'items.pencil', damage: 8, weight: 1, size: 28, type: 'pencil', color: '#ffd700' },
+            { nameKey: 'items.console', damage: 13, weight: 3, size: 28, type: 'console', color: '#333' },
+            { nameKey: 'items.plush', damage: 6, weight: 1, size: 32, type: 'plush', color: '#ffb6c1' },
+            { nameKey: 'items.sock', damage: 4, weight: 0.5, size: 20, type: 'sock', color: '#fff' },
+            { nameKey: 'items.underwear', damage: 5, weight: 0.5, size: 24, type: 'underwear', color: '#87ceeb' },
         ];
 
         // ==================== 超级大便配置 ====================
         const POOP_ITEM = {
-            name: '💩超级大便', damage: 50, weight: 8, size: 60,
+            nameKey: 'items.poop', damage: 50, weight: 8, size: 60,
             type: 'poop', color: '#8B4513', penetrating: true
         };
 
@@ -620,6 +719,9 @@
                 this.createFurniture();
                 this.loadNextItem();
                 this.updateUI();
+                
+                // 设置初始提示文本
+                document.getElementById('currentItemName').textContent = t('startHint');
             }
 
             createBoundaries() {
@@ -640,27 +742,27 @@
                 // 家具集中在防守方区域（右侧 x=220~330）
                 const items = [
                     // 核心防御 - 餐桌在中央偏右
-                    { x: 260, y: 420, w: 140, h: 80, type: 'table', hp: 80, name: '餐桌' },
+                    { x: 260, y: 420, w: 140, h: 80, type: 'table', hp: 80, nameKey: 'furniture.table' },
                     // 椅子围绕餐桌
-                    { x: 200, y: 380, w: 45, h: 60, type: 'chair', hp: 40, name: '椅子' },
-                    { x: 320, y: 380, w: 45, h: 60, type: 'chair', hp: 40, name: '椅子' },
-                    { x: 230, y: 480, w: 45, h: 60, type: 'chair', hp: 40, name: '椅子' },
-                    { x: 290, y: 480, w: 45, h: 60, type: 'chair', hp: 40, name: '椅子' },
+                    { x: 200, y: 380, w: 45, h: 60, type: 'chair', hp: 40, nameKey: 'furniture.chair' },
+                    { x: 320, y: 380, w: 45, h: 60, type: 'chair', hp: 40, nameKey: 'furniture.chair' },
+                    { x: 230, y: 480, w: 45, h: 60, type: 'chair', hp: 40, nameKey: 'furniture.chair' },
+                    { x: 290, y: 480, w: 45, h: 60, type: 'chair', hp: 40, nameKey: 'furniture.chair' },
                     // 后方家具 - 堆叠物会倒
-                    { x: 300, y: 280, w: 70, h: 50, type: 'microwave', hp: 30, name: '微波炉' },
-                    { x: 330, y: 200, w: 60, h: 70, type: 'stool', hp: 25, name: '凳子' },
-                    { x: 250, y: 320, w: 80, h: 100, type: 'glass_cabinet', hp: 30, name: '橱柜' },
-                    { x: 280, y: 240, w: 100, h: 80, type: 'sideboard', hp: 80, name: '餐边柜' },
-                    { x: 320, y: 350, w: 50, h: 70, type: 'bookshelf', hp: 50, name: '书架' },
-                    { x: 240, y: 180, w: 50, h: 60, type: 'plant', hp: 20, name: '盆栽' },
-                    { x: 310, y: 150, w: 40, h: 50, type: 'plant', hp: 20, name: '盆栽' },
+                    { x: 300, y: 280, w: 70, h: 50, type: 'microwave', hp: 30, nameKey: 'furniture.microwave' },
+                    { x: 330, y: 200, w: 60, h: 70, type: 'stool', hp: 25, nameKey: 'furniture.stool' },
+                    { x: 250, y: 320, w: 80, h: 100, type: 'glass_cabinet', hp: 30, nameKey: 'furniture.glass_cabinet' },
+                    { x: 280, y: 240, w: 100, h: 80, type: 'sideboard', hp: 80, nameKey: 'furniture.sideboard' },
+                    { x: 320, y: 350, w: 50, h: 70, type: 'bookshelf', hp: 50, nameKey: 'furniture.bookshelf' },
+                    { x: 240, y: 180, w: 50, h: 60, type: 'plant', hp: 20, nameKey: 'furniture.plant' },
+                    { x: 310, y: 150, w: 40, h: 50, type: 'plant', hp: 20, nameKey: 'furniture.plant' },
                     // 地面散落物品
-                    { x: 220, y: 550, w: 40, h: 30, type: 'shoe_rack', hp: 25, name: '鞋架' },
-                    { x: 280, y: 530, w: 35, h: 25, type: 'rug', hp: 30, name: '地毯' },
-                    { x: 340, y: 450, w: 25, h: 35, type: 'vase_stand', hp: 20, name: '花瓶架' },
+                    { x: 220, y: 550, w: 40, h: 30, type: 'shoe_rack', hp: 25, nameKey: 'furniture.shoe_rack' },
+                    { x: 280, y: 530, w: 35, h: 25, type: 'rug', hp: 30, nameKey: 'furniture.rug' },
+                    { x: 340, y: 450, w: 25, h: 35, type: 'vase_stand', hp: 20, nameKey: 'furniture.vase_stand' },
                     // 后方高层堆叠 - 容易倒塌
-                    { x: 260, y: 200, w: 50, h: 40, type: 'stool', hp: 25, name: '凳子' },
-                    { x: 290, y: 150, w: 40, h: 35, type: 'plant', hp: 20, name: '盆栽' }
+                    { x: 260, y: 200, w: 50, h: 40, type: 'stool', hp: 25, nameKey: 'furniture.stool' },
+                    { x: 290, y: 150, w: 40, h: 35, type: 'plant', hp: 20, nameKey: 'furniture.plant' }
                 ];
                 
                 items.forEach(item => {
@@ -669,7 +771,7 @@
                         density: 0.005, friction: 0.6, restitution: 0.2,
                         label: `furniture_${item.type}`
                     });
-                    this.furniture.push({ body, type: item.type, hp: item.hp, maxHp: item.hp, name: item.name });
+                    this.furniture.push({ body, type: item.type, hp: item.hp, maxHp: item.hp, nameKey: item.nameKey });
                 });
                 
                 World.add(this.world, this.furniture.map(f => f.body));
@@ -690,17 +792,17 @@
             loadNextItem() {
                 if (this.poopMode) {
                     this.currentItem = POOP_ITEM;
-                    document.getElementById('currentItemName').textContent = '💩 ' + POOP_ITEM.name;
-                    document.getElementById('modeDisplay').textContent = '超级大便模式 | 无限弹药';
-                    document.getElementById('ammoDisplay').textContent = '大便: ∞';
+                    document.getElementById('currentItemName').textContent = '💩 ' + t(POOP_ITEM.nameKey);
+                    document.getElementById('modeDisplay').textContent = t('poopMode');
+                    document.getElementById('ammoDisplay').textContent = '💩: ∞';
                     return;
                 }
                 
                 if (this.ammo > 0) {
                     this.currentItem = { ...ITEMS[Math.floor(Math.random() * ITEMS.length)] };
-                    document.getElementById('currentItemName').textContent = this.currentItem.name;
-                    document.getElementById('modeDisplay').textContent = '普通模式';
-                    document.getElementById('ammoDisplay').textContent = `剩余: ${this.ammo}`;
+                    document.getElementById('currentItemName').textContent = t(this.currentItem.nameKey);
+                    document.getElementById('modeDisplay').textContent = '';
+                    document.getElementById('ammoDisplay').textContent = `${t('ammo')}: ${this.ammo}`;
                 } else {
                     this.poopMode = true;
                     this.loadNextItem();
@@ -747,6 +849,7 @@
                 window.addEventListener('touchend', handleEnd);
                 
                 document.getElementById('musicToggle').addEventListener('click', () => this.toggleMusic());
+                document.getElementById('langToggle').addEventListener('click', () => this.toggleLanguage());
                 document.getElementById('restartBtn').addEventListener('click', () => this.restart());
                 document.getElementById('restartBtn2').addEventListener('click', () => this.restart());
                 document.getElementById('continueBossBtn').addEventListener('click', () => this.startBossFight());
@@ -764,7 +867,63 @@
 
             toggleMusic() {
                 const isPlaying = this.audio.toggleMusic();
-                document.getElementById('musicToggle').textContent = isPlaying ? '🎵 音乐: 开' : '🎵 音乐: 关';
+                document.getElementById('musicToggle').textContent = isPlaying ? t('musicOn') : t('musicOff');
+            }
+
+            toggleLanguage() {
+                currentLang = currentLang === 'zh' ? 'en' : 'zh';
+                document.getElementById('langToggle').textContent = t('langBtn');
+                document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : 'en';
+                
+                // Update music button
+                const isPlaying = this.audio.isMusicPlaying;
+                document.getElementById('musicToggle').textContent = isPlaying ? t('musicOn') : t('musicOff');
+                
+                // Update score panel
+                document.getElementById('scorePanel').querySelector('div').innerHTML = `${t('score')}: <span id="score">${this.score}</span>`;
+                
+                // Update ammo display
+                if (this.poopMode) {
+                    document.getElementById('ammoDisplay').textContent = '💩: ∞';
+                    document.getElementById('currentItemName').textContent = '💩 ' + t(POOP_ITEM.nameKey);
+                    document.getElementById('modeDisplay').textContent = t('poopMode');
+                } else {
+                    document.getElementById('ammoDisplay').textContent = `${t('ammo')}: ${this.ammo}`;
+                    if (this.currentItem) {
+                        document.getElementById('currentItemName').textContent = t(this.currentItem.nameKey);
+                    } else {
+                        document.getElementById('currentItemName').textContent = t('startHint');
+                    }
+                    document.getElementById('modeDisplay').textContent = '';
+                }
+                
+                // Update game over screen
+                const gameOverDisplay = document.getElementById('gameOver').style.display;
+                if (gameOverDisplay !== 'none' && gameOverDisplay !== '') {
+                    const allDefeated = this.characters.every(c => c.hp <= 0) || (this.bossMode && this.bossDefeated);
+                    document.getElementById('gameOverTitle').textContent = allDefeated ? t('gameWinTitle') : t('gameOverTitle');
+                    document.getElementById('restartBtn').textContent = t('restartBtn');
+                }
+                
+                // Update boss warning
+                document.querySelector('#bossWarning h2').textContent = t('bossTitle');
+                const bossTextP = document.querySelectorAll('#bossWarning p');
+                if (bossTextP.length >= 1) {
+                    bossTextP[0].innerHTML = `Matt${t('bossText')} <span style="color:#ff00ff;font-size:18px;">Lola</span> ${currentLang === 'zh' ? '出现了！' : 'Appears!'}`;
+                    bossTextP[1].textContent = t('bossSubtitle');
+                }
+                document.getElementById('continueBossBtn').textContent = t('bossBtn');
+                
+                // Update victory screen
+                document.querySelector('#victoryScreen h2').textContent = t('victoryTitle');
+                const victoryTextP = document.querySelectorAll('#victoryScreen p');
+                if (victoryTextP.length >= 1) {
+                    victoryTextP[0].textContent = t('victoryText');
+                }
+                document.getElementById('restartBtn2').textContent = t('playAgainBtn');
+                
+                // Update title
+                document.title = t('title');
             }
 
             fireProjectile() {
@@ -956,7 +1115,8 @@
                 const pos = furniture.body.position;
                 this.createParticles(pos.x, pos.y, '#8b4513', 25);
                 this.audio.playBreak();
-                this.showDamageText(pos.x, pos.y, `${furniture.name} 碎了!`, false, '#ff6600');
+                const brokenText = currentLang === 'zh' ? `${t(furniture.nameKey)} 碎了!` : `${t(furniture.nameKey)} Broken!`;
+                this.showDamageText(pos.x, pos.y, brokenText, false, '#ff6600');
                 furniture.hp = 0;
             }
 
@@ -1070,7 +1230,7 @@
             showVictory() {
                 this.audio.playVictoryMusic();
                 document.getElementById('victoryScreen').style.display = 'block';
-                document.getElementById('finalScore').textContent = `最终得分: ${this.score}`;
+                document.getElementById('finalScore').textContent = `${t('finalScore')}: ${this.score}`;
                 
                 // 开始烟花
                 this.startFireworks();
