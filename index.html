@@ -1287,62 +1287,39 @@
             handleCollisions(e) {
                 const pairs = e.pairs;
                 const now = Date.now();
-
+                
                 for (let pair of pairs) {
                     const bodyA = pair.bodyA;
                     const bodyB = pair.bodyB;
-
-                    // 检查是否是boss_projectile击中盟友
-                    if (this.finalBattleMode) {
-                        let bossProj = null, allyBody = null;
-
-                        if (bodyA.label === 'boss_projectile' && bodyB.label?.startsWith('ally_')) {
-                            bossProj = bodyA;
-                            allyBody = bodyB;
-                        } else if (bodyB.label === 'boss_projectile' && bodyA.label?.startsWith('ally_')) {
-                            bossProj = bodyB;
-                            allyBody = bodyA;
-                        }
-
-                        if (bossProj && allyBody) {
-                            const allyIndex = parseInt(allyBody.label.match(/ally_(\d)/)?.[1]);
-                            const ally = this.allies[allyIndex];
-                            if (ally && !ally.defeated) {
-                                this.hitAlly(ally, 20 + Math.random() * 15);
-                                Matter.World.remove(this.world, bossProj);
-                            }
-                            continue;
-                        }
-                    }
-
+                    
                     // 处理玩家投射物
                     let projectile = null, other = null;
-
+                    
                     if (bodyA.label === 'projectile') { projectile = bodyA; other = bodyB; }
                     else if (bodyB.label === 'projectile') { projectile = bodyB; other = bodyA; }
                     if (!projectile || !other) continue;
-
+                    
                     const speed = Math.hypot(projectile.velocity.x, projectile.velocity.y);
                     if (speed < 0.8) continue;
-
+                    
                     const item = projectile.itemData;
                     const cooldownKey = `${projectile.id}_${other.id}`;
                     if (this.hitCooldowns.has(cooldownKey)) {
                         if (now - this.hitCooldowns.get(cooldownKey) < 200) continue;
                     }
                     this.hitCooldowns.set(cooldownKey, now);
-
+                    
                     if (other.label === 'boss_lola' && this.boss && this.boss.hp > 0) {
                         this.hitBoss(item, other.position, projectile);
                         continue;
                     }
-
+                    
                     // 最终战斗模式 - 击中Vison
                     if (other.label === 'boss_vison' && this.boss && this.boss.hp > 0) {
                         this.hitFinalBoss(item, other.position, projectile);
                         continue;
                     }
-
+                    
                     const charIndex = other.label?.match(/character_(\d)/)?.[1];
                     if (charIndex !== undefined) {
                         const character = this.characters[parseInt(charIndex)];
@@ -1350,7 +1327,7 @@
                             this.hitCharacter(character, item, other.position, projectile);
                         }
                     }
-
+                    
                     if (other.label?.startsWith('furniture_')) {
                         this.hitFurniture(other, item, projectile);
                     }
@@ -1809,9 +1786,15 @@
                     invulnerable: 0,
                     eyeGlow: 0,
                     auraRotation: 0,
-                    attackCooldown: 0,
+                    attackCooldown: 60,
                     attackPattern: 0,
-                    rageMode: false
+                    rageMode: false,
+                    // 冲撞攻击属性
+                    isCharging: false,
+                    chargeTargetX: 0,
+                    chargeTargetY: 0,
+                    chargeSpeed: 4,
+                    chargeHitAllies: new Set()
                 };
 
                 this.boss.body = Bodies.rectangle(this.boss.x, this.boss.y, this.boss.size * 0.8, this.boss.size, {
@@ -1918,7 +1901,7 @@
                 if (!b.rageMode && b.hp < b.maxHp * 0.5) {
                     b.rageMode = true;
                     b.dodgeChance = 0.8;
-                    b.moveSpeed = 6;
+                    b.moveSpeed = 8;
                 }
 
                 // 减少冷却
@@ -1927,21 +1910,21 @@
                 if (b.attackCooldown > 0) b.attackCooldown--;
                 b.auraRotation += 0.03;
 
-                // 随机瞬移（闪避）
-                if (b.teleportCooldown <= 0 && Math.random() < 0.03) {
-                    this.bossTeleport();
-                }
-
-                // Boss反击
+                // 冲撞攻击模式
                 if (b.attackCooldown <= 0) {
-                    this.bossAttack();
+                    this.bossChargeAttack();
                 }
 
-                // 平滑移动到目标位置
-                const dx = b.targetX - b.x;
-                const dy = b.targetY - b.y;
-                b.x += dx * 0.08;
-                b.y += dy * 0.08;
+                // 执行冲撞移动
+                if (b.isCharging) {
+                    this.updateBossCharge();
+                } else {
+                    // 正常悬停移动
+                    const dx = b.targetX - b.x;
+                    const dy = b.targetY - b.y;
+                    b.x += dx * 0.05;
+                    b.y += dy * 0.05;
+                }
 
                 // 更新物理体位置
                 if (b.body) {
@@ -1950,55 +1933,76 @@
 
                 // 眼睛发光效果
                 b.eyeGlow = (Math.sin(Date.now() / 150) + 1) / 2;
+
+                // 检查冲撞碰撞
+                this.checkBossChargeCollision();
             }
 
-            bossAttack() {
+            bossChargeAttack() {
                 const b = this.boss;
-                b.attackCooldown = 40 + Math.random() * 40; // 0.7-1.3秒攻击间隔
-
-                // 随机选择一个存活的盟友攻击
                 const aliveAllies = this.allies.filter(a => !a.defeated);
                 if (aliveAllies.length === 0) return;
 
+                // 随机选择目标
                 const target = aliveAllies[Math.floor(Math.random() * aliveAllies.length)];
                 const targetPos = ALLY_POSITIONS[target.index];
 
-                // 创建Boss发射的投射物
-                this.createBossProjectile(targetPos, target);
+                // 设置冲撞目标
+                b.isCharging = true;
+                b.chargeTargetX = targetPos.x;
+                b.chargeTargetY = targetPos.y;
+                b.chargeSpeed = b.rageMode ? 6 : 4;
+                b.attackCooldown = 120 + Math.random() * 60; // 2-3秒间隔
+                b.chargeHitAllies = new Set(); // 记录已撞击的盟友
+
+                // 显示警告
+                this.showDamageText(b.x, b.y - 50, 'CHARGE!', false, '#ff0000');
             }
 
-            createBossProjectile(targetPos, targetAlly) {
-                const { World, Bodies, Body } = Matter;
+            updateBossCharge() {
+                const b = this.boss;
 
-                const startX = this.boss.x;
-                const startY = this.boss.y + this.boss.size / 2;
+                // 向目标冲撞
+                const dx = b.chargeTargetX - b.x;
+                const dy = b.chargeTargetY - b.y;
+                const dist = Math.hypot(dx, dy);
 
-                const body = Bodies.circle(startX, startY, 15, {
-                    density: 0.01, friction: 0.1, restitution: 0.3,
-                    frictionAir: 0.001, label: 'boss_projectile'
-                });
+                if (dist < 10) {
+                    // 到达目标，返回上方
+                    b.isCharging = false;
+                    b.targetX = 100 + Math.random() * 160; // 随机上方位置
+                    b.targetY = 80 + Math.random() * 50;
+                } else {
+                    // 继续冲撞
+                    b.x += (dx / dist) * b.chargeSpeed;
+                    b.y += (dy / dist) * b.chargeSpeed;
+                }
+            }
 
-                // 计算朝向目标的 velocity
-                const dx = targetPos.x - startX;
-                const dy = targetPos.y - startY;
-                const angle = Math.atan2(dy, dx);
-                const speed = 8 + Math.random() * 4;
+            checkBossChargeCollision() {
+                const b = this.boss;
+                if (!b.isCharging) return;
 
-                Body.setVelocity(body, {
-                    x: Math.cos(angle) * speed,
-                    y: Math.sin(angle) * speed
-                });
+                const bossRadius = b.size / 2;
 
-                body.targetAllyIndex = targetAlly.index;
+                this.allies.forEach((ally, index) => {
+                    if (ally.defeated || b.chargeHitAllies.has(index)) return;
 
-                World.add(this.world, body);
+                    const allyPos = ALLY_POSITIONS[index];
+                    const dist = Math.hypot(b.x - allyPos.x, b.y - allyPos.y);
 
-                // 3秒后自动移除
-                setTimeout(() => {
-                    if (body) {
-                        World.remove(this.world, body);
+                    // 冲撞检测
+                    if (dist < bossRadius + ally.size / 2) {
+                        b.chargeHitAllies.add(index);
+                        const damage = b.rageMode ? 50 : 30;
+                        this.hitAlly(ally, damage);
+
+                        // 反弹效果
+                        b.isCharging = false;
+                        b.targetX = b.x;
+                        b.targetY = b.y - 100;
                     }
-                }, 3000);
+                });
             }
 
             hitAlly(ally, damage) {
@@ -3120,7 +3124,7 @@
                 const item = this.currentItem || POOP_ITEM;
                 ctx.save();
                 ctx.translate(x, y);
-                
+
                 // 弹弓叉
                 ctx.strokeStyle = '#8b4513';
                 ctx.lineWidth = 4;
@@ -3131,7 +3135,7 @@
                 ctx.moveTo(0, 0);
                 ctx.lineTo(12, 25);
                 ctx.stroke();
-                
+
                 // 弹弓皮筋
                 ctx.strokeStyle = '#4a3728';
                 ctx.lineWidth = 2;
@@ -3140,7 +3144,7 @@
                 ctx.lineTo(0, 10);
                 ctx.lineTo(12, 25);
                 ctx.stroke();
-                
+
                 // 显示当前弹药
                 ctx.fillStyle = item.color;
                 ctx.beginPath();
@@ -3149,7 +3153,7 @@
                 ctx.strokeStyle = '#000';
                 ctx.lineWidth = 1;
                 ctx.stroke();
-                
+
                 ctx.restore();
             }
 
@@ -3450,28 +3454,29 @@
 
                 // Boss血条
                 if (this.bossMode && this.boss && this.boss.hp > 0) {
+                    const isFinalBoss = this.finalBattleMode;
                     const bossBarContainer = document.createElement('div');
                     bossBarContainer.className = 'health-bar';
                     bossBarContainer.style.left = '50px';
                     bossBarContainer.style.top = '55px';
                     bossBarContainer.style.width = '260px';
                     bossBarContainer.style.height = '15px';
-                    bossBarContainer.style.border = '2px solid #ff00ff';
+                    bossBarContainer.style.border = isFinalBoss ? '2px solid #ff0000' : '2px solid #ff00ff';
 
                     const bossFill = document.createElement('div');
                     bossFill.className = 'health-fill';
                     bossFill.style.width = (this.boss.hp / this.boss.maxHp * 100) + '%';
-                    bossFill.style.background = 'linear-gradient(90deg, #ff00ff, #800080)';
+                    bossFill.style.background = isFinalBoss ? 'linear-gradient(90deg, #ff0000, #8b0000)' : 'linear-gradient(90deg, #ff00ff, #800080)';
 
                     bossBarContainer.appendChild(bossFill);
                     ui.appendChild(bossBarContainer);
 
                     const bossName = document.createElement('div');
                     bossName.className = 'character-name';
-                    bossName.textContent = '👿 魔王 LOLA';
+                    bossName.textContent = isFinalBoss ? '👿 Demon King Vison' : '👿 Demon King Lola';
                     bossName.style.left = '50px';
                     bossName.style.top = '40px';
-                    bossName.style.color = '#ff00ff';
+                    bossName.style.color = isFinalBoss ? '#ff0000' : '#ff00ff';
                     bossName.style.fontSize = '12px';
                     ui.appendChild(bossName);
                 }
