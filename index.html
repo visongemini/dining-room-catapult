@@ -473,7 +473,7 @@
             { name: 'Coco', maxHp: BASE_HP * 0.8, hp: BASE_HP * 0.8, color: '#ffb6c1', freq: 0.08, duration: 40, size: 56, yOffset: 0, hpMultiplier: 0.8 },
             { name: 'Cola', maxHp: BASE_HP, hp: BASE_HP, color: '#87ceeb', freq: 0.06, duration: 60, size: 64, yOffset: 5, hpMultiplier: 1.0 },
             { name: 'Vina', maxHp: BASE_HP * 1.5, hp: BASE_HP * 1.5, color: '#dda0dd', freq: 0.04, duration: 90, size: 72, yOffset: 10, hpMultiplier: 1.5 },
-            { name: 'Matt', maxHp: BASE_HP * 2.0, hp: BASE_HP * 2.0, color: '#deb887', freq: 0.03, duration: 30, size: 84, yOffset: 15, hpMultiplier: 2.0 }
+            { name: 'Matt', maxHp: BASE_HP * 1.2, hp: BASE_HP * 1.2, color: '#deb887', freq: 0.03, duration: 30, size: 84, yOffset: 15, hpMultiplier: 1.2 }
         ];
 
         // ==================== 大魔王 Lola 配置 ====================
@@ -532,11 +532,11 @@
         ];
 
         const ALLIES = [
-            { name: 'Coco', maxHp: BASE_HP * 2, hp: BASE_HP * 2, color: '#ffb6c1', size: 48, dodgeChance: 0.3 },
-            { name: 'Cola', maxHp: BASE_HP * 2.5, hp: BASE_HP * 2.5, color: '#87ceeb', size: 52, dodgeChance: 0.3 },
-            { name: 'Vina', maxHp: BASE_HP * 3, hp: BASE_HP * 3, color: '#dda0dd', size: 56, dodgeChance: 0.3 },
-            { name: 'Matt', maxHp: BASE_HP * 4, hp: BASE_HP * 4, color: '#deb887', size: 60, dodgeChance: 0.3 },
-            { name: 'Lola', maxHp: BASE_HP * 3.5, hp: BASE_HP * 3.5, color: '#f5d0c5', size: 58, dodgeChance: 0.3 }
+            { name: 'Coco', maxHp: BASE_HP * 2, hp: BASE_HP * 2, color: '#ffb6c1', size: 48, dodgeChance: 0.3, attackDamage: 10 },
+            { name: 'Cola', maxHp: BASE_HP * 2.5, hp: BASE_HP * 2.5, color: '#87ceeb', size: 52, dodgeChance: 0.3, attackDamage: 10 },
+            { name: 'Vina', maxHp: BASE_HP * 3, hp: BASE_HP * 3, color: '#dda0dd', size: 56, dodgeChance: 0.3, attackDamage: 10 },
+            { name: 'Matt', maxHp: BASE_HP * 3, hp: BASE_HP * 3, color: '#deb887', size: 60, dodgeChance: 0.3, attackDamage: 30 },
+            { name: 'Lola', maxHp: BASE_HP * 3.5, hp: BASE_HP * 3.5, color: '#f5d0c5', size: 58, dodgeChance: 0.3, attackDamage: 15 }
         ];
         class AudioSystem {
             constructor() {
@@ -1615,10 +1615,17 @@
                     return;
                 }
 
-                // 计算伤害（神力模式下50倍伤害）
+                // 计算伤害（神力模式下50倍伤害，Matt有3倍攻击力加成）
                 let damage = item.damage;
+                
+                // 根据盟友攻击力调整伤害（Matt是3倍）
+                if (currentAlly && currentAlly.attackDamage) {
+                    const attackMultiplier = currentAlly.attackDamage / 10; // 基础攻击力10
+                    damage = Math.floor(damage * attackMultiplier);
+                }
+                
                 if (isGodMode) {
-                    damage = item.damage * 50;
+                    damage = damage * 50;
                     this.showDamageText(position.x, position.y - 80, '🔥 GOD MODE! 🔥', false, '#ffd700');
                     this.showDamageText(position.x, position.y - 60, '50x DAMAGE!', false, '#ff6600');
                 }
