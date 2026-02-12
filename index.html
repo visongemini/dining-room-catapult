@@ -276,7 +276,7 @@
             <p id="story2" class="story-happy">Lola变回了原来的样子，温柔地看向Matt。</p>
             <p id="story3" class="story-happy">"亲爱的，对不起...我回来了..."</p>
             <p id="story4" class="story-happy">Matt冲上前紧紧抱住了她。</p>
-            <p id="story5" style="color:#ffd700;">从此他们幸福地生活在一起...但是——</p>
+            <p id="story5" style="color:#ffd700;">从此他们幸福地生活在一起...但是--</p>
             <p id="story6" class="story-dark">Vison因为投出了太多武器，杀气太重...</p>
             <p id="story7" class="story-dark">魔气缠身，头上长出了恶魔之角！</p>
             <p id="story8" class="story-dark">他变成了比Lola更强大的大魔王！</p>
@@ -327,7 +327,7 @@
                 storyLolaDefeated: '大魔王Lola被打败了！魔气退散...',
                 storyLolaBack: 'Lola变回了原来的样子，温柔地看向Matt。',
                 storyMattHug: 'Matt冲上前紧紧抱住了她。',
-                storyHappyEnding: '从此他们幸福地生活在一起...但是——',
+                storyHappyEnding: '从此他们幸福地生活在一起...但是--',
                 storyVisonCorrupt: 'Vison因为投出了太多武器，杀气太重...',
                 storyVisonDemon: '魔气缠身，头上长出了恶魔之角！',
                 storyVisonBoss: '他变成了比Lola更强大的大魔王！',
@@ -382,7 +382,7 @@
                 storyLolaBack: 'Lola returned to her normal self, looking gently at Matt.',
                 storyLolaQuote: '"My dear, I\'m sorry... I\'m back..."',
                 storyMattHug: 'Matt rushed forward and hugged her tightly.',
-                storyHappyEnding: 'They lived happily ever after... BUT——',
+                storyHappyEnding: 'They lived happily ever after... BUT--',
                 storyVisonCorrupt: 'Vison had thrown too many weapons, accumulated too much killing intent...',
                 storyVisonDemon: 'Demonic energy surrounded him, horns grew from his head!',
                 storyVisonBoss: 'He transformed into a Demon King stronger than Lola!',
@@ -507,7 +507,7 @@
         // ==================== 盟友配置 (下方战斗角色) ====================
         const ALLY_POSITIONS = [
             { x: 60, y: 520 },   // Coco
-            { x: 135, y: 530 },  // Cola  
+            { x: 135, y: 530 },  // Cola
             { x: 210, y: 520 },  // Vina
             { x: 285, y: 530 },  // Matt
             { x: 360, y: 510 }   // Lola (新加入！)
@@ -530,7 +530,7 @@
                 this.initialized = false;
                 this.musicInterval = null;
             }
-            
+
             init() {
                 if (this.initialized) return;
                 try {
@@ -543,30 +543,30 @@
                     console.log('Audio not supported');
                 }
             }
-            
+
             resume() {
                 if (this.audioCtx && this.audioCtx.state === 'suspended') {
                     this.audioCtx.resume();
                 }
             }
-            
+
             startMusic() {
                 if (!this.initialized) this.init();
                 if (!this.audioCtx || this.isMusicPlaying) return;
                 this.resume();
-                
+
                 this.isMusicPlaying = true;
                 this.isBossMusic = false;
                 this.musicGain = this.audioCtx.createGain();
                 this.musicGain.gain.value = 0.12;
                 this.musicGain.connect(this.masterGain);
-                
+
                 this.playNormalMusic();
             }
-            
+
             playNormalMusic() {
                 if (!this.isMusicPlaying) return;
-                
+
                 const melody = [
                     { note: 261.63, duration: 0.25 }, { note: 293.66, duration: 0.25 },
                     { note: 329.63, duration: 0.25 }, { note: 349.23, duration: 0.25 },
@@ -574,9 +574,9 @@
                     { note: 349.23, duration: 0.25 }, { note: 329.63, duration: 0.25 },
                     { note: 293.66, duration: 0.25 }, { note: 261.63, duration: 0.5 },
                 ];
-                
+
                 let currentTime = this.audioCtx.currentTime;
-                
+
                 const playLoop = () => {
                     if (!this.isMusicPlaying || this.isBossMusic) return;
                     melody.forEach(({ note, duration }) => {
@@ -601,12 +601,12 @@
                 };
                 playLoop();
             }
-            
+
             startBossMusic() {
                 if (!this.initialized) this.init();
                 this.isBossMusic = true;
                 if (this.musicInterval) clearTimeout(this.musicInterval);
-                
+
                 // 阴森恐怖的魔王音乐
                 const darkMelody = [
                     { note: 110.00, duration: 0.4 }, { note: 87.31, duration: 0.4 },
@@ -614,9 +614,9 @@
                     { note: 92.50, duration: 0.4 }, { note: 73.42, duration: 0.5 },
                     { note: 110.00, duration: 0.3 }, { note: 82.41, duration: 0.6 },
                 ];
-                
+
                 let currentTime = this.audioCtx.currentTime;
-                
+
                 const playDarkLoop = () => {
                     if (!this.isMusicPlaying || !this.isBossMusic) return;
                     darkMelody.forEach(({ note, duration }) => {
@@ -631,7 +631,7 @@
                         gain.connect(this.musicGain);
                         osc.start(currentTime);
                         osc.stop(currentTime + duration);
-                        
+
                         // 不和谐音层
                         const osc2 = this.audioCtx.createOscillator();
                         const gain2 = this.audioCtx.createGain();
@@ -643,7 +643,7 @@
                         gain2.connect(this.musicGain);
                         osc2.start(currentTime);
                         osc2.stop(currentTime + duration);
-                        
+
                         currentTime += duration;
                     });
                     this.musicInterval = setTimeout(() => {
@@ -655,12 +655,12 @@
                 };
                 playDarkLoop();
             }
-            
+
             playBossAppearSound() {
                 if (!this.initialized) return;
                 this.resume();
                 const now = this.audioCtx.currentTime;
-                
+
                 // 低沉的魔王登场音效
                 for (let i = 0; i < 3; i++) {
                     const osc = this.audioCtx.createOscillator();
@@ -675,7 +675,7 @@
                     osc.start(now + i * 0.5);
                     osc.stop(now + i * 0.5 + 0.8);
                 }
-                
+
                 // 尖叫效果
                 const osc3 = this.audioCtx.createOscillator();
                 const gain3 = this.audioCtx.createGain();
@@ -689,7 +689,7 @@
                 osc3.start(now);
                 osc3.stop(now + 1.5);
             }
-            
+
             stopMusic() {
                 this.isMusicPlaying = false;
                 this.isBossMusic = false;
@@ -704,7 +704,7 @@
                     }, 300);
                 }
             }
-            
+
             toggleMusic() {
                 if (!this.initialized) this.init();
                 if (this.isMusicPlaying) {
@@ -715,12 +715,12 @@
                     return true;
                 }
             }
-            
+
             playHit() {
                 if (!this.initialized) return;
                 this.resume();
                 const now = this.audioCtx.currentTime;
-                
+
                 const osc1 = this.audioCtx.createOscillator();
                 const gain1 = this.audioCtx.createGain();
                 osc1.type = 'sawtooth';
@@ -732,7 +732,7 @@
                 gain1.connect(this.masterGain);
                 osc1.start(now);
                 osc1.stop(now + 0.15);
-                
+
                 const osc2 = this.audioCtx.createOscillator();
                 const gain2 = this.audioCtx.createGain();
                 osc2.type = 'square';
@@ -745,7 +745,7 @@
                 osc2.start(now);
                 osc2.stop(now + 0.1);
             }
-            
+
             playLaunch() {
                 if (!this.initialized) return;
                 this.resume();
@@ -761,7 +761,7 @@
                 osc.start();
                 osc.stop(this.audioCtx.currentTime + 0.25);
             }
-            
+
             playHurt() {
                 if (!this.initialized) return;
                 this.resume();
@@ -777,7 +777,7 @@
                 gain.connect(this.masterGain);
                 osc.start(now);
                 osc.stop(now + 0.35);
-                
+
                 const lfo = this.audioCtx.createOscillator();
                 const lfoGain = this.audioCtx.createGain();
                 lfo.type = 'sine';
@@ -788,7 +788,7 @@
                 lfo.start(now);
                 lfo.stop(now + 0.35);
             }
-            
+
             playBreak() {
                 if (!this.initialized) return;
                 this.resume();
@@ -809,20 +809,20 @@
                     osc.stop(now + delay + 0.08);
                 }
             }
-            
+
             playVictoryMusic() {
                 if (!this.initialized) return;
                 this.stopMusic();
                 this.resume();
                 const now = this.audioCtx.currentTime;
-                
+
                 // 胜利音乐
                 const victoryNotes = [
                     { note: 523.25, duration: 0.2 }, { note: 659.25, duration: 0.2 },
                     { note: 783.99, duration: 0.2 }, { note: 1046.50, duration: 0.4 },
                     { note: 783.99, duration: 0.2 }, { note: 1046.50, duration: 0.6 },
                 ];
-                
+
                 let currentTime = now;
                 victoryNotes.forEach(({ note, duration }) => {
                     const osc = this.audioCtx.createOscillator();
@@ -868,7 +868,7 @@
                 const { World, Engine } = Matter;
                 World.clear(this.world);
                 Engine.clear(this.engine);
-                
+
                 this.score = 0;
                 this.ammo = CONFIG.totalAmmo;
                 this.projectiles = [];
@@ -886,23 +886,23 @@
                 this.finalBattleMode = false;
                 this.allies = [];
                 this.currentAllyIndex = 0;
-                
+
                 // 重置弹弓位置
                 CONFIG.slingshotX = 80;
                 CONFIG.slingshotY = 520;
-                
+
                 this.characters = CHARACTERS.map((c, index) => ({
                     ...c, hp: c.maxHp, visible: false, visibleTimer: 0,
                     nextToggle: Math.random() * 100, hitFlash: 0, faceOffset: 0,
                     hitReaction: 0, hitOffsetX: 0, hitOffsetY: 0, body: null, index,
                     injured: false, injuryLevel: 0
                 }));
-                
+
                 this.createBoundaries();
                 this.createFurniture();
                 this.loadNextItem();
                 this.updateUI();
-                
+
                 // 设置初始提示文本
                 document.getElementById('currentItemName').textContent = t('startHint');
             }
@@ -921,7 +921,7 @@
             createFurniture() {
                 const { World, Bodies } = Matter;
                 this.furniture = [];
-                
+
                 // 家具作为人物掩体，整齐摆放在人物前方（左侧）
                 // 人物位置: Coco(90,300), Cola(270,310), Vina(180,290), Matt(310,160)
                 const items = [
@@ -929,7 +929,7 @@
                     // Matt前方的柜子
                     { x: 260, y: 200, w: 100, h: 60, type: 'sideboard', hp: 100, nameKey: 'furniture.sideboard' },
                     { x: 320, y: 190, w: 50, h: 50, type: 'plant', hp: 20, nameKey: 'furniture.plant' },
-                    
+
                     // ========== 第二层掩体 (y=260-300) ==========
                     // Vina和Cola前方的长桌
                     { x: 200, y: 280, w: 160, h: 50, type: 'table', hp: 80, nameKey: 'furniture.table' },
@@ -938,7 +938,7 @@
                     { x: 300, y: 270, w: 40, h: 50, type: 'chair', hp: 40, nameKey: 'furniture.chair' },
                     // 橱柜挡在中间
                     { x: 260, y: 260, w: 70, h: 70, type: 'glass_cabinet', hp: 40, nameKey: 'furniture.glass_cabinet' },
-                    
+
                     // ========== 第三层掩体 (y=340-380) ==========
                     // Coco前方的掩体
                     { x: 80, y: 350, w: 80, h: 50, type: 'table', hp: 80, nameKey: 'furniture.table' },
@@ -948,13 +948,13 @@
                     // 微波炉和凳子
                     { x: 240, y: 350, w: 60, h: 40, type: 'microwave', hp: 30, nameKey: 'furniture.microwave' },
                     { x: 300, y: 340, w: 40, h: 50, type: 'stool', hp: 25, nameKey: 'furniture.stool' },
-                    
+
                     // ========== 地面装饰 ==========
                     { x: 220, y: 420, w: 35, h: 25, type: 'rug', hp: 30, nameKey: 'furniture.rug' },
                     { x: 150, y: 450, w: 30, h: 25, type: 'shoe_rack', hp: 25, nameKey: 'furniture.shoe_rack' },
                     { x: 280, y: 430, w: 25, h: 30, type: 'vase_stand', hp: 20, nameKey: 'furniture.vase_stand' }
                 ];
-                
+
                 items.forEach(item => {
                     const body = Bodies.rectangle(item.x, item.y, item.w, item.h, {
                         isStatic: true,
@@ -963,16 +963,16 @@
                     });
                     this.furniture.push({ body, type: item.type, hp: item.hp, maxHp: item.hp, nameKey: item.nameKey });
                 });
-                
+
                 World.add(this.world, this.furniture.map(f => f.body));
             }
 
             createBoss() {
                 const { World, Bodies } = Matter;
-                this.boss = { 
-                    ...BOSS_LOLA, 
-                    body: null, 
-                    hitFlash: 0, 
+                this.boss = {
+                    ...BOSS_LOLA,
+                    body: null,
+                    hitFlash: 0,
                     hitReaction: 0,
                     targetX: 280,
                     targetY: 200,
@@ -982,61 +982,61 @@
                     eyeGlow: 0,
                     auraRotation: 0
                 };
-                
+
                 this.boss.body = Bodies.rectangle(this.boss.x, this.boss.y, this.boss.size * 0.8, this.boss.size, {
                     isStatic: true,
                     label: 'boss_lola'
                 });
-                
+
                 World.add(this.world, this.boss.body);
             }
 
             updateBoss() {
                 if (!this.boss || this.boss.hp <= 0) return;
-                
+
                 const b = this.boss;
-                
+
                 // 减少冷却
                 if (b.teleportCooldown > 0) b.teleportCooldown--;
                 if (b.invulnerable > 0) b.invulnerable--;
                 b.auraRotation += 0.02;
-                
+
                 // 随机瞬移（闪避）
                 if (b.teleportCooldown <= 0 && Math.random() < 0.02) {
                     this.bossTeleport();
                 }
-                
+
                 // 平滑移动到目标位置
                 const dx = b.targetX - b.x;
                 const dy = b.targetY - b.y;
                 b.x += dx * 0.05;
                 b.y += dy * 0.05;
-                
+
                 // 更新物理体位置
                 if (b.body) {
                     Matter.Body.setPosition(b.body, { x: b.x, y: b.y });
                 }
-                
+
                 // 眼睛发光效果
                 b.eyeGlow = (Math.sin(Date.now() / 200) + 1) / 2;
             }
-            
+
             bossTeleport() {
                 const b = this.boss;
                 const { World, Bodies } = Matter;
-                
+
                 // 移除旧物理体
                 if (b.body) {
                     World.remove(this.world, b.body);
                 }
-                
+
                 // 随机新位置（保持在右侧区域）
                 b.targetX = 200 + Math.random() * 120;
                 b.targetY = 100 + Math.random() * 300;
                 b.teleportCooldown = 60 + Math.random() * 60; // 1-2秒冷却
                 b.isTeleporting = true;
                 b.invulnerable = 30; // 瞬移后半秒无敌
-                
+
                 // 创建传送特效
                 for (let i = 0; i < 20; i++) {
                     const angle = (Math.PI * 2 * i) / 20;
@@ -1046,7 +1046,7 @@
                         '#ff00ff', 5
                     );
                 }
-                
+
                 // 延迟创建新物理体
                 setTimeout(() => {
                     if (this.boss && this.boss.hp > 0) {
@@ -1068,7 +1068,7 @@
                     document.getElementById('ammoDisplay').textContent = '💩: ∞';
                     return;
                 }
-                
+
                 if (this.ammo > 0) {
                     this.currentItem = { ...ITEMS[Math.floor(Math.random() * ITEMS.length)] };
                     document.getElementById('currentItemName').textContent = t(this.currentItem.nameKey);
@@ -1083,10 +1083,31 @@
             bindEvents() {
                 const handleStart = (e) => {
                     const pos = this.getPointerPos(e);
-                    const dist = Math.hypot(pos.x - CONFIG.slingshotX, pos.y - CONFIG.slingshotY);
-                    if (dist < 80) {
-                        this.dragStart = { x: CONFIG.slingshotX, y: CONFIG.slingshotY };
-                        this.dragCurrent = pos;
+
+                    // 最终战斗模式：检查点击了哪个角色
+                    if (this.finalBattleMode) {
+                        for (let i = 0; i < this.allies.length; i++) {
+                            const ally = this.allies[i];
+                            if (ally.defeated) continue;
+
+                            const allyPos = ALLY_POSITIONS[i];
+                            const dist = Math.hypot(pos.x - allyPos.x, pos.y - allyPos.y);
+
+                            if (dist < 50) { // 点击范围内
+                                this.currentAllyIndex = i;
+                                this.dragStart = { x: allyPos.x, y: allyPos.y - 30 };
+                                this.dragCurrent = pos;
+                                this.loadNextAllyProjectile(); // 更新UI显示当前角色
+                                return;
+                            }
+                        }
+                    } else {
+                        // 普通模式
+                        const dist = Math.hypot(pos.x - CONFIG.slingshotX, pos.y - CONFIG.slingshotY);
+                        if (dist < 80) {
+                            this.dragStart = { x: CONFIG.slingshotX, y: CONFIG.slingshotY };
+                            this.dragCurrent = pos;
+                        }
                     }
                 };
 
@@ -1118,7 +1139,7 @@
                 this.canvas.addEventListener('touchstart', handleStart, { passive: false });
                 this.canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleMove(e); }, { passive: false });
                 window.addEventListener('touchend', handleEnd);
-                
+
                 document.getElementById('musicToggle').addEventListener('click', () => this.toggleMusic());
                 document.getElementById('langToggle').addEventListener('click', () => this.toggleLanguage());
                 document.getElementById('restartBtn').addEventListener('click', () => this.restart());
@@ -1147,14 +1168,14 @@
                 currentLang = currentLang === 'zh' ? 'en' : 'zh';
                 document.getElementById('langToggle').textContent = t('langBtn');
                 document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : 'en';
-                
+
                 // Update music button
                 const isPlaying = this.audio.isMusicPlaying;
                 document.getElementById('musicToggle').textContent = isPlaying ? t('musicOn') : t('musicOff');
-                
+
                 // Update score panel
                 document.getElementById('scorePanel').querySelector('div').innerHTML = `${t('score')}: <span id="score">${this.score}</span>`;
-                
+
                 // Update ammo display
                 if (this.poopMode) {
                     document.getElementById('ammoDisplay').textContent = '💩: ∞';
@@ -1169,7 +1190,7 @@
                     }
                     document.getElementById('modeDisplay').textContent = '';
                 }
-                
+
                 // Update game over screen
                 const gameOverDisplay = document.getElementById('gameOver').style.display;
                 if (gameOverDisplay !== 'none' && gameOverDisplay !== '') {
@@ -1177,7 +1198,7 @@
                     document.getElementById('gameOverTitle').textContent = allDefeated ? t('gameWinTitle') : t('gameOverTitle');
                     document.getElementById('restartBtn').textContent = t('restartBtn');
                 }
-                
+
                 // Update boss warning
                 document.querySelector('#bossWarning h2').textContent = t('bossTitle');
                 const bossTextP = document.querySelectorAll('#bossWarning p');
@@ -1186,7 +1207,7 @@
                     bossTextP[1].textContent = t('bossSubtitle');
                 }
                 document.getElementById('continueBossBtn').textContent = t('bossBtn');
-                
+
                 // Update victory screen
                 document.querySelector('#victoryScreen h2').textContent = t('victoryTitle');
                 const victoryTextP = document.querySelectorAll('#victoryScreen p');
@@ -1194,23 +1215,23 @@
                     victoryTextP[0].textContent = t('victoryText');
                 }
                 document.getElementById('restartBtn2').textContent = t('playAgainBtn');
-                
+
                 // Update title
                 document.title = t('title');
-                
+
                 // Update story screen
                 document.getElementById('storyTitle').textContent = currentLang === 'zh' ? '📖 剧情发展' : '📖 Story';
                 document.getElementById('story1').textContent = t('storyLolaDefeated');
                 document.getElementById('story2').textContent = t('storyLolaBack');
                 document.getElementById('story3').textContent = currentLang === 'zh' ? '"亲爱的，对不起...我回来了..."' : '"My dear, I\'m sorry... I\'m back..."';
                 document.getElementById('story4').textContent = t('storyMattHug');
-                document.getElementById('story5').textContent = currentLang === 'zh' ? '从此他们幸福地生活在一起...但是——' : 'They lived happily ever after... BUT——';
+                document.getElementById('story5').textContent = currentLang === 'zh' ? '从此他们幸福地生活在一起...但是--' : 'They lived happily ever after... BUT--';
                 document.getElementById('story6').textContent = t('storyVisonCorrupt');
                 document.getElementById('story7').textContent = t('storyVisonDemon');
                 document.getElementById('story8').textContent = t('storyVisonBoss');
                 document.getElementById('story9').textContent = t('storyFinalBattle');
                 document.getElementById('continueStoryBtn').textContent = t('storyContinue');
-                
+
                 // Update final boss warning
                 document.getElementById('finalBossTitle').textContent = t('finalBossTitle');
                 document.getElementById('finalBossP1').innerHTML = `${t('finalBossText1')}<span style="color:#ff0000;font-size:18px;">Vison</span>${t('finalBossText2')}`;
@@ -1225,37 +1246,33 @@
                 const dy = this.dragStart.y - this.dragCurrent.y;
                 const dist = Math.hypot(dx, dy);
                 const power = Math.min(dist / CONFIG.maxPullDistance, 1);
-                
+
                 const item = this.currentItem;
                 const body = Bodies.circle(this.dragStart.x, this.dragStart.y, item.size/2, {
                     density: item.weight * 0.001, friction: 0.4, restitution: 0.6,
                     frictionAir: 0.005, label: 'projectile'
                 });
-                
+
                 body.itemData = item;
                 World.add(this.world, body);
-                
+
                 const force = CONFIG.launchPower * power;
                 const angle = Math.atan2(dy, dx);
                 Body.applyForce(body, body.position, {
                     x: Math.cos(angle) * force * item.weight,
                     y: Math.sin(angle) * force * item.weight
                 });
-                
+
                 this.projectiles.push(body);
                 this.audio.playLaunch();
                 if (navigator.vibrate) navigator.vibrate(25);
-                
+
                 if (!this.poopMode) {
                     this.ammo--;
                     this.loadNextItem();
-                } else if (this.finalBattleMode) {
-                    // 最终战斗模式：发射后自动切换下一个角色
-                    setTimeout(() => {
-                        this.findNextAliveAlly();
-                    }, 500);
                 }
-                
+                // 最终战斗模式：不自动切换，玩家自由选择角色
+
                 setTimeout(() => this.removeProjectile(body), 7000);
             }
 
@@ -1270,15 +1287,15 @@
             handleCollisions(e) {
                 const pairs = e.pairs;
                 const now = Date.now();
-                
+
                 for (let pair of pairs) {
                     const bodyA = pair.bodyA;
                     const bodyB = pair.bodyB;
-                    
+
                     // 检查是否是boss_projectile击中盟友
                     if (this.finalBattleMode) {
                         let bossProj = null, allyBody = null;
-                        
+
                         if (bodyA.label === 'boss_projectile' && bodyB.label?.startsWith('ally_')) {
                             bossProj = bodyA;
                             allyBody = bodyB;
@@ -1286,7 +1303,7 @@
                             bossProj = bodyB;
                             allyBody = bodyA;
                         }
-                        
+
                         if (bossProj && allyBody) {
                             const allyIndex = parseInt(allyBody.label.match(/ally_(\d)/)?.[1]);
                             const ally = this.allies[allyIndex];
@@ -1297,35 +1314,35 @@
                             continue;
                         }
                     }
-                    
+
                     // 处理玩家投射物
                     let projectile = null, other = null;
-                    
+
                     if (bodyA.label === 'projectile') { projectile = bodyA; other = bodyB; }
                     else if (bodyB.label === 'projectile') { projectile = bodyB; other = bodyA; }
                     if (!projectile || !other) continue;
-                    
+
                     const speed = Math.hypot(projectile.velocity.x, projectile.velocity.y);
                     if (speed < 0.8) continue;
-                    
+
                     const item = projectile.itemData;
                     const cooldownKey = `${projectile.id}_${other.id}`;
                     if (this.hitCooldowns.has(cooldownKey)) {
                         if (now - this.hitCooldowns.get(cooldownKey) < 200) continue;
                     }
                     this.hitCooldowns.set(cooldownKey, now);
-                    
+
                     if (other.label === 'boss_lola' && this.boss && this.boss.hp > 0) {
                         this.hitBoss(item, other.position, projectile);
                         continue;
                     }
-                    
+
                     // 最终战斗模式 - 击中Vison
                     if (other.label === 'boss_vison' && this.boss && this.boss.hp > 0) {
                         this.hitFinalBoss(item, other.position, projectile);
                         continue;
                     }
-                    
+
                     const charIndex = other.label?.match(/character_(\d)/)?.[1];
                     if (charIndex !== undefined) {
                         const character = this.characters[parseInt(charIndex)];
@@ -1333,7 +1350,7 @@
                             this.hitCharacter(character, item, other.position, projectile);
                         }
                     }
-                    
+
                     if (other.label?.startsWith('furniture_')) {
                         this.hitFurniture(other, item, projectile);
                     }
@@ -1343,33 +1360,33 @@
             hitCharacter(character, item, position, projectile) {
                 const damage = item.damage;
                 character.hp -= damage;
-                
+
                 character.hitFlash = 15;
                 character.hitReaction = 20;
                 character.hitOffsetX = (Math.random() - 0.5) * 20;
                 character.hitOffsetY = -Math.random() * 15;
-                
+
                 // 增加受伤等级
                 const hpPercent = character.hp / character.maxHp;
                 if (hpPercent < 0.3) character.injuryLevel = 3;
                 else if (hpPercent < 0.6) character.injuryLevel = 2;
                 else if (hpPercent < 0.9) character.injuryLevel = 1;
                 character.injured = character.injuryLevel > 0;
-                
+
                 this.audio.playHurt();
                 if (navigator.vibrate) navigator.vibrate(20);
-                
+
                 this.showDamageText(position.x, position.y, damage, true);
                 this.score += damage;
                 this.updateUI();
-                
+
                 this.createParticles(position.x, position.y, '#8B4513', 15);
-                
+
                 Matter.Body.setVelocity(projectile, {
                     x: projectile.velocity.x * 0.5,
                     y: projectile.velocity.y * 0.3
                 });
-                
+
                 if (character.hp <= 0) {
                     this.createParticles(position.x, position.y, character.color, 30);
                     if (character.body) {
@@ -1390,7 +1407,7 @@
                     });
                     return;
                 }
-                
+
                 // 闪避几率 - 立即瞬移闪避
                 if (Math.random() < this.boss.dodgeChance) {
                     this.showDamageText(position.x, position.y, 'DODGE!', false, '#ffff00');
@@ -1402,37 +1419,37 @@
                     });
                     return;
                 }
-                
+
                 const damage = item.damage;
                 this.boss.hp -= damage;
                 this.boss.hitFlash = 15;
                 this.boss.hitReaction = 20;
-                
+
                 // 受伤后强制瞬移
                 if (Math.random() < 0.5) {
                     this.bossTeleport();
                 }
-                
+
                 // 屏幕震动效果
                 document.getElementById('gameContainer').classList.add('screen-shake');
                 setTimeout(() => {
                     document.getElementById('gameContainer').classList.remove('screen-shake');
                 }, 300);
-                
+
                 this.audio.playHurt();
                 if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
-                
+
                 this.showDamageText(position.x, position.y, damage, true, '#ff00ff');
                 this.score += damage * 2;
                 this.updateUI();
-                
+
                 this.createParticles(position.x, position.y, '#ff00ff', 20);
-                
+
                 Matter.Body.setVelocity(projectile, {
                     x: projectile.velocity.x * 0.3,
                     y: projectile.velocity.y * 0.2
                 });
-                
+
                 if (this.boss.hp <= 0) {
                     this.createParticles(position.x, position.y, '#4a0080', 50);
                     if (this.boss.body) {
@@ -1446,22 +1463,22 @@
             hitFurniture(furnitureBody, item, projectile) {
                 const furniture = this.furniture.find(f => f.body === furnitureBody);
                 if (!furniture || furniture.hp <= 0) return;
-                
+
                 furniture.hp -= item.damage;
                 this.showDamageText(furnitureBody.position.x, furnitureBody.position.y - 50, item.damage, false);
                 this.audio.playHit();
-                
+
                 const hitX = (projectile.position.x + furnitureBody.position.x) / 2;
                 const hitY = (projectile.position.y + furnitureBody.position.y) / 2;
                 this.createParticles(hitX, hitY, '#8B4513', 10);
-                
+
                 if (!furnitureBody.isStatic) {
                     Matter.Body.applyForce(furnitureBody, projectile.position, {
                         x: projectile.velocity.x * 0.0015,
                         y: projectile.velocity.y * 0.0015
                     });
                 }
-                
+
                 if (furniture.hp <= 0) {
                     this.breakFurniture(furniture);
                 }
@@ -1480,23 +1497,23 @@
             hitFinalBoss(item, position, projectile) {
                 const b = this.boss;
                 const currentAlly = this.allies[this.currentAllyIndex];
-                
+
                 // 瞬移中或无敌时不受伤害
                 if (b.isTeleporting || b.invulnerable > 0) {
                     this.showDamageText(position.x, position.y, 'MISS!', false, '#888');
                     return;
                 }
-                
+
                 // 检查当前盟友是否处于神力模式（红血时100%命中）
                 const isGodMode = currentAlly && currentAlly.hp / currentAlly.maxHp < 0.3;
-                
+
                 // 闪避几率（神力模式下100%命中）
                 if (!isGodMode && Math.random() < b.dodgeChance) {
                     this.showDamageText(position.x, position.y, '闪避!', false, '#ffff00');
                     this.bossTeleport();
                     return;
                 }
-                
+
                 // 计算伤害（神力模式下50倍伤害）
                 let damage = item.damage;
                 if (isGodMode) {
@@ -1506,37 +1523,36 @@
                 b.hp -= damage;
                 b.hitFlash = 15;
                 b.hitReaction = 20;
-                
+
                 // 受伤后高概率瞬移
                 if (Math.random() < 0.6) {
                     this.bossTeleport();
                 }
-                
+
                 // 屏幕震动
                 document.getElementById('gameContainer').classList.add('screen-shake');
                 setTimeout(() => {
                     document.getElementById('gameContainer').classList.remove('screen-shake');
                 }, 300);
-                
+
                 this.audio.playHurt();
                 if (navigator.vibrate) navigator.vibrate([40, 20, 40]);
-                
+
                 this.showDamageText(position.x, position.y, damage, true, '#ff0000');
                 this.score += damage * 3;
                 this.updateUI();
-                
+
                 this.createParticles(position.x, position.y, '#ff0000', 25);
-                
-                // 切换控制角色（轮流攻击）
-                this.findNextAliveAlly();
-                
+
+                // 不切换角色，玩家自由选择
+
                 if (b.hp <= 0) {
                     this.createParticles(position.x, position.y, '#8b0000', 80);
                     if (b.body) {
                         Matter.World.remove(this.world, b.body);
                     }
                     this.bossDefeated = true;
-                    
+
                     // 显示结局画面
                     this.showEnding();
                 }
@@ -1545,7 +1561,7 @@
             showEnding() {
                 // Vison恢复正常
                 this.audio.playVictoryMusic();
-                
+
                 // 创建结局画面
                 const container = document.getElementById('gameContainer');
                 const endingDiv = document.createElement('div');
@@ -1564,7 +1580,7 @@
                     z-index: 300;
                     animation: fadeIn 2s ease-in;
                 `;
-                
+
                 const isZh = currentLang === 'zh';
                 endingDiv.innerHTML = `
                     <style>
@@ -1606,7 +1622,7 @@
                         ${isZh ? '🎉 大团圆结局 🎉' : '🎉 Happy Ending 🎉'}
                     </h2>
                     <p style="color: #fff; font-size: 14px; text-align: center; max-width: 300px; line-height: 1.8;">
-                        ${isZh ? 
+                        ${isZh ?
                             'Vison恢复了正常，魔气消散。<br>他和Matt坐在沙发上，<br>抽着雪茄，喝着威士忌，<br>就像什么都没发生过一样。<br><br>"兄弟，下次别玩这么大了。"<br>"哈哈哈，来，干杯！"🥃' :
                             'Vison returned to normal, the demonic energy dissipated.<br>He and Matt sat on the couch,<br>smoking cigars, drinking whiskey,<br>as if nothing had happened.<br><br>"Bro, don\'t go so hard next time."<br>"Haha, cheers!"🥃'
                         }
@@ -1615,7 +1631,7 @@
                         ${isZh ? '再玩一次' : 'Play Again'}
                     </button>
                 `;
-                
+
                 container.appendChild(endingDiv);
             }
 
@@ -1646,18 +1662,18 @@
 
             updateCharacters() {
                 const { Bodies, World, Body } = Matter;
-                
+
                 this.characters.forEach((char, index) => {
                     if (char.hp <= 0) return;
-                    
+
                     const positions = [
                         { x: 90, y: 300 }, { x: 270, y: 310 },
                         { x: 180, y: 290 }, { x: 310, y: 160 }
                     ];
                     const pos = positions[index];
-                    
+
                     char.nextToggle--;
-                    
+
                     if (char.visible) {
                         char.visibleTimer--;
                         char.faceOffset = Math.min(char.faceOffset + 4, char.size * 0.8);
@@ -1672,7 +1688,7 @@
                             char.visibleTimer = char.duration;
                         }
                     }
-                    
+
                     if (char.hitFlash > 0) char.hitFlash--;
                     if (char.hitReaction > 0) {
                         char.hitReaction--;
@@ -1682,11 +1698,11 @@
                         char.hitOffsetX = 0;
                         char.hitOffsetY = 0;
                     }
-                    
+
                     const drawX = pos.x + char.hitOffsetX;
                     const drawY = pos.y + char.hitOffsetY;
                     const faceHeight = char.faceOffset * 0.8;
-                    
+
                     if (char.visible && char.faceOffset > char.size * 0.3) {
                         if (!char.body) {
                             char.body = Bodies.rectangle(drawX, drawY - faceHeight/2, char.size * 0.7, faceHeight, {
@@ -1720,7 +1736,7 @@
                 this.bossMode = true;
                 this.createBoss();
                 this.audio.startBossMusic();
-                
+
                 // 重置大便模式
                 this.poopMode = true;
                 this.loadNextItem();
@@ -1752,39 +1768,39 @@
 
             initFinalBattle() {
                 document.getElementById('finalBossWarning').style.display = 'none';
-                
+
                 const { World, Engine } = Matter;
                 World.clear(this.world);
                 Engine.clear(this.engine);
-                
+
                 // 重置游戏状态为第二阶段
                 this.finalBattleMode = true;
                 this.bossMode = true;
                 this.poopMode = true;
-                
+
                 // 创建Vison作为最终Boss
                 this.createFinalBoss();
-                
+
                 // 创建下方盟友
                 this.createAllies();
-                
+
                 // 清除旧家具，创建新的防御掩体
                 this.createFinalBattleFurniture();
-                
+
                 // 设置弹弓位置（现在在下方中间）
                 this.currentAllyIndex = 0;
                 this.loadNextAllyProjectile();
-                
+
                 // 开始最终战斗音乐
                 this.audio.startBossMusic();
             }
 
             createFinalBoss() {
                 const { World, Bodies } = Matter;
-                this.boss = { 
-                    ...BOSS_VISON, 
-                    body: null, 
-                    hitFlash: 0, 
+                this.boss = {
+                    ...BOSS_VISON,
+                    body: null,
+                    hitFlash: 0,
                     hitReaction: 0,
                     targetX: 180,
                     targetY: 150,
@@ -1797,19 +1813,19 @@
                     attackPattern: 0,
                     rageMode: false
                 };
-                
+
                 this.boss.body = Bodies.rectangle(this.boss.x, this.boss.y, this.boss.size * 0.8, this.boss.size, {
                     isStatic: true,
                     label: 'boss_vison'
                 });
-                
+
                 World.add(this.world, this.boss.body);
             }
 
             createAllies() {
                 const { World, Bodies } = Matter;
                 this.allies = [];
-                
+
                 for (let i = 0; i < ALLIES.length; i++) {
                     const ally = {
                         ...ALLIES[i],
@@ -1818,13 +1834,13 @@
                         index: i,
                         defeated: false
                     };
-                    
+
                     const pos = ALLY_POSITIONS[i];
                     ally.body = Bodies.rectangle(pos.x, pos.y, ally.size * 0.6, ally.size, {
                         isStatic: true,
                         label: `ally_${i}`
                     });
-                    
+
                     this.allies.push(ally);
                     World.add(this.world, ally.body);
                 }
@@ -1833,7 +1849,7 @@
             createFinalBattleFurniture() {
                 const { World, Bodies } = Matter;
                 this.furniture = [];
-                
+
                 // 为下方5个盟友创建掩体
                 const items = [
                     { x: 60, y: 470, w: 45, h: 35, type: 'chair', hp: 40, nameKey: 'furniture.chair' },
@@ -1842,7 +1858,7 @@
                     { x: 285, y: 480, w: 45, h: 35, type: 'chair', hp: 40, nameKey: 'furniture.chair' },
                     { x: 360, y: 460, w: 50, h: 40, type: 'table', hp: 80, nameKey: 'furniture.table' }
                 ];
-                
+
                 items.forEach(item => {
                     const body = Bodies.rectangle(item.x, item.y, item.w, item.h, {
                         isStatic: true,
@@ -1851,7 +1867,7 @@
                     });
                     this.furniture.push({ body, type: item.type, hp: item.hp, maxHp: item.hp, nameKey: item.nameKey });
                 });
-                
+
                 World.add(this.world, this.furniture.map(f => f.body));
             }
 
@@ -1863,12 +1879,12 @@
                     this.findNextAliveAlly();
                     return;
                 }
-                
+
                 this.currentItem = { ...POOP_ITEM };
                 document.getElementById('currentItemName').textContent = `${ally.name} 攻击中`;
                 document.getElementById('modeDisplay').textContent = '💩终极大便模式!';
                 document.getElementById('ammoDisplay').textContent = '无限弹药';
-                
+
                 // 切换弹弓位置
                 const pos = ALLY_POSITIONS[this.currentAllyIndex];
                 CONFIG.slingshotX = pos.x;
@@ -1884,7 +1900,7 @@
                         break;
                     }
                 }
-                
+
                 if (!found) {
                     // 所有盟友都被击败，游戏结束
                     this.showGameOver();
@@ -1895,43 +1911,43 @@
 
             updateFinalBoss() {
                 if (!this.boss || this.boss.hp <= 0) return;
-                
+
                 const b = this.boss;
-                
+
                 // 怒气模式：血量低于50%时激活
                 if (!b.rageMode && b.hp < b.maxHp * 0.5) {
                     b.rageMode = true;
                     b.dodgeChance = 0.8;
                     b.moveSpeed = 6;
                 }
-                
+
                 // 减少冷却
                 if (b.teleportCooldown > 0) b.teleportCooldown--;
                 if (b.invulnerable > 0) b.invulnerable--;
                 if (b.attackCooldown > 0) b.attackCooldown--;
                 b.auraRotation += 0.03;
-                
+
                 // 随机瞬移（闪避）
                 if (b.teleportCooldown <= 0 && Math.random() < 0.03) {
                     this.bossTeleport();
                 }
-                
+
                 // Boss反击
                 if (b.attackCooldown <= 0) {
                     this.bossAttack();
                 }
-                
+
                 // 平滑移动到目标位置
                 const dx = b.targetX - b.x;
                 const dy = b.targetY - b.y;
                 b.x += dx * 0.08;
                 b.y += dy * 0.08;
-                
+
                 // 更新物理体位置
                 if (b.body) {
                     Matter.Body.setPosition(b.body, { x: b.x, y: b.y });
                 }
-                
+
                 // 眼睛发光效果
                 b.eyeGlow = (Math.sin(Date.now() / 150) + 1) / 2;
             }
@@ -1939,44 +1955,44 @@
             bossAttack() {
                 const b = this.boss;
                 b.attackCooldown = 40 + Math.random() * 40; // 0.7-1.3秒攻击间隔
-                
+
                 // 随机选择一个存活的盟友攻击
                 const aliveAllies = this.allies.filter(a => !a.defeated);
                 if (aliveAllies.length === 0) return;
-                
+
                 const target = aliveAllies[Math.floor(Math.random() * aliveAllies.length)];
                 const targetPos = ALLY_POSITIONS[target.index];
-                
+
                 // 创建Boss发射的投射物
                 this.createBossProjectile(targetPos, target);
             }
 
             createBossProjectile(targetPos, targetAlly) {
                 const { World, Bodies, Body } = Matter;
-                
+
                 const startX = this.boss.x;
                 const startY = this.boss.y + this.boss.size / 2;
-                
+
                 const body = Bodies.circle(startX, startY, 15, {
                     density: 0.01, friction: 0.1, restitution: 0.3,
                     frictionAir: 0.001, label: 'boss_projectile'
                 });
-                
+
                 // 计算朝向目标的 velocity
                 const dx = targetPos.x - startX;
                 const dy = targetPos.y - startY;
                 const angle = Math.atan2(dy, dx);
                 const speed = 8 + Math.random() * 4;
-                
+
                 Body.setVelocity(body, {
                     x: Math.cos(angle) * speed,
                     y: Math.sin(angle) * speed
                 });
-                
+
                 body.targetAllyIndex = targetAlly.index;
-                
+
                 World.add(this.world, body);
-                
+
                 // 3秒后自动移除
                 setTimeout(() => {
                     if (body) {
@@ -1992,36 +2008,36 @@
                     this.showDamageText(pos.x, pos.y - 30, '闪避!', false, '#00ff00');
                     return;
                 }
-                
+
                 ally.hp -= damage;
                 ally.hitFlash = 10;
-                
+
                 // 显示伤害
                 const pos = ALLY_POSITIONS[ally.index];
                 this.showDamageText(pos.x, pos.y - 30, damage, true, '#ff0000');
                 this.audio.playHurt();
-                
+
                 // 屏幕震动
                 document.getElementById('gameContainer').classList.add('screen-shake');
                 setTimeout(() => {
                     document.getElementById('gameContainer').classList.remove('screen-shake');
                 }, 200);
-                
+
                 if (ally.hp <= 0) {
                     ally.defeated = true;
                     ally.hp = 0;
-                    
+
                     // 移除物理体
                     if (ally.body) {
                         Matter.World.remove(this.world, ally.body);
                         ally.body = null;
                     }
-                    
+
                     // 显示击败效果
                     const pos = ALLY_POSITIONS[ally.index];
                     this.createParticles(pos.x, pos.y, ally.color, 30);
                     this.showDamageText(pos.x, pos.y, `${ally.name} 阵亡!`, false, '#ff0000');
-                    
+
                     // 检查是否所有盟友都被击败
                     const aliveAllies = this.allies.filter(a => !a.defeated);
                     if (aliveAllies.length === 0) {
@@ -2043,26 +2059,26 @@
             drawFinalBoss(ctx) {
                 const b = this.boss;
                 const size = b.size;
-                
+
                 ctx.save();
                 ctx.translate(b.x, b.y);
-                
+
                 // 受伤抖动
                 if (b.hitReaction > 0) {
                     b.hitReaction--;
                     ctx.translate((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
                 }
-                
+
                 // 无敌闪烁
                 if (b.invulnerable > 0 && Math.floor(Date.now() / 50) % 2) {
                     ctx.globalAlpha = 0.3;
                 }
-                
+
                 if (b.hitFlash > 0 && Math.floor(Date.now() / 50) % 2) {
                     ctx.globalAlpha = 0.5;
                     b.hitFlash--;
                 }
-                
+
                 // 怒气模式红色边框
                 if (b.rageMode) {
                     ctx.strokeStyle = '#ff0000';
@@ -2074,7 +2090,7 @@
                     ctx.stroke();
                     ctx.shadowBlur = 0;
                 }
-                
+
                 // Boss身体 - Vison的脸，但更邪恶
                 const bodyGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size/2);
                 bodyGradient.addColorStop(0, b.rageMode ? '#ff4444' : '#fdbcb4');
@@ -2084,7 +2100,7 @@
                 ctx.beginPath();
                 ctx.arc(0, 0, size/2.2, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 // ========== 恶魔角 ==========
                 ctx.fillStyle = '#4a0000';
                 // 左角
@@ -2101,7 +2117,7 @@
                 ctx.lineTo(size/6, -size/2.2);
                 ctx.closePath();
                 ctx.fill();
-                
+
                 // 角发光
                 ctx.fillStyle = '#ff0000';
                 ctx.shadowColor = '#ff0000';
@@ -2113,11 +2129,11 @@
                 ctx.arc(size/2.5, -size/2 - 50, 6, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.shadowBlur = 0;
-                
+
                 // ========== 眼睛 - 血红色 ==========
                 const eyeY = -size/10;
                 const eyeSize = size/6;
-                
+
                 // 左眼
                 const leftEyeGradient = ctx.createRadialGradient(-size/4, eyeY, 0, -size/4, eyeY, eyeSize);
                 leftEyeGradient.addColorStop(0, '#ff0000');
@@ -2129,7 +2145,7 @@
                 ctx.beginPath();
                 ctx.arc(-size/4, eyeY, eyeSize, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 // 右眼
                 const rightEyeGradient = ctx.createRadialGradient(size/4, eyeY, 0, size/4, eyeY, eyeSize);
                 rightEyeGradient.addColorStop(0, '#ff0000');
@@ -2140,7 +2156,7 @@
                 ctx.arc(size/4, eyeY, eyeSize, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.shadowBlur = 0;
-                
+
                 // 瞳孔
                 ctx.fillStyle = '#000';
                 ctx.beginPath();
@@ -2149,7 +2165,7 @@
                 ctx.beginPath();
                 ctx.arc(size/4, eyeY, eyeSize * 0.4, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 // 眉毛 - 愤怒
                 ctx.strokeStyle = '#2a0000';
                 ctx.lineWidth = 5;
@@ -2161,7 +2177,7 @@
                 ctx.moveTo(size/3, eyeY - eyeSize * 1.5);
                 ctx.lineTo(size/5, eyeY - eyeSize);
                 ctx.stroke();
-                
+
                 // ========== 嘴巴 - 邪恶笑容 ==========
                 ctx.strokeStyle = '#8b0000';
                 ctx.lineWidth = 4;
@@ -2169,7 +2185,7 @@
                 ctx.moveTo(-size/5, size/6);
                 ctx.quadraticCurveTo(0, size/3, size/5, size/6);
                 ctx.stroke();
-                
+
                 // ========== 名称 ==========
                 ctx.font = 'bold 22px Arial';
                 ctx.fillStyle = b.rageMode ? '#ff0000' : '#8b0000';
@@ -2180,25 +2196,25 @@
                 ctx.font = '14px Arial';
                 ctx.fillText(b.rageMode ? '★ 狂暴模式 ★' : '大魔王', 0, -size/2 - 5);
                 ctx.shadowBlur = 0;
-                
+
                 ctx.restore();
             }
 
             drawAlly(ctx, ally) {
                 if (ally.defeated) return;
-                
+
                 const pos = ALLY_POSITIONS[ally.index];
                 const size = ally.size;
-                
+
                 ctx.save();
                 ctx.translate(pos.x, pos.y);
-                
+
                 // 受伤闪烁
                 if (ally.hitFlash > 0) {
                     ally.hitFlash--;
                     ctx.globalAlpha = 0.5;
                 }
-                
+
                 // 绘制弹弓（在角色后方）
                 ctx.strokeStyle = '#8b4513';
                 ctx.lineWidth = 4;
@@ -2210,7 +2226,7 @@
                 ctx.moveTo(0, -size/2);
                 ctx.lineTo(12, -size/2 - 25);
                 ctx.stroke();
-                
+
                 // 弹弓皮筋
                 ctx.strokeStyle = '#4a3728';
                 ctx.lineWidth = 2;
@@ -2219,24 +2235,24 @@
                 ctx.lineTo(0, -size/2 - 15);
                 ctx.lineTo(12, -size/2 - 25);
                 ctx.stroke();
-                
+
                 // 身体
                 ctx.fillStyle = ally.color;
                 ctx.beginPath();
                 ctx.arc(0, 0, size/2, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 // 边框
                 ctx.strokeStyle = '#333';
                 ctx.lineWidth = 2;
                 ctx.stroke();
-                
+
                 // 名字
                 ctx.font = 'bold 12px Arial';
                 ctx.fillStyle = '#fff';
                 ctx.textAlign = 'center';
                 ctx.fillText(ally.name, 0, size/2 + 15);
-                
+
                 // 当前控制的角色高亮
                 if (this.currentAllyIndex === ally.index) {
                     ctx.strokeStyle = '#ffd700';
@@ -2245,39 +2261,39 @@
                     ctx.arc(0, 0, size/2 + 5, 0, Math.PI * 2);
                     ctx.stroke();
                 }
-                
+
                 ctx.restore();
             }
 
             drawAllyHealthBars() {
                 const ui = document.getElementById('ui');
-                
+
                 // 清除旧的血条
                 const oldBars = ui.querySelectorAll('.ally-health-bar, .ally-name');
                 oldBars.forEach(bar => bar.remove());
-                
+
                 if (!this.finalBattleMode) return;
-                
+
                 this.allies.forEach((ally, index) => {
                     if (ally.defeated) return;
-                    
+
                     const pos = ALLY_POSITIONS[index];
-                    
+
                     // 血条背景
                     const barContainer = document.createElement('div');
                     barContainer.className = 'ally-health-bar';
                     barContainer.style.left = (pos.x / CONFIG.width * 100 - 8) + '%';
                     barContainer.style.top = ((pos.y - 70) / CONFIG.height * 100) + '%';
-                    
+
                     // 血量填充
                     const fill = document.createElement('div');
                     fill.className = 'ally-health-fill';
                     fill.style.width = (ally.hp / ally.maxHp * 100) + '%';
                     fill.style.backgroundColor = ally.hp / ally.maxHp > 0.5 ? '#4CAF50' : ally.hp / ally.maxHp > 0.25 ? '#ff9800' : '#f44336';
-                    
+
                     barContainer.appendChild(fill);
                     ui.appendChild(barContainer);
-                    
+
                     // 名字
                     const name = document.createElement('div');
                     name.className = 'character-name';
@@ -2290,13 +2306,13 @@
 
             startFireworks() {
                 const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffa500', '#ff6600'];
-                
+
                 const createFirework = () => {
                     const container = document.getElementById('gameContainer');
                     const x = 20 + Math.random() * 60;
                     const y = 20 + Math.random() * 40;
                     const color = colors[Math.floor(Math.random() * colors.length)];
-                    
+
                     for (let i = 0; i < 20; i++) {
                         const particle = document.createElement('div');
                         particle.className = 'firework';
@@ -2307,11 +2323,11 @@
                         particle.style.setProperty('--ty', (Math.random() - 0.5) * 200 + 'px');
                         particle.style.animation = `fireworkBurst ${1 + Math.random()}s ease-out forwards`;
                         container.appendChild(particle);
-                        
+
                         setTimeout(() => particle.remove(), 2000);
                     }
                 };
-                
+
                 // 持续放烟花
                 const fireworkInterval = setInterval(() => {
                     if (document.getElementById('victoryScreen').style.display === 'none') {
@@ -2320,7 +2336,7 @@
                     }
                     createFirework();
                 }, 300);
-                
+
                 // 立即放几个
                 for (let i = 0; i < 5; i++) {
                     setTimeout(createFirework, i * 100);
@@ -2345,7 +2361,7 @@
 
             loop() {
                 Matter.Engine.update(this.engine, 1000 / 60);
-                
+
                 if (this.finalBattleMode) {
                     this.updateFinalBoss();
                     this.drawAllyHealthBars();
@@ -2353,7 +2369,7 @@
                     this.updateCharacters();
                     this.updateBoss();
                 }
-                
+
                 this.updateParticles();
                 this.render();
                 requestAnimationFrame(() => this.loop());
@@ -2370,19 +2386,19 @@
 
             render() {
                 const ctx = this.ctx;
-                
+
                 // 最终战斗模式 - 红色背景
                 if (this.finalBattleMode) {
                     ctx.fillStyle = '#1a0a0a';
                     ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
-                    
+
                     // 暗红色遮罩
                     ctx.fillStyle = 'rgba(139, 0, 0, 0.2)';
                     ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
                 } else if (this.bossMode) {
                     ctx.fillStyle = '#2a1a2a';
                     ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
-                    
+
                     // Boss模式下添加暗紫色遮罩
                     ctx.fillStyle = 'rgba(74, 0, 128, 0.15)';
                     ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
@@ -2390,22 +2406,32 @@
                     ctx.fillStyle = '#f5e6d3';
                     ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
                 }
-                
+
                 ctx.fillStyle = this.bossMode || this.finalBattleMode ? '#3a2a3a' : '#d4c4b0';
                 ctx.fillRect(0, CONFIG.height - 40, CONFIG.width, 40);
                 ctx.fillStyle = this.bossMode || this.finalBattleMode ? '#8b4513' : '#c49a6c';
                 ctx.fillRect(20, CONFIG.height - 50, CONFIG.width - 40, 30);
-                
+
                 this.drawLamp(ctx, CONFIG.width/2, 50);
                 this.furniture.forEach(f => { if (f.hp > 0) this.drawFurniture(ctx, f); });
-                
+
                 if (this.finalBattleMode) {
                     // 最终战斗模式 - 绘制盟友和Vison
                     this.allies.forEach(ally => this.drawAlly(ctx, ally));
                     if (this.boss && this.boss.hp > 0) {
                         this.drawFinalBoss(ctx);
                     }
-                    // 不绘制Vison玩家角色，因为他变成了Boss
+                    // 为每个存活角色绘制弹弓
+                    this.allies.forEach((ally, index) => {
+                        if (!ally.defeated) {
+                            const pos = ALLY_POSITIONS[index];
+                            this.drawAllySlingshot(ctx, pos.x, pos.y - 30);
+                        }
+                    });
+                    // 如果正在拖动，绘制轨迹
+                    if (this.dragStart && this.dragCurrent) {
+                        this.drawTrajectory(ctx);
+                    }
                 } else {
                     // 普通模式
                     this.characters.forEach((char, i) => { if (char.hp > 0) this.drawCharacter(ctx, char, i); });
@@ -2413,11 +2439,11 @@
                         this.drawBoss(ctx);
                     }
                     this.drawVison(ctx);
+                    this.drawSlingshot(ctx);
+                    if (this.dragStart && this.dragCurrent) this.drawTrajectory(ctx);
                 }
-                
-                this.drawSlingshot(ctx);
+
                 this.projectiles.forEach(p => this.drawProjectile(ctx, p));
-                if (this.dragStart && this.dragCurrent) this.drawTrajectory(ctx);
                 this.drawParticles(ctx);
                 this.drawHealthBars();
             }
@@ -2447,14 +2473,14 @@
                 const x = b.position.x, y = b.position.y;
                 const w = b.bounds.max.x - b.bounds.min.x;
                 const h = b.bounds.max.y - b.bounds.min.y;
-                
+
                 ctx.save();
                 ctx.translate(x, y);
                 ctx.rotate(b.angle);
-                
+
                 const hpPercent = f.hp / f.maxHp;
                 const darken = Math.floor((1 - hpPercent) * 100);
-                
+
                 switch(f.type) {
                     case 'table':
                         ctx.fillStyle = this.darkenColor('#8b4513', darken);
@@ -2590,7 +2616,7 @@
                         break;
                 }
                 ctx.restore();
-                
+
                 if (hpPercent < 1) {
                     const barWidth = Math.min(w, 60);
                     ctx.fillStyle = '#333';
@@ -2602,7 +2628,7 @@
                     ctx.strokeRect(x - barWidth/2, y - h/2 - 18, barWidth, 8);
                 }
             }
-            
+
             darkenColor(hex, percent) {
                 const num = parseInt(hex.replace('#', ''), 16);
                 const amt = Math.round(2.55 * percent);
@@ -2617,27 +2643,27 @@
                 const pos = positions[index];
                 const faceOffset = char.faceOffset;
                 if (faceOffset <= 0) return;
-                
+
                 ctx.save();
                 const drawX = pos.x + (char.hitOffsetX || 0);
                 const drawY = pos.y + (char.hitOffsetY || 0);
                 ctx.translate(drawX, drawY);
-                
+
                 if (char.hitReaction > 0) {
                     ctx.translate((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6);
                 }
                 if (char.hitFlash > 0 && Math.floor(Date.now() / 50) % 2) {
                     ctx.globalAlpha = 0.5;
                 }
-                
+
                 const size = char.size;
                 ctx.fillStyle = char.color;
-                
+
                 // 绘制受伤效果 - 淤青和绷带
                 if (char.injured) {
                     ctx.globalCompositeOperation = 'multiply';
                 }
-                
+
                 if (char.name === 'Coco') {
                     ctx.fillRect(-size/2, -faceOffset, size, faceOffset);
                     ctx.fillStyle = '#5c4033';
@@ -2649,7 +2675,7 @@
                     ctx.fillRect(size/4 - 3, -faceOffset + 16, 6, 6);
                     ctx.fillStyle = '#ff6b6b';
                     ctx.fillRect(-4, -faceOffset + 30, 8, 3);
-                    
+
                     // 受伤效果
                     if (char.injuryLevel >= 1) {
                         ctx.fillStyle = 'rgba(139, 69, 19, 0.4)';
@@ -2693,7 +2719,7 @@
                     ctx.beginPath();
                     ctx.arc(0, -faceOffset + 28, 6, 0, Math.PI);
                     ctx.stroke();
-                    
+
                     if (char.injuryLevel >= 1) {
                         ctx.fillStyle = 'rgba(139, 69, 19, 0.4)';
                         ctx.beginPath();
@@ -2725,7 +2751,7 @@
                     ctx.beginPath();
                     ctx.arc(0, -faceOffset + 26, 6, 0.2, Math.PI - 0.2);
                     ctx.stroke();
-                    
+
                     if (char.injuryLevel >= 1) {
                         ctx.fillStyle = 'rgba(139, 69, 19, 0.4)';
                         ctx.beginPath();
@@ -2762,7 +2788,7 @@
                     ctx.fillRect(size/3 - 4, -faceOffset + 18, 8, 8);
                     ctx.fillStyle = '#8b0000';
                     ctx.fillRect(-8, -faceOffset + 36, 16, 3);
-                    
+
                     if (char.injuryLevel >= 1) {
                         ctx.fillStyle = 'rgba(139, 69, 19, 0.4)';
                         ctx.beginPath();
@@ -2795,10 +2821,10 @@
                         ctx.fill();
                     }
                 }
-                
+
                 ctx.globalCompositeOperation = 'source-over';
                 ctx.restore();
-                
+
                 ctx.save();
                 ctx.font = 'bold 14px Arial, sans-serif';
                 ctx.fillStyle = '#fff';
@@ -2818,7 +2844,7 @@
                 const x = b.x;
                 const y = b.y;
                 const size = b.size;
-                
+
                 // 瞬移特效
                 if (b.isTeleporting) {
                     ctx.save();
@@ -2834,32 +2860,32 @@
                     ctx.restore();
                     return;
                 }
-                
+
                 ctx.save();
                 ctx.translate(x, y);
-                
+
                 // 受伤抖动
                 if (b.hitReaction > 0) {
                     b.hitReaction--;
                     ctx.translate((Math.random() - 0.5) * 15, (Math.random() - 0.5) * 15);
                 }
-                
+
                 // 无敌闪烁
                 if (b.invulnerable > 0 && Math.floor(Date.now() / 50) % 2) {
                     ctx.globalAlpha = 0.3;
                 }
-                
+
                 if (b.hitFlash > 0 && Math.floor(Date.now() / 50) % 2) {
                     ctx.globalAlpha = 0.5;
                     b.hitFlash--;
                 }
-                
+
                 // Boss 阴影
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
                 ctx.beginPath();
                 ctx.ellipse(0, size/2 + 10, size/2.2, size/8, 0, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 // ========== 女人头部 ==========
                 // 脸型 - 椭圆形
                 const faceGradient = ctx.createRadialGradient(0, -size/8, 0, 0, 0, size/2.2);
@@ -2870,14 +2896,14 @@
                 ctx.beginPath();
                 ctx.ellipse(0, 0, size/2.2, size/2.5, 0, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 // 阴沉的紫色光晕
                 ctx.strokeStyle = 'rgba(138, 43, 226, 0.3)';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.ellipse(0, 0, size/2, size/2.3, 0, 0, Math.PI * 2);
                 ctx.stroke();
-                
+
                 // ========== 头发 ==========
                 // 深色长发
                 ctx.fillStyle = '#1a1a2e';
@@ -2889,7 +2915,7 @@
                 ctx.quadraticCurveTo(-size/3, size/2, -size/2.5, size/3);
                 ctx.closePath();
                 ctx.fill();
-                
+
                 // 刘海
                 ctx.beginPath();
                 ctx.moveTo(-size/2.5, -size/6);
@@ -2900,22 +2926,22 @@
                 ctx.quadraticCurveTo(-size/4, -size/5, -size/2.5, -size/10);
                 ctx.closePath();
                 ctx.fill();
-                
+
                 // ========== 阴沉的眼睛 ==========
                 const eyeY = -size/12;
                 const eyeSize = size/8;
-                
+
                 // 左眼 - 半睁的阴沉眼神
                 ctx.fillStyle = '#fff';
                 ctx.beginPath();
                 ctx.ellipse(-size/5, eyeY, eyeSize, eyeSize * 0.6, 0, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 // 右眼
                 ctx.beginPath();
                 ctx.ellipse(size/5, eyeY, eyeSize, eyeSize * 0.6, 0, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 // 眼白阴影（疲惫感）
                 ctx.fillStyle = 'rgba(100, 50, 100, 0.2)';
                 ctx.beginPath();
@@ -2924,7 +2950,7 @@
                 ctx.beginPath();
                 ctx.ellipse(size/5, eyeY, eyeSize * 0.9, eyeSize * 0.5, 0, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 // 瞳孔 - 深紫色，较小
                 ctx.fillStyle = '#4a0080';
                 ctx.shadowColor = '#800080';
@@ -2936,7 +2962,7 @@
                 ctx.arc(size/5, eyeY, eyeSize * 0.35, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.shadowBlur = 0;
-                
+
                 // 眼神光（但位置偏下，显得阴沉）
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
                 ctx.beginPath();
@@ -2945,7 +2971,7 @@
                 ctx.beginPath();
                 ctx.arc(size/5 - eyeSize * 0.15, eyeY + eyeSize * 0.1, 3, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 // 上眼睑 - 半垂（阴沉感关键）
                 ctx.strokeStyle = '#6b4423';
                 ctx.lineWidth = 3;
@@ -2957,7 +2983,7 @@
                 ctx.moveTo(size/5 - eyeSize, eyeY - eyeSize * 0.3);
                 ctx.quadraticCurveTo(size/5, eyeY - eyeSize * 0.6, size/5 + eyeSize, eyeY - eyeSize * 0.3);
                 ctx.stroke();
-                
+
                 // 黑眼圈
                 ctx.fillStyle = 'rgba(80, 60, 80, 0.3)';
                 ctx.beginPath();
@@ -2966,7 +2992,7 @@
                 ctx.beginPath();
                 ctx.ellipse(size/5, eyeY + eyeSize * 0.5, eyeSize * 1.2, eyeSize * 0.4, 0, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 // ========== 眉毛 - 愤怒/阴沉 ==========
                 ctx.strokeStyle = '#2a004a';
                 ctx.lineWidth = 4;
@@ -2981,7 +3007,7 @@
                 ctx.moveTo(size/3.5, eyeY - eyeSize * 1.2);
                 ctx.lineTo(size/6, eyeY - eyeSize * 0.9);
                 ctx.stroke();
-                
+
                 // ========== 鼻子 ==========
                 ctx.strokeStyle = 'rgba(139, 115, 85, 0.5)';
                 ctx.lineWidth = 2;
@@ -2990,7 +3016,7 @@
                 ctx.lineTo(-size/20, eyeY + eyeSize * 1.5);
                 ctx.lineTo(size/20, eyeY + eyeSize * 1.5);
                 ctx.stroke();
-                
+
                 // ========== 阴沉的笑容 ==========
                 ctx.strokeStyle = '#8b0000';
                 ctx.lineWidth = 3;
@@ -3001,7 +3027,7 @@
                 ctx.quadraticCurveTo(-size/12, size/4, 0, size/5);
                 ctx.quadraticCurveTo(size/12, size/6, size/6, size/5);
                 ctx.stroke();
-                
+
                 // 嘴角阴影
                 ctx.fillStyle = 'rgba(139, 0, 0, 0.3)';
                 ctx.beginPath();
@@ -3010,7 +3036,7 @@
                 ctx.beginPath();
                 ctx.arc(size/6, size/5, 4, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 // ========== 名称 ==========
                 ctx.font = 'bold 18px Arial, sans-serif';
                 ctx.fillStyle = '#4a0080';
@@ -3022,7 +3048,7 @@
                 ctx.fillStyle = '#666';
                 ctx.fillText('Matt\'s Wife', 0, -size/2);
                 ctx.shadowBlur = 0;
-                
+
                 ctx.restore();
             }
 
@@ -3061,7 +3087,7 @@
                 ctx.moveTo(sx, sy);
                 ctx.lineTo(sx + 15, sy + 40);
                 ctx.stroke();
-                
+
                 if (this.dragStart && this.dragCurrent) {
                     ctx.strokeStyle = '#654321';
                     ctx.lineWidth = 4;
@@ -3089,12 +3115,49 @@
                 }
                 ctx.restore();
             }
-            
+
+            drawAllySlingshot(ctx, x, y) {
+                const item = this.currentItem || POOP_ITEM;
+                ctx.save();
+                ctx.translate(x, y);
+                
+                // 弹弓叉
+                ctx.strokeStyle = '#8b4513';
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(-12, 25);
+                ctx.moveTo(0, 0);
+                ctx.lineTo(12, 25);
+                ctx.stroke();
+                
+                // 弹弓皮筋
+                ctx.strokeStyle = '#4a3728';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(-12, 25);
+                ctx.lineTo(0, 10);
+                ctx.lineTo(12, 25);
+                ctx.stroke();
+                
+                // 显示当前弹药
+                ctx.fillStyle = item.color;
+                ctx.beginPath();
+                ctx.arc(0, 10, item.size * 0.25, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+
             drawItemShape(ctx, item, size) {
                 ctx.fillStyle = item.color;
                 ctx.strokeStyle = '#000';
                 ctx.lineWidth = 1;
-                
+
                 switch(item.type) {
                     case 'poop':
                         ctx.fillStyle = '#8B4513';
@@ -3112,7 +3175,7 @@
                         ctx.arc(-size/6, -size/4, size/8, 0, Math.PI * 2);
                         ctx.fill();
                         break;
-                    
+
                     case 'plate':
                         ctx.fillStyle = item.color;
                         ctx.beginPath();
@@ -3124,7 +3187,7 @@
                         ctx.strokeStyle = '#ccc';
                         ctx.stroke();
                         break;
-                    
+
                     case 'cup':
                         ctx.fillStyle = item.color;
                         ctx.fillRect(-size/4, -size/2, size/2, size);
@@ -3132,7 +3195,7 @@
                         ctx.fillStyle = 'rgba(255,255,255,0.3)';
                         ctx.fillRect(-size/6, -size/2 + 2, size/8, size - 4);
                         break;
-                    
+
                     case 'mug':
                         ctx.fillStyle = item.color;
                         ctx.fillRect(-size/4, -size/2, size/2, size * 0.8);
@@ -3141,7 +3204,7 @@
                         ctx.arc(size/4, -size/8, size/4, -Math.PI/2, Math.PI/2);
                         ctx.stroke();
                         break;
-                    
+
                     case 'cutlery':
                         ctx.fillStyle = item.color;
                         ctx.fillRect(-size/8, -size/2, size/4, size);
@@ -3153,7 +3216,7 @@
                             ctx.stroke();
                         }
                         break;
-                    
+
                     case 'bat':
                         ctx.fillStyle = item.color;
                         ctx.beginPath();
@@ -3165,7 +3228,7 @@
                         ctx.fill();
                         ctx.stroke();
                         break;
-                    
+
                     case 'ball':
                         ctx.fillStyle = item.color;
                         ctx.beginPath();
@@ -3180,7 +3243,7 @@
                         ctx.arc(0, 0, size/3, Math.PI + 0.5, -0.5);
                         ctx.stroke();
                         break;
-                    
+
                     case 'toilet_paper':
                         ctx.fillStyle = item.color;
                         ctx.beginPath();
@@ -3198,7 +3261,7 @@
                         ctx.strokeStyle = '#ddd';
                         ctx.stroke();
                         break;
-                    
+
                     case 'slipper':
                         ctx.fillStyle = item.color;
                         ctx.beginPath();
@@ -3208,7 +3271,7 @@
                         ctx.fillStyle = 'rgba(0,0,0,0.2)';
                         ctx.fillRect(-size/4, -size/6, size/2, size/8);
                         break;
-                    
+
                     case 'vase':
                         ctx.fillStyle = item.color;
                         ctx.beginPath();
@@ -3222,7 +3285,7 @@
                         ctx.fill();
                         ctx.stroke();
                         break;
-                    
+
                     case 'book':
                         ctx.fillStyle = item.color;
                         ctx.fillRect(-size/3, -size/2, size/1.5, size);
@@ -3232,7 +3295,7 @@
                         ctx.strokeStyle = '#gold';
                         ctx.strokeRect(-size/3 + 3, -size/2 + 3, size/2, size - 6);
                         break;
-                    
+
                     case 'pencil':
                         ctx.fillStyle = item.color;
                         ctx.fillRect(-size/8, -size/2, size/4, size * 0.8);
@@ -3246,7 +3309,7 @@
                         ctx.fill();
                         ctx.stroke();
                         break;
-                    
+
                     case 'console':
                         ctx.fillStyle = item.color;
                         ctx.fillRect(-size/3, -size/3, size/1.5, size/1.5);
@@ -3258,7 +3321,7 @@
                         ctx.arc(size/5, size/6, size/10, 0, Math.PI * 2);
                         ctx.fill();
                         break;
-                    
+
                     case 'plush':
                         ctx.fillStyle = item.color;
                         ctx.beginPath();
@@ -3279,7 +3342,7 @@
                         ctx.arc(size/8, -size/12, size/12, 0, Math.PI * 2);
                         ctx.fill();
                         break;
-                    
+
                     case 'sock':
                         ctx.fillStyle = item.color;
                         ctx.fillRect(-size/4, -size/2, size/2, size * 0.7);
@@ -3290,7 +3353,7 @@
                         ctx.fillRect(-size/4, -size/2, size/2, size/8);
                         ctx.fillRect(-size/4, size * 0.1, size/2.5, size/8);
                         break;
-                    
+
                     case 'underwear':
                         ctx.fillStyle = item.color;
                         ctx.beginPath();
@@ -3302,7 +3365,7 @@
                         ctx.fill();
                         ctx.stroke();
                         break;
-                    
+
                     default:
                         ctx.fillStyle = item.color;
                         ctx.beginPath();
@@ -3357,26 +3420,26 @@
             drawHealthBars() {
                 const ui = document.getElementById('ui');
                 ui.querySelectorAll('.health-bar, .character-name').forEach(el => el.remove());
-                
+
                 // 普通角色血条
                 this.characters.forEach((char, index) => {
                     if (char.hp <= 0) return;
-                    
+
                     const barContainer = document.createElement('div');
                     barContainer.className = 'health-bar';
                     barContainer.style.left = (10 + index * 85) + 'px';
                     barContainer.style.top = '35px';
-                    
+
                     const fill = document.createElement('div');
                     fill.className = 'health-fill';
                     fill.style.width = (char.hp / char.maxHp * 100) + '%';
                     if (char.hp / char.maxHp > 0.5) fill.style.background = '#4CAF50';
                     else if (char.hp / char.maxHp > 0.25) fill.style.background = '#ff9800';
                     else fill.style.background = '#f44336';
-                    
+
                     barContainer.appendChild(fill);
                     ui.appendChild(barContainer);
-                    
+
                     const name = document.createElement('div');
                     name.className = 'character-name';
                     name.textContent = char.name;
@@ -3384,7 +3447,7 @@
                     name.style.top = '22px';
                     ui.appendChild(name);
                 });
-                
+
                 // Boss血条
                 if (this.bossMode && this.boss && this.boss.hp > 0) {
                     const bossBarContainer = document.createElement('div');
@@ -3394,15 +3457,15 @@
                     bossBarContainer.style.width = '260px';
                     bossBarContainer.style.height = '15px';
                     bossBarContainer.style.border = '2px solid #ff00ff';
-                    
+
                     const bossFill = document.createElement('div');
                     bossFill.className = 'health-fill';
                     bossFill.style.width = (this.boss.hp / this.boss.maxHp * 100) + '%';
                     bossFill.style.background = 'linear-gradient(90deg, #ff00ff, #800080)';
-                    
+
                     bossBarContainer.appendChild(bossFill);
                     ui.appendChild(bossBarContainer);
-                    
+
                     const bossName = document.createElement('div');
                     bossName.className = 'character-name';
                     bossName.textContent = '👿 魔王 LOLA';
