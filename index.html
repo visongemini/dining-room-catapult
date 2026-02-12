@@ -1993,7 +1993,7 @@
                 this.finalBattleMode = true;
                 this.bossMode = true;
                 this.poopMode = true;
-                this.bossDefeated = false;  // ← 关键！重置boss击败标志
+                this.bossDefeated = false;  // 修复：重置boss击败标志，确保结局能触发
 
                 // 创建Vison作为最终Boss
                 this.createFinalBoss();
