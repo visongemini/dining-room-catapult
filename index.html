@@ -61,7 +61,6 @@
         
         .health-fill {
             height: 100%;
-            background: #ff4444;
             transition: width 0.2s;
         }
         
@@ -95,16 +94,6 @@
             font-size: 11px;
             border: 2px solid #ffd700;
             text-align: center;
-        }
-        
-        #currentItem {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            background: #fff;
-            margin-right: 5px;
-            vertical-align: middle;
-            border: 1px solid #000;
         }
         
         #gameOver {
@@ -145,7 +134,7 @@
         .damage-text {
             position: absolute;
             color: #ff0000;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
             text-shadow: 1px 1px 0 #fff;
             pointer-events: none;
@@ -156,11 +145,6 @@
             0% { transform: translateY(0); opacity: 1; }
             100% { transform: translateY(-30px); opacity: 0; }
         }
-        
-        #trajectory {
-            position: absolute;
-            pointer-events: none;
-        }
     </style>
 </head>
 <body>
@@ -169,10 +153,11 @@
         <div id="ui"></div>
         <div id="scorePanel">
             <div>得分: <span id="score">0</span></div>
-            <div>剩余: <span id="ammo">30</span></div>
+            <div>大便: ∞</div>
         </div>
         <div id="ammoPanel">
-            <div>当前道具: <span id="currentItemName">-</span></div>
+            <div>💩 超级大便模式 💩</div>
+            <div style="font-size:9px;color:#ff0;">伤害MAX | 无限弹药</div>
         </div>
         <div id="gameOver">
             <h2 id="gameOverTitle">游戏结束</h2>
@@ -190,48 +175,26 @@
             slingshotX: 80,
             slingshotY: 520,
             maxPullDistance: 120,
-            launchPower: 0.22,
-            totalAmmo: 30
+            launchPower: 0.28  // 增加发射力度
         };
 
-        // ==================== 道具数据 ====================
-        const ITEMS = [
-            // 餐具类
-            { name: '陶瓷盘子', damage: 10, weight: 3, size: 28, type: 'plate', color: '#e8e8e8', fragile: true },
-            { name: '陶瓷碟子', damage: 8, weight: 2, size: 24, type: 'dish', color: '#f0f0f0', fragile: true, floaty: true },
-            { name: '玻璃杯', damage: 12, weight: 2, size: 22, type: 'cup', color: '#aaddff', fragile: true },
-            { name: '马克杯', damage: 12, weight: 3, size: 24, type: 'mug', color: '#ff9966', fragile: true },
-            { name: '刀叉', damage: 15, weight: 4, size: 32, type: 'cutlery', color: '#c0c0c0', penetrating: true },
-            
-            // 家用杂物类
-            { name: '棒球棍', damage: 25, weight: 6, size: 50, type: 'bat', color: '#deb887', heavy: true, large: true },
-            { name: '棒球', damage: 18, weight: 3, size: 24, type: 'ball', color: '#fff', bouncy: true },
-            { name: '卷纸', damage: 5, weight: 1, size: 20, type: 'toilet_paper', color: '#fff', floaty: true },
-            { name: '拖鞋', damage: 7, weight: 1, size: 26, type: 'slipper', color: '#ff6b6b', soft: true },
-            { name: '衣架', damage: 9, weight: 2, size: 34, type: 'hanger', color: '#c0c0c0', thin: true },
-            { name: '花瓶', damage: 14, weight: 3, size: 26, type: 'vase', color: '#98fb98', fragile: true },
-            
-            // 文具类
-            { name: '书本', damage: 11, weight: 3, size: 32, type: 'book', color: '#4169e1', stable: true },
-            { name: '铅笔', damage: 8, weight: 1, size: 28, type: 'pencil', color: '#ffd700', thin: true, straight: true },
-            
-            // 电子玩具类
-            { name: '游戏机', damage: 13, weight: 3, size: 28, type: 'console', color: '#333', hard: true },
-            { name: '游戏手柄', damage: 10, weight: 2, size: 26, type: 'controller', color: '#666' },
-            { name: '毛绒玩具', damage: 6, weight: 1, size: 32, type: 'plush', color: '#ffb6c1', soft: true, noImpact: true },
-            
-            // 衣物服饰类
-            { name: '袜子', damage: 4, weight: 0.5, size: 20, type: 'sock', color: '#fff', floaty: true, veryLight: true },
-            { name: '内裤', damage: 5, weight: 0.5, size: 24, type: 'underwear', color: '#87ceeb', floaty: true, unstable: true },
-            { name: '胸罩', damage: 6, weight: 0.5, size: 26, type: 'bra', color: '#dda0dd', floaty: true, windAffected: true }
-        ];
+        // ==================== 超级大便配置 ====================
+        const POOP_ITEM = {
+            name: '💩超级大便',
+            damage: 50,        // 最高伤害
+            weight: 8,         // 重量大
+            size: 60,          // 体积巨大
+            type: 'poop',
+            color: '#8B4513',
+            penetrating: true  // 穿透性强
+        };
 
         // ==================== 角色数据 ====================
         const CHARACTERS = [
-            { name: 'Coco', maxHp: 80, hp: 80, color: '#ffb6c1', freq: 0.08, duration: 30, size: 28, yOffset: 0 },
-            { name: 'Cola', maxHp: 100, hp: 100, color: '#87ceeb', freq: 0.05, duration: 50, size: 32, yOffset: 5 },
-            { name: 'Vina', maxHp: 120, hp: 120, color: '#dda0dd', freq: 0.03, duration: 80, size: 36, yOffset: 10 },
-            { name: 'Matt', maxHp: 200, hp: 200, color: '#deb887', freq: 0.015, duration: 25, size: 42, yOffset: 15 }
+            { name: 'Coco', maxHp: 80, hp: 80, color: '#ffb6c1', freq: 0.08, duration: 40, size: 28, yOffset: 0 },
+            { name: 'Cola', maxHp: 100, hp: 100, color: '#87ceeb', freq: 0.05, duration: 60, size: 32, yOffset: 5 },
+            { name: 'Vina', maxHp: 120, hp: 120, color: '#dda0dd', freq: 0.03, duration: 90, size: 36, yOffset: 10 },
+            { name: 'Matt', maxHp: 200, hp: 200, color: '#deb887', freq: 0.015, duration: 30, size: 42, yOffset: 15 }
         ];
 
         // ==================== 游戏主类 ====================
@@ -241,8 +204,6 @@
                 this.ctx = this.canvas.getContext('2d');
                 this.canvas.width = CONFIG.width;
                 this.canvas.height = CONFIG.height;
-                
-                // 禁用抗锯齿，保持像素风格
                 this.ctx.imageSmoothingEnabled = false;
                 
                 this.setupPhysics();
@@ -252,18 +213,19 @@
             }
 
             setupPhysics() {
-                const { Engine, World, Bodies, Body, Events } = Matter;
+                const { Engine, World, Events } = Matter;
                 
                 this.engine = Engine.create();
                 this.world = this.engine.world;
                 this.engine.gravity.y = CONFIG.gravity;
                 
-                // 碰撞检测
+                // 碰撞检测 - 使用 collisionActive 持续检测
                 Events.on(this.engine, 'collisionStart', (e) => this.handleCollisions(e));
+                Events.on(this.engine, 'collisionActive', (e) => this.handleCollisions(e));
             }
 
             initGame() {
-                const { World, Bodies, Body, Engine } = Matter;
+                const { World, Engine } = Matter;
                 
                 // 清空世界
                 World.clear(this.world);
@@ -271,18 +233,16 @@
                 
                 // 游戏状态
                 this.score = 0;
-                this.ammo = CONFIG.totalAmmo;
-                this.currentItem = null;
-                this.gameState = 'aiming'; // aiming, flying, ended
+                this.gameState = 'aiming';
                 this.projectile = null;
                 this.dragStart = null;
                 this.dragCurrent = null;
                 this.damageTexts = [];
                 this.particles = [];
-                this.brokenFurniture = [];
+                this.hitCooldowns = new Map(); // 碰撞冷却，防止重复伤害
                 
                 // 重置角色
-                this.characters = CHARACTERS.map(c => ({
+                this.characters = CHARACTERS.map((c, index) => ({
                     ...c,
                     hp: c.maxHp,
                     visible: false,
@@ -290,25 +250,18 @@
                     nextToggle: Math.random() * 100,
                     hitFlash: 0,
                     faceOffset: 0,
-                    hitReaction: 0,  // 受伤动作计时
-                    hitOffsetX: 0,   // 受伤位移X
-                    hitOffsetY: 0    // 受伤位移Y
+                    hitReaction: 0,
+                    hitOffsetX: 0,
+                    hitOffsetY: 0,
+                    body: null,
+                    index: index
                 }));
-                
-                // 机关枪状态
-                this.machineGunActive = false;
-                this.machineGunAmmo = 0;
-                this.machineGunAngle = -Math.PI / 4;
-                this.isFiring = false;
                 
                 // 创建边界
                 this.createBoundaries();
                 
                 // 创建家具
                 this.createFurniture();
-                
-                // 随机装载第一个道具
-                this.loadNextItem();
                 
                 // 更新UI
                 this.updateUI();
@@ -319,9 +272,18 @@
                 const thickness = 50;
                 
                 const walls = [
-                    Bodies.rectangle(CONFIG.width/2, CONFIG.height + thickness/2, CONFIG.width, thickness, { isStatic: true }), // 地面
-                    Bodies.rectangle(-thickness/2, CONFIG.height/2, thickness, CONFIG.height, { isStatic: true }), // 左墙
-                    Bodies.rectangle(CONFIG.width + thickness/2, CONFIG.height/2, thickness, CONFIG.height, { isStatic: true }) // 右墙
+                    Bodies.rectangle(CONFIG.width/2, CONFIG.height + thickness/2, CONFIG.width, thickness, { 
+                        isStatic: true,
+                        label: 'ground'
+                    }),
+                    Bodies.rectangle(-thickness/2, CONFIG.height/2, thickness, CONFIG.height, { 
+                        isStatic: true,
+                        label: 'wall_left'
+                    }),
+                    Bodies.rectangle(CONFIG.width + thickness/2, CONFIG.height/2, thickness, CONFIG.height, { 
+                        isStatic: true,
+                        label: 'wall_right'
+                    })
                 ];
                 
                 World.add(this.world, walls);
@@ -334,131 +296,80 @@
                 // 木质餐桌 - 中央
                 const table = Bodies.rectangle(CONFIG.width/2, 350, 140, 80, {
                     isStatic: false,
-                    density: 0.005,
+                    density: 0.008,
                     friction: 0.8,
-                    restitution: 0.2,
-                    render: { fillStyle: '#8b4513' },
-                    label: 'table'
+                    restitution: 0.3,
+                    label: 'furniture_table'
                 });
-                this.furniture.push({ body: table, type: 'table', hp: 50, maxHp: 50 });
+                this.furniture.push({ body: table, type: 'table', hp: 80, maxHp: 80, name: '餐桌' });
                 
                 // 餐椅 - 左
                 const chair1 = Bodies.rectangle(80, 320, 40, 60, {
                     isStatic: false,
-                    density: 0.003,
+                    density: 0.005,
                     friction: 0.7,
-                    restitution: 0.1,
-                    render: { fillStyle: '#a0522d' },
-                    label: 'chair'
+                    restitution: 0.2,
+                    label: 'furniture_chair'
                 });
-                this.furniture.push({ body: chair1, type: 'chair', hp: 30, maxHp: 30 });
+                this.furniture.push({ body: chair1, type: 'chair', hp: 40, maxHp: 40, name: '椅子' });
                 
                 // 餐椅 - 右
                 const chair2 = Bodies.rectangle(280, 320, 40, 60, {
                     isStatic: false,
-                    density: 0.003,
+                    density: 0.005,
                     friction: 0.7,
-                    restitution: 0.1,
-                    render: { fillStyle: '#a0522d' },
-                    label: 'chair'
+                    restitution: 0.2,
+                    label: 'furniture_chair'
                 });
-                this.furniture.push({ body: chair2, type: 'chair', hp: 30, maxHp: 30 });
+                this.furniture.push({ body: chair2, type: 'chair', hp: 40, maxHp: 40, name: '椅子' });
                 
                 // 玻璃橱柜 - 右上
                 const cabinet = Bodies.rectangle(300, 200, 80, 120, {
                     isStatic: false,
-                    density: 0.004,
+                    density: 0.006,
                     friction: 0.5,
                     restitution: 0.1,
-                    render: { fillStyle: '#add8e6' },
-                    label: 'glass_cabinet'
+                    label: 'furniture_cabinet'
                 });
-                this.furniture.push({ body: cabinet, type: 'glass_cabinet', hp: 20, maxHp: 20 });
+                this.furniture.push({ body: cabinet, type: 'glass_cabinet', hp: 30, maxHp: 30, name: '橱柜' });
                 
                 // 冰箱 - 左后
                 const fridge = Bodies.rectangle(60, 220, 70, 140, {
                     isStatic: true,
-                    density: 0.01,
+                    density: 0.02,
                     friction: 0.9,
                     restitution: 0.1,
-                    render: { fillStyle: '#e0e0e0' },
-                    label: 'fridge'
+                    label: 'furniture_fridge'
                 });
-                this.furniture.push({ body: fridge, type: 'fridge', hp: 100, maxHp: 100 });
+                this.furniture.push({ body: fridge, type: 'fridge', hp: 150, maxHp: 150, name: '冰箱' });
                 
                 // 餐边柜 - 右后
                 const sideboard = Bodies.rectangle(260, 240, 100, 80, {
                     isStatic: true,
-                    density: 0.006,
+                    density: 0.01,
                     friction: 0.8,
                     restitution: 0.1,
-                    render: { fillStyle: '#cd853f' },
-                    label: 'sideboard'
+                    label: 'furniture_sideboard'
                 });
-                this.furniture.push({ body: sideboard, type: 'sideboard', hp: 60, maxHp: 60 });
+                this.furniture.push({ body: sideboard, type: 'sideboard', hp: 80, maxHp: 80, name: '餐边柜' });
                 
                 World.add(this.world, this.furniture.map(f => f.body));
             }
 
-            loadNextItem() {
-                if (this.machineGunActive) {
-                    // 机关枪模式下不加载新道具
-                    return;
-                }
-                
-                if (this.ammo > 0) {
-                    const randomIndex = Math.floor(Math.random() * ITEMS.length);
-                    this.currentItem = { ...ITEMS[randomIndex] };
-                    document.getElementById('currentItemName').textContent = this.currentItem.name;
-                } else if (!this.infiniteMachineGun) {
-                    // 普通道具用完，给100发机关枪
-                    this.currentItem = { 
-                        name: '💩机关枪', 
-                        damage: 3, 
-                        size: 18, 
-                        type: 'machine_gun',
-                        color: '#8B4513',
-                        isGun: true,
-                        ammo: 100
-                    };
-                    this.machineGunAmmo = 100;
-                    document.getElementById('currentItemName').textContent = '💩机关枪(100)';
-                } else {
-                    // 无限机关枪模式
-                    this.currentItem = { 
-                        name: '💩无限机关枪', 
-                        damage: 3, 
-                        size: 18, 
-                        type: 'machine_gun',
-                        color: '#8B4513',
-                        isGun: true,
-                        ammo: 999999
-                    };
-                    this.machineGunAmmo = 999999;
-                    document.getElementById('currentItemName').textContent = '💩无限机关枪';
-                }
-            }
-
             bindEvents() {
                 const handleStart = (e) => {
-                    // 机关枪模式下不处理弹弓事件
-                    if (this.machineGunActive) return;
-                    
-                    // 只要有道具就能发射（连续发射模式）
-                    if (!this.currentItem) return;
+                    if (this.gameState !== 'aiming') return;
                     
                     const pos = this.getPointerPos(e);
                     const dist = Math.hypot(pos.x - CONFIG.slingshotX, pos.y - CONFIG.slingshotY);
                     
-                    if (dist < 60) {
+                    if (dist < 80) {
                         this.dragStart = { x: CONFIG.slingshotX, y: CONFIG.slingshotY };
                         this.dragCurrent = pos;
                     }
                 };
 
                 const handleMove = (e) => {
-                    // 机关枪模式下不处理弹弓事件
-                    if (this.machineGunActive) return;
                     if (!this.dragStart) return;
                     
                     this.dragCurrent = this.getPointerPos(e);
@@ -478,8 +389,6 @@
                 };
 
                 const handleEnd = () => {
-                    // 机关枪模式下不处理弹弓事件
-                    if (this.machineGunActive) return;
                     if (!this.dragStart || !this.dragCurrent) return;
                     
                     this.fireProjectile();
@@ -501,7 +410,7 @@
                 const scaleX = this.canvas.width / rect.width;
                 const scaleY = this.canvas.height / rect.height;
                 
-                if (e.touches) {
+                if (e.touches && e.touches.length > 0) {
                     return {
                         x: (e.touches[0].clientX - rect.left) * scaleX,
                         y: (e.touches[0].clientY - rect.top) * scaleY
@@ -518,452 +427,225 @@
                 
                 const dx = this.dragStart.x - this.dragCurrent.x;
                 const dy = this.dragStart.y - this.dragCurrent.y;
+                const dist = Math.hypot(dx, dy);
+                const power = Math.min(dist / CONFIG.maxPullDistance, 1);
                 
-                // 创建弹射物
-                const item = this.currentItem;
-                let body;
+                // 创建大便投射物
+                const item = POOP_ITEM;
+                const body = Bodies.circle(this.dragStart.x, this.dragStart.y, item.size/2, {
+                    density: item.weight * 0.001,
+                    friction: 0.4,
+                    restitution: 0.6,
+                    frictionAir: 0.005,
+                    label: 'projectile'
+                });
                 
-                // 计算回弹系数 - 增加墙壁回弹效果 (加强版)
-                const baseRestitution = item.bouncy ? 0.95 : (item.soft ? 0.6 : 0.85);
-                
-                if (item.thin) {
-                    body = Bodies.rectangle(this.dragStart.x, this.dragStart.y, item.size, 4, {
-                        density: item.weight * 0.001,
-                        friction: 0.3,
-                        restitution: baseRestitution,
-                        frictionAir: 0.01,
-                        render: { fillStyle: item.color }
-                    });
-                } else if (item.large) {
-                    body = Bodies.rectangle(this.dragStart.x, this.dragStart.y, item.size, 10, {
-                        density: item.weight * 0.001,
-                        friction: 0.3,
-                        restitution: baseRestitution * 0.8, // 重物回弹稍弱
-                        frictionAir: 0.015,
-                        render: { fillStyle: item.color }
-                    });
-                } else {
-                    body = Bodies.circle(this.dragStart.x, this.dragStart.y, item.size/2, {
-                        density: item.weight * 0.001,
-                        friction: 0.3,
-                        restitution: baseRestitution,
-                        frictionAir: 0.01,
-                        render: { fillStyle: item.color }
-                    });
-                }
-                
-                body.label = 'projectile';
                 body.itemData = item;
-                
                 World.add(this.world, body);
                 
                 // 施加发射力
-                const force = CONFIG.launchPower * (Math.hypot(dx, dy) / CONFIG.maxPullDistance);
+                const force = CONFIG.launchPower * power;
                 const angle = Math.atan2(dy, dx);
                 Body.applyForce(body, body.position, {
                     x: Math.cos(angle) * force * item.weight,
                     y: Math.sin(angle) * force * item.weight
                 });
                 
-                // 如果是轻浮物品，添加随机风力
-                if (item.floaty) {
-                    Body.applyForce(body, body.position, {
-                        x: (Math.random() - 0.5) * 0.001,
-                        y: -0.001
-                    });
-                }
-                
                 this.projectile = body;
                 this.gameState = 'flying';
-                this.ammo--;
-                
-                // 播放发射音效
-                this.playSound('launch');
-                
-                // 手机震动反馈（根据物品重量）
-                const vibrateTime = Math.min(item.weight * 5, 30);
-                this.vibrate(vibrateTime);
-                
-                // 如果是机关枪，启动机关枪模式
-                if (item.isGun) {
-                    this.startMachineGunMode(item.ammo || 100);
-                } else {
-                    // 立即加载下一个道具（连续发射）
-                    this.loadNextItem();
-                }
-                
-                // 监听弹射物停止
-                this.projectileTimeout = setTimeout(() => {
-                    this.onProjectileStop();
-                }, 8000);
-                
-                this.updateUI();
-            }
-
-            // 机关枪模式 - 按住开火，移动转方向
-            startMachineGunMode(ammoCount) {
-                this.machineGunActive = true;
-                this.machineGunAmmo = ammoCount;
-                this.isFiring = false;
-                this.machineGunAngle = -Math.PI / 4; // 默认朝向右上
-                
-                // 设置特殊事件监听
-                this.setupMachineGunControls();
-            }
-
-            // 机关枪控制 - 按住开火，移动转方向
-            setupMachineGunControls() {
-                const canvas = this.canvas;
-                
-                const handleStart = (e) => {
-                    if (!this.machineGunActive) return;
-                    e.preventDefault();
-                    this.isFiring = true;
-                    this.fireMachineGunBullet();
-                };
-                
-                const handleMove = (e) => {
-                    if (!this.machineGunActive) return;
-                    e.preventDefault();
-                    
-                    const pos = this.getPointerPos(e);
-                    // 计算从弹弓位置到手指位置的角度
-                    const dx = pos.x - CONFIG.slingshotX;
-                    const dy = pos.y - CONFIG.slingshotY;
-                    this.machineGunAngle = Math.atan2(dy, dx);
-                };
-                
-                const handleEnd = (e) => {
-                    if (!this.machineGunActive) return;
-                    this.isFiring = false;
-                };
-                
-                // 移除旧的事件监听（如果有）
-                canvas.removeEventListener('mousedown', this._mgStart);
-                canvas.removeEventListener('mousemove', this._mgMove);
-                canvas.removeEventListener('mouseup', this._mgEnd);
-                canvas.removeEventListener('touchstart', this._mgStart);
-                canvas.removeEventListener('touchmove', this._mgMove);
-                canvas.removeEventListener('touchend', this._mgEnd);
-                
-                // 保存引用以便后续移除
-                this._mgStart = handleStart;
-                this._mgMove = handleMove;
-                this._mgEnd = handleEnd;
-                
-                // 添加新的事件监听
-                canvas.addEventListener('mousedown', handleStart, { passive: false });
-                canvas.addEventListener('mousemove', handleMove, { passive: false });
-                window.addEventListener('mouseup', handleEnd, { passive: false });
-                canvas.addEventListener('touchstart', handleStart, { passive: false });
-                canvas.addEventListener('touchmove', handleMove, { passive: false });
-                window.addEventListener('touchend', handleEnd, { passive: false });
-                
-                // 启动连射循环
-                this.startMachineGunLoop();
-            }
-
-            // 机关枪连射循环
-            startMachineGunLoop() {
-                const fireLoop = () => {
-                    if (!this.machineGunActive) return;
-                    
-                    if (this.isFiring && this.machineGunAmmo > 0) {
-                        this.fireMachineGunBullet();
-                        this.machineGunAmmo--;
-                        
-                        // 更新UI
-                        if (this.machineGunAmmo > 1000) {
-                            document.getElementById('currentItemName').textContent = '💩无限机关枪';
-                        } else {
-                            document.getElementById('currentItemName').textContent = `💩机关枪(${this.machineGunAmmo})`;
-                        }
-                        
-                        // 子弹打完
-                        if (this.machineGunAmmo <= 0) {
-                            this.endMachineGunMode();
-                            return;
-                        }
-                    }
-                    
-                    setTimeout(fireLoop, 80); // 80ms间隔，约12发/秒
-                };
-                
-                fireLoop();
-            }
-
-            // 发射机关枪子弹
-            fireMachineGunBullet() {
-                const { World, Bodies, Body } = Matter;
-                
-                // 添加一点随机散布
-                const spread = (Math.random() - 0.5) * 0.1;
-                const angle = this.machineGunAngle + spread;
-                const speed = 15;
-                
-                const bullet = Bodies.circle(CONFIG.slingshotX, CONFIG.slingshotY, 6, {
-                    density: 0.002,
-                    friction: 0.4,
-                    restitution: 0.3,
-                    frictionAir: 0.005,
-                    render: { fillStyle: '#8B4513' }
-                });
-                
-                bullet.label = 'projectile';
-                bullet.itemData = { 
-                    name: '💩', 
-                    damage: 3, 
-                    size: 12, 
-                    type: 'poop',
-                    color: '#8B4513',
-                    penetrating: true // 子弹可以穿透
-                };
-                
-                World.add(this.world, bullet);
-                
-                // 设置子弹速度
-                Body.setVelocity(bullet, {
-                    x: Math.cos(angle) * speed,
-                    y: Math.sin(angle) * speed
-                });
                 
                 // 播放发射音效
                 this.playSound('launch');
                 
                 // 手机震动反馈
-                this.vibrate(15);
+                if (navigator.vibrate) navigator.vibrate(30);
                 
-                // 枪口火焰特效
-                this.createMuzzleFlash(CONFIG.slingshotX, CONFIG.slingshotY, angle);
-                
-                // 5秒后清理
-                setTimeout(() => {
-                    if (bullet && this.world.bodies.includes(bullet)) {
-                        World.remove(this.world, bullet);
-                    }
-                }, 5000);
-            }
-            
-            // 手机震动
-            vibrate(ms) {
-                if (navigator.vibrate) {
-                    navigator.vibrate(ms);
-                }
-            }
-            
-            // 枪口火焰特效
-            createMuzzleFlash(x, y, angle) {
-                // 火焰粒子
-                for (let i = 0; i < 8; i++) {
-                    const flameAngle = angle + (Math.random() - 0.5) * 0.5;
-                    const speed = 3 + Math.random() * 4;
-                    this.particles.push({
-                        x: x + Math.cos(angle) * 45, // 枪口位置
-                        y: y + Math.sin(angle) * 45,
-                        vx: Math.cos(flameAngle) * speed,
-                        vy: Math.sin(flameAngle) * speed,
-                        life: 15,
-                        color: Math.random() > 0.3 ? '#ff6600' : '#ffff00',
-                        size: 4 + Math.random() * 6,
-                        isFire: true
-                    });
-                }
-                // 烟雾粒子
-                for (let i = 0; i < 5; i++) {
-                    const smokeAngle = angle + (Math.random() - 0.5) * 0.3;
-                    this.particles.push({
-                        x: x + Math.cos(angle) * 45,
-                        y: y + Math.sin(angle) * 45,
-                        vx: Math.cos(smokeAngle) * 2,
-                        vy: Math.sin(smokeAngle) * 2 - 1,
-                        life: 40,
-                        color: 'rgba(100, 100, 100, 0.5)',
-                        size: 3 + Math.random() * 4,
-                        isSmoke: true
-                    });
-                }
+                // 8秒后清理投射物
+                this.projectileTimeout = setTimeout(() => {
+                    this.removeProjectile();
+                }, 8000);
             }
 
-            // 结束机关枪模式
-            endMachineGunMode() {
-                this.machineGunActive = false;
-                this.isFiring = false;
-                
-                // 移除事件监听
-                const canvas = this.canvas;
-                if (this._mgStart) {
-                    canvas.removeEventListener('mousedown', this._mgStart);
-                    canvas.removeEventListener('mousemove', this._mgMove);
-                    window.removeEventListener('mouseup', this._mgEnd);
-                    canvas.removeEventListener('touchstart', this._mgStart);
-                    canvas.removeEventListener('touchmove', this._mgMove);
-                    window.removeEventListener('touchend', this._mgEnd);
-                }
-                
-                // 100发打完，进入无限模式
-                if (!this.infiniteMachineGun && this.currentItem && this.currentItem.ammo <= 100) {
-                    this.infiniteMachineGun = true;
-                    this.loadNextItem(); // 加载无限机关枪
-                } else {
-                    this.infiniteMachineGun = false;
-                    this.currentItem = null;
-                    document.getElementById('currentItemName').textContent = '已耗尽';
-                }
-            }
-
-            onProjectileStop() {
+            removeProjectile() {
                 if (this.projectile) {
                     Matter.World.remove(this.world, this.projectile);
                     this.projectile = null;
+                    this.gameState = 'aiming';
                 }
-                
-                this.gameState = 'aiming';
-                this.checkGameEnd();
             }
 
             handleCollisions(e) {
                 const pairs = e.pairs;
+                const now = Date.now();
                 
                 for (let pair of pairs) {
                     const bodyA = pair.bodyA;
                     const bodyB = pair.bodyB;
                     
-                    // 检测弹射物与角色脸部碰撞
-                    if ((bodyA.label === 'projectile' && bodyB.label === 'character_face') ||
-                        (bodyB.label === 'projectile' && bodyA.label === 'character_face')) {
-                        
-                        const projectile = bodyA.label === 'projectile' ? bodyA : bodyB;
-                        const charBody = bodyA.label === 'character_face' ? bodyA : bodyB;
-                        const character = charBody.characterData;
-                        
-                        if (character && character.visible && character.hp > 0) {
-                            const item = projectile.itemData;
-                            const damage = item.damage;
-                            
-                            // 造成伤害
-                            character.hp -= damage;
-                            character.hitFlash = 15;
-                            
-                            // 受伤动作 - 向后仰/抖动
-                            character.hitReaction = 20;
-                            character.hitOffsetX = (Math.random() - 0.5) * 15;
-                            character.hitOffsetY = -Math.random() * 10;
-                            
-                            // 播放受伤音效（人被打中）
-                            this.playSound('hurt');
-                            
-                            // 手机震动反馈
-                            this.vibrate(20);
-                            
-                            // 显示伤害数字
-                            this.showDamageText(charBody.position.x, charBody.position.y, damage);
-                            
-                            // 增加分数
-                            this.score += damage;
-                            
-                            // 所有投射物打到人都有效果
-                            // 穿透型子弹（机关枪子弹）不销毁，继续飞行
-                            if (item.penetrating) {
-                                // 子弹穿透人体，继续飞行
-                                // 给子弹一点减速
-                                Matter.Body.setVelocity(projectile, {
-                                    x: projectile.velocity.x * 0.9,
-                                    y: projectile.velocity.y * 0.9
-                                });
-                            } else if (item.fragile) {
-                                // 易碎道具破碎
-                                this.createParticles(projectile.position.x, projectile.position.y, item.color, 12);
-                                this.createShatterEffect(projectile.position.x, projectile.position.y, item);
-                                this.playSound('break');
-                                Matter.World.remove(this.world, projectile);
-                                this.projectile = null;
-                                setTimeout(() => this.onProjectileStop(), 300);
-                            } else {
-                                // 非易碎物品播放击中音效并销毁
-                                this.playSound('hit');
-                                Matter.World.remove(this.world, projectile);
-                                this.projectile = null;
-                                setTimeout(() => this.onProjectileStop(), 300);
-                            }
+                    // 获取投射物和其他物体
+                    let projectile = null;
+                    let other = null;
+                    
+                    if (bodyA.label === 'projectile') {
+                        projectile = bodyA;
+                        other = bodyB;
+                    } else if (bodyB.label === 'projectile') {
+                        projectile = bodyB;
+                        other = bodyA;
+                    }
+                    
+                    if (!projectile || !other) continue;
+                    
+                    // 计算碰撞速度
+                    const speed = Math.hypot(projectile.velocity.x, projectile.velocity.y);
+                    if (speed < 1) continue; // 速度太低不造成伤害
+                    
+                    // 获取投射物数据
+                    const item = projectile.itemData || POOP_ITEM;
+                    
+                    // 碰撞冷却检查 - 防止同一帧多次伤害
+                    const cooldownKey = `${projectile.id}_${other.id}`;
+                    if (this.hitCooldowns.has(cooldownKey)) {
+                        if (now - this.hitCooldowns.get(cooldownKey) < 200) continue;
+                    }
+                    this.hitCooldowns.set(cooldownKey, now);
+                    
+                    // 检查是否击中角色
+                    const charIndex = other.label?.match(/character_(\d)/)?.[1];
+                    if (charIndex !== undefined) {
+                        const character = this.characters[parseInt(charIndex)];
+                        if (character && character.hp > 0) {
+                            this.hitCharacter(character, item, other.position, projectile);
                         }
                     }
                     
-                    // 家具损坏检测 - 所有家具都可以被打坏
-                    if ((bodyA.label === 'projectile' && bodyB.label && bodyB.label.includes('_')) ||
-                        (bodyB.label === 'projectile' && bodyA.label && bodyA.label.includes('_'))) {
-                        
-                        const projectile = bodyA.label === 'projectile' ? bodyA : bodyB;
-                        const furnitureBody = bodyA.label === 'projectile' ? bodyB : bodyA;
-                        const furniture = this.furniture.find(f => f.body === furnitureBody);
-                        
-                        if (furniture) {
-                            const speed = Math.hypot(projectile.velocity.x, projectile.velocity.y);
-                            if (speed > 2) {
-                                const damage = projectile.itemData.damage;
-                                furniture.hp -= damage;
-                                
-                                // 显示家具受损效果
-                                this.createParticles(
-                                    (projectile.position.x + furnitureBody.position.x) / 2,
-                                    (projectile.position.y + furnitureBody.position.y) / 2,
-                                    furniture.type === 'glass_cabinet' ? '#add8e6' : '#8b4513',
-                                    5
-                                );
-                                
-                                // 播放击中音效
-                                this.playSound('hit');
-                                
-                                // 手机震动
-                                this.vibrate(10);
-                                
-                                // 家具被摧毁
-                                if (furniture.hp <= 0) {
-                                    this.breakFurniture(furniture);
-                                }
-                                
-                                // 投射物处理
-                                const item = projectile.itemData;
-                                // 穿透型子弹（机关枪子弹）不销毁，继续飞行
-                                if (item.penetrating) {
-                                    // 子弹穿透，继续飞行
-                                    // 给子弹一点散射
-                                    Matter.Body.setVelocity(projectile, {
-                                        x: projectile.velocity.x * 0.95,
-                                        y: projectile.velocity.y * 0.95
-                                    });
-                                } else if (item.fragile || item.type === 'poop') {
-                                    // 易碎物品和大便直接粉碎
-                                    if (item.type === 'poop') {
-                                        this.createShatterEffect(projectile.position.x, projectile.position.y, {color: '#8B4513', large: false});
-                                    } else {
-                                        this.createShatterEffect(projectile.position.x, projectile.position.y, item);
-                                    }
-                                    this.playSound('break');
-                                    Matter.World.remove(this.world, projectile);
-                                    if (this.projectile === projectile) {
-                                        this.projectile = null;
-                                    }
-                                }
-                            }
-                        }
+                    // 检查是否击中家具
+                    if (other.label?.startsWith('furniture_')) {
+                        this.hitFurniture(other, item, projectile);
                     }
                 }
             }
 
-            breakFurniture(furniture) {
-                Matter.World.remove(this.world, furniture.body);
-                this.createParticles(furniture.body.position.x, furniture.body.position.y, '#8b4513', 10);
-                this.brokenFurniture.push(furniture);
+            hitCharacter(character, item, position, projectile) {
+                const damage = item.damage;
+                character.hp -= damage;
+                character.hitFlash = 15;
+                character.hitReaction = 20;
+                character.hitOffsetX = (Math.random() - 0.5) * 20;
+                character.hitOffsetY = -Math.random() * 15;
+                
+                // 播放受伤音效
+                this.playSound('hurt');
+                
+                // 手机震动反馈
+                if (navigator.vibrate) navigator.vibrate(25);
+                
+                // 显示伤害数字
+                this.showDamageText(position.x, position.y, damage, true);
+                
+                // 增加分数
+                this.score += damage;
+                this.updateUI();
+                
+                // 创建击中特效
+                this.createParticles(position.x, position.y, '#8B4513', 15);
+                this.createShatterEffect(position.x, position.y, { color: '#654321', size: 8 });
+                
+                // 大便会粘在角色身上然后掉落
+                Matter.Body.setVelocity(projectile, {
+                    x: projectile.velocity.x * 0.5,
+                    y: projectile.velocity.y * 0.3
+                });
+                
+                // 检查角色死亡
+                if (character.hp <= 0) {
+                    this.createParticles(position.x, position.y, character.color, 30);
+                    if (character.body) {
+                        Matter.World.remove(this.world, character.body);
+                        character.body = null;
+                    }
+                    this.checkGameEnd();
+                }
             }
 
-            showDamageText(x, y, damage) {
+            hitFurniture(furnitureBody, item, projectile) {
+                const furniture = this.furniture.find(f => f.body === furnitureBody);
+                if (!furniture || furniture.hp <= 0) return;
+                
+                const damage = item.damage;
+                furniture.hp -= damage;
+                
+                // 显示伤害数字
+                this.showDamageText(
+                    furnitureBody.position.x, 
+                    furnitureBody.position.y - furnitureBody.bounds.max.y + furnitureBody.bounds.min.y, 
+                    damage,
+                    false
+                );
+                
+                // 播放击中音效
+                this.playSound('hit');
+                
+                // 创建击中特效
+                const hitX = (projectile.position.x + furnitureBody.position.x) / 2;
+                const hitY = (projectile.position.y + furnitureBody.position.y) / 2;
+                this.createParticles(hitX, hitY, '#8B4513', 10);
+                
+                // 给家具施加冲击力
+                if (!furnitureBody.isStatic) {
+                    Matter.Body.applyForce(furnitureBody, projectile.position, {
+                        x: projectile.velocity.x * 0.001,
+                        y: projectile.velocity.y * 0.001
+                    });
+                }
+                
+                // 家具被摧毁
+                if (furniture.hp <= 0) {
+                    this.breakFurniture(furniture);
+                }
+            }
+
+            breakFurniture(furniture) {
+                const { World } = Matter;
+                
+                // 移除家具物理体
+                World.remove(this.world, furniture.body);
+                
+                // 创建爆炸特效
+                const pos = furniture.body.position;
+                this.createParticles(pos.x, pos.y, '#8b4513', 25);
+                this.createShatterEffect(pos.x, pos.y, { 
+                    color: furniture.type === 'glass_cabinet' ? '#add8e6' : '#a0522d',
+                    size: 12
+                });
+                
+                // 播放破碎音效
+                this.playSound('break');
+                
+                // 显示破坏提示
+                this.showDamageText(pos.x, pos.y, `${furniture.name} 碎了!`, false, '#ff6600');
+                
+                furniture.hp = 0;
+            }
+
+            showDamageText(x, y, damage, isCharacter = false, color = null) {
                 const el = document.createElement('div');
                 el.className = 'damage-text';
-                el.textContent = `-${damage}`;
+                el.textContent = typeof damage === 'number' ? `-${damage}` : damage;
                 el.style.left = (x / CONFIG.width * 100) + '%';
                 el.style.top = (y / CONFIG.height * 100) + '%';
-                document.getElementById('ui').appendChild(el);
                 
+                if (color) {
+                    el.style.color = color;
+                } else if (isCharacter) {
+                    el.style.color = '#ff0000';
+                    el.style.fontSize = '16px';
+                } else {
+                    el.style.color = '#ffaa00';
+                    el.style.fontSize = '12px';
+                }
+                
+                document.getElementById('ui').appendChild(el);
                 setTimeout(() => el.remove(), 1000);
             }
 
@@ -972,37 +654,35 @@
                     this.particles.push({
                         x: x,
                         y: y,
-                        vx: (Math.random() - 0.5) * 8,
-                        vy: (Math.random() - 0.5) * 8,
-                        life: 40,
+                        vx: (Math.random() - 0.5) * 10,
+                        vy: (Math.random() - 0.5) * 10 - 3,
+                        life: 50,
                         color: color,
-                        size: Math.random() * 4 + 2
+                        size: Math.random() * 6 + 3
                     });
                 }
             }
 
-            // 破碎飞溅效果
             createShatterEffect(x, y, item) {
-                const shardCount = item.large ? 15 : 8;
+                const shardCount = item.size || 10;
                 for (let i = 0; i < shardCount; i++) {
                     const angle = (Math.PI * 2 / shardCount) * i + Math.random() * 0.5;
-                    const speed = Math.random() * 6 + 3;
+                    const speed = Math.random() * 8 + 4;
                     this.particles.push({
                         x: x,
                         y: y,
                         vx: Math.cos(angle) * speed,
-                        vy: Math.sin(angle) * speed - 2,
-                        life: 50,
+                        vy: Math.sin(angle) * speed - 3,
+                        life: 60,
                         color: item.color,
-                        size: Math.random() * 6 + 3,
+                        size: Math.random() * 8 + 4,
                         isShard: true,
                         rotation: Math.random() * Math.PI * 2,
-                        rotationSpeed: (Math.random() - 0.5) * 0.3
+                        rotationSpeed: (Math.random() - 0.5) * 0.4
                     });
                 }
             }
 
-            // 音效系统
             playSound(type) {
                 try {
                     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1013,65 +693,68 @@
                     gainNode.connect(audioCtx.destination);
                     
                     if (type === 'break') {
-                        // 破碎音效 - 高频噪音
                         oscillator.type = 'sawtooth';
-                        oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
-                        oscillator.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.15);
+                        oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
                         gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                        oscillator.start(audioCtx.currentTime);
+                        oscillator.stop(audioCtx.currentTime + 0.2);
+                    } else if (type === 'hit') {
+                        oscillator.type = 'square';
+                        oscillator.frequency.setValueAtTime(250, audioCtx.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.15);
+                        gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
                         gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
                         oscillator.start(audioCtx.currentTime);
                         oscillator.stop(audioCtx.currentTime + 0.15);
-                    } else if (type === 'hit') {
-                        // 击中音效 - 闷响
-                        oscillator.type = 'square';
-                        oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
-                        oscillator.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.1);
-                        gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-                        oscillator.start(audioCtx.currentTime);
-                        oscillator.stop(audioCtx.currentTime + 0.1);
                     } else if (type === 'launch') {
-                        // 发射音效
                         oscillator.type = 'sine';
-                        oscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
-                        oscillator.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.2);
-                        gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                        gainNode.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                        oscillator.frequency.setValueAtTime(350, audioCtx.currentTime);
+                        oscillator.frequency.linearRampToValueAtTime(120, audioCtx.currentTime + 0.25);
+                        gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                        gainNode.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
                         oscillator.start(audioCtx.currentTime);
-                        oscillator.stop(audioCtx.currentTime + 0.2);
+                        oscillator.stop(audioCtx.currentTime + 0.25);
                     } else if (type === 'hurt') {
-                        // 受伤音效 - 惨叫
                         oscillator.type = 'sawtooth';
-                        oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
-                        oscillator.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.3);
-                        gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
-                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                        oscillator.frequency.setValueAtTime(500, audioCtx.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.35);
+                        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
                         oscillator.start(audioCtx.currentTime);
-                        oscillator.stop(audioCtx.currentTime + 0.3);
+                        oscillator.stop(audioCtx.currentTime + 0.35);
                     }
-                } catch (e) {
-                    // 音频上下文可能不可用，忽略错误
-                }
+                } catch (e) {}
             }
 
             updateCharacters() {
+                const { Bodies, World, Body } = Matter;
+                
                 this.characters.forEach((char, index) => {
                     if (char.hp <= 0) return;
+                    
+                    // 角色位置
+                    const positions = [
+                        { x: 100, y: 280 },  // Coco
+                        { x: 260, y: 290 },  // Cola
+                        { x: 180, y: 270 },  // Vina
+                        { x: 300, y: 170 }   // Matt
+                    ];
+                    const pos = positions[index];
                     
                     char.nextToggle--;
                     
                     if (char.visible) {
                         char.visibleTimer--;
-                        // 露脸动画
-                        char.faceOffset = Math.min(char.faceOffset + 2, char.size * 0.8);
+                        char.faceOffset = Math.min(char.faceOffset + 3, char.size * 0.8);
                         
                         if (char.visibleTimer <= 0) {
                             char.visible = false;
-                            char.nextToggle = Math.random() * 150 + 50;
+                            char.nextToggle = Math.random() * 100 + 50;
                         }
                     } else {
-                        // 缩回动画
-                        char.faceOffset = Math.max(char.faceOffset - 3, 0);
+                        char.faceOffset = Math.max(char.faceOffset - 4, 0);
                         
                         if (char.nextToggle <= 0) {
                             char.visible = true;
@@ -1084,12 +767,33 @@
                     // 受伤动作恢复
                     if (char.hitReaction > 0) {
                         char.hitReaction--;
-                        // 逐渐回到原位
-                        char.hitOffsetX *= 0.8;
-                        char.hitOffsetY *= 0.8;
+                        char.hitOffsetX *= 0.85;
+                        char.hitOffsetY *= 0.85;
                     } else {
                         char.hitOffsetX = 0;
                         char.hitOffsetY = 0;
+                    }
+                    
+                    // 更新物理碰撞体
+                    const drawX = pos.x + char.hitOffsetX;
+                    const drawY = pos.y + char.hitOffsetY;
+                    const faceHeight = char.faceOffset * 0.8;
+                    
+                    // 只有当脸露出足够多才创建碰撞体
+                    if (char.visible && char.faceOffset > char.size * 0.3) {
+                        if (!char.body) {
+                            char.body = Bodies.rectangle(drawX, drawY - faceHeight/2, char.size * 0.7, faceHeight, {
+                                isStatic: true,
+                                isSensor: false,
+                                label: `character_${index}`
+                            });
+                            World.add(this.world, char.body);
+                        } else {
+                            Body.setPosition(char.body, { x: drawX, y: drawY - faceHeight/2 });
+                        }
+                    } else if (char.body) {
+                        World.remove(this.world, char.body);
+                        char.body = null;
                     }
                 });
             }
@@ -1107,7 +811,6 @@
 
             updateUI() {
                 document.getElementById('score').textContent = this.score;
-                document.getElementById('ammo').textContent = this.ammo;
             }
 
             restart() {
@@ -1131,8 +834,11 @@
                 this.particles = this.particles.filter(p => {
                     p.x += p.vx;
                     p.y += p.vy;
-                    p.vy += 0.2;
+                    p.vy += 0.25; // 重力
                     p.life--;
+                    if (p.isShard) {
+                        p.rotation += p.rotationSpeed;
+                    }
                     return p.life > 0;
                 });
             }
@@ -1157,7 +863,7 @@
                 
                 // 绘制家具
                 this.furniture.forEach(f => {
-                    if (!this.brokenFurniture.includes(f)) {
+                    if (f.hp > 0) {
                         this.drawFurniture(ctx, f);
                     }
                 });
@@ -1173,12 +879,12 @@
                 this.drawVison(ctx);
                 this.drawSlingshot(ctx);
                 
-                // 绘制弹射物
+                // 绘制投射物
                 if (this.projectile) {
                     this.drawProjectile(ctx);
                 }
                 
-                // 绘制拖拽线和轨迹预览
+                // 绘制拖拽线和轨迹
                 if (this.dragStart && this.dragCurrent) {
                     this.drawTrajectory(ctx);
                 }
@@ -1191,7 +897,6 @@
             }
 
             drawLamp(ctx, x, y) {
-                // 吊线
                 ctx.strokeStyle = '#666';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
@@ -1199,7 +904,6 @@
                 ctx.lineTo(x, y);
                 ctx.stroke();
                 
-                // 灯罩
                 ctx.fillStyle = '#ffd700';
                 ctx.beginPath();
                 ctx.moveTo(x - 20, y);
@@ -1208,7 +912,6 @@
                 ctx.lineTo(x - 15, y + 25);
                 ctx.fill();
                 
-                // 光晕
                 ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
                 ctx.beginPath();
                 ctx.arc(x, y + 40, 30, 0, Math.PI * 2);
@@ -1226,53 +929,50 @@
                 ctx.translate(x, y);
                 ctx.rotate(b.angle);
                 
+                // 根据血量改变颜色（受损变暗）
+                const hpPercent = f.hp / f.maxHp;
+                const darken = Math.floor((1 - hpPercent) * 100);
+                
                 switch(f.type) {
                     case 'table':
-                        // 桌面
-                        ctx.fillStyle = '#8b4513';
+                        ctx.fillStyle = this.darkenColor('#8b4513', darken);
                         ctx.fillRect(-w/2, -h/2, w, h);
-                        // 木纹像素
-                        ctx.fillStyle = '#a0522d';
+                        ctx.fillStyle = this.darkenColor('#a0522d', darken);
                         ctx.fillRect(-w/2 + 5, -h/2 + 5, w - 10, 5);
                         ctx.fillRect(-w/2 + 5, -h/2 + 20, w - 10, 5);
                         break;
                         
                     case 'chair':
-                        ctx.fillStyle = '#a0522d';
+                        ctx.fillStyle = this.darkenColor('#a0522d', darken);
                         ctx.fillRect(-w/2, -h/2, w, h);
-                        // 椅背
-                        ctx.fillStyle = '#8b4513';
+                        ctx.fillStyle = this.darkenColor('#8b4513', darken);
                         ctx.fillRect(-w/2 + 5, -h/2, w - 10, 15);
                         break;
                         
                     case 'glass_cabinet':
-                        // 玻璃效果
-                        ctx.fillStyle = 'rgba(173, 216, 230, 0.6)';
+                        ctx.fillStyle = `rgba(173, 216, 230, ${0.4 + hpPercent * 0.4})`;
                         ctx.fillRect(-w/2, -h/2, w, h);
-                        ctx.strokeStyle = '#87ceeb';
+                        ctx.strokeStyle = this.darkenColor('#87ceeb', darken);
                         ctx.lineWidth = 2;
                         ctx.strokeRect(-w/2, -h/2, w, h);
-                        // 玻璃反光
                         ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
                         ctx.fillRect(-w/2 + 5, -h/2 + 5, 10, h - 10);
                         break;
                         
                     case 'fridge':
-                        ctx.fillStyle = '#e0e0e0';
+                        ctx.fillStyle = this.darkenColor('#e0e0e0', darken);
                         ctx.fillRect(-w/2, -h/2, w, h);
-                        ctx.strokeStyle = '#999';
+                        ctx.strokeStyle = this.darkenColor('#999', darken);
                         ctx.lineWidth = 2;
                         ctx.strokeRect(-w/2, -h/2, w, h);
-                        // 门把手
                         ctx.fillStyle = '#silver';
                         ctx.fillRect(-w/2 + 5, -5, 5, 15);
                         break;
                         
                     case 'sideboard':
-                        ctx.fillStyle = '#cd853f';
+                        ctx.fillStyle = this.darkenColor('#cd853f', darken);
                         ctx.fillRect(-w/2, -h/2, w, h);
-                        // 抽屉
-                        ctx.strokeStyle = '#8b4513';
+                        ctx.strokeStyle = this.darkenColor('#8b4513', darken);
                         ctx.lineWidth = 1;
                         ctx.strokeRect(-w/2 + 5, -h/2 + 5, w - 10, h/2 - 10);
                         ctx.strokeRect(-w/2 + 5, 5, w - 10, h/2 - 10);
@@ -1281,26 +981,34 @@
                 
                 ctx.restore();
                 
-                // 绘制家具血条（始终显示，受到伤害时更明显）
-                const hpPercent = f.hp / f.maxHp;
-                const barWidth = Math.min(w, 50);
-                ctx.fillStyle = '#333';
-                ctx.fillRect(x - barWidth/2, y - h/2 - 12, barWidth, 6);
-                ctx.fillStyle = hpPercent > 0.6 ? '#4CAF50' : hpPercent > 0.3 ? '#ff9800' : '#ff4444';
-                ctx.fillRect(x - barWidth/2, y - h/2 - 12, barWidth * hpPercent, 6);
-                // 血条边框
-                ctx.strokeStyle = '#000';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(x - barWidth/2, y - h/2 - 12, barWidth, 6);
+                // 绘制家具血条
+                if (hpPercent < 1) {
+                    const barWidth = Math.min(w, 50);
+                    ctx.fillStyle = '#333';
+                    ctx.fillRect(x - barWidth/2, y - h/2 - 15, barWidth, 6);
+                    ctx.fillStyle = hpPercent > 0.6 ? '#4CAF50' : hpPercent > 0.3 ? '#ff9800' : '#ff4444';
+                    ctx.fillRect(x - barWidth/2, y - h/2 - 15, barWidth * hpPercent, 6);
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(x - barWidth/2, y - h/2 - 15, barWidth, 6);
+                }
+            }
+            
+            darkenColor(hex, percent) {
+                const num = parseInt(hex.replace('#', ''), 16);
+                const amt = Math.round(2.55 * percent);
+                const R = Math.max((num >> 16) - amt, 0);
+                const G = Math.max((num >> 8 & 0x00FF) - amt, 0);
+                const B = Math.max((num & 0x0000FF) - amt, 0);
+                return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
             }
 
             drawCharacter(ctx, char, index) {
-                // 角色位置
                 const positions = [
-                    { x: 100, y: 280 },  // Coco - 左边桌子后
-                    { x: 260, y: 290 },  // Cola - 右边椅子后
-                    { x: 180, y: 270 },  // Vina - 中间桌子后
-                    { x: 300, y: 170 }   // Matt - 玻璃柜后
+                    { x: 100, y: 280 },
+                    { x: 260, y: 290 },
+                    { x: 180, y: 270 },
+                    { x: 300, y: 170 }
                 ];
                 
                 const pos = positions[index];
@@ -1309,99 +1017,80 @@
                 if (faceOffset <= 0) return;
                 
                 ctx.save();
-                // 添加受伤位移
                 const drawX = pos.x + (char.hitOffsetX || 0);
                 const drawY = pos.y + (char.hitOffsetY || 0);
                 ctx.translate(drawX, drawY);
                 
-                // 受伤抖动效果
                 if (char.hitReaction > 0) {
-                    ctx.translate((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3);
+                    ctx.translate((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4);
                 }
                 
-                // 受击闪烁效果
                 if (char.hitFlash > 0 && Math.floor(Date.now() / 50) % 2) {
                     ctx.globalAlpha = 0.5;
                 }
                 
                 const size = char.size;
                 
-                // 绘制脸部
+                // 绘制各个角色
                 ctx.fillStyle = char.color;
                 
                 if (char.name === 'Coco') {
-                    // 小女孩 - 圆脸短发
                     ctx.fillRect(-size/2, -faceOffset, size, faceOffset);
-                    // 头发
                     ctx.fillStyle = '#5c4033';
                     ctx.fillRect(-size/2 - 3, -faceOffset, size + 6, 8);
                     ctx.fillRect(-size/2 - 3, -faceOffset, 6, faceOffset);
                     ctx.fillRect(size/2 - 3, -faceOffset, 6, faceOffset);
-                    // 眼睛
                     ctx.fillStyle = '#000';
                     ctx.fillRect(-size/4 - 2, -faceOffset + 10, 4, 4);
                     ctx.fillRect(size/4 - 2, -faceOffset + 10, 4, 4);
-                    // 嘴
                     ctx.fillStyle = '#ff6b6b';
                     ctx.fillRect(-3, -faceOffset + 18, 6, 2);
                 } else if (char.name === 'Cola') {
-                    // 小男孩 - 短发
                     ctx.fillStyle = char.color;
                     ctx.fillRect(-size/2, -faceOffset, size, faceOffset);
-                    // 头发
                     ctx.fillStyle = '#333';
                     ctx.fillRect(-size/2 - 2, -faceOffset, size + 4, 6);
-                    // 眼睛
                     ctx.fillStyle = '#000';
                     ctx.fillRect(-size/4 - 2, -faceOffset + 8, 4, 4);
                     ctx.fillRect(size/4 - 2, -faceOffset + 8, 4, 4);
-                    // 笑脸
                     ctx.strokeStyle = '#000';
                     ctx.lineWidth = 2;
                     ctx.beginPath();
                     ctx.arc(0, -faceOffset + 16, 4, 0, Math.PI);
                     ctx.stroke();
                 } else if (char.name === 'Vina') {
-                    // 女主人 - 长发
                     ctx.fillStyle = char.color;
                     ctx.fillRect(-size/2, -faceOffset, size, faceOffset);
-                    // 长发
                     ctx.fillStyle = '#4a3728';
                     ctx.fillRect(-size/2 - 5, -faceOffset, 8, faceOffset);
                     ctx.fillRect(size/2 - 3, -faceOffset, 8, faceOffset);
                     ctx.fillRect(-size/2 - 5, -faceOffset, size + 10, 6);
-                    // 眼睛
                     ctx.fillStyle = '#000';
                     ctx.fillRect(-size/4 - 2, -faceOffset + 8, 3, 3);
                     ctx.fillRect(size/4 - 2, -faceOffset + 8, 3, 3);
-                    // 温柔微笑
                     ctx.strokeStyle = '#d47878';
                     ctx.lineWidth = 2;
                     ctx.beginPath();
                     ctx.arc(0, -faceOffset + 15, 4, 0.2, Math.PI - 0.2);
                     ctx.stroke();
                 } else if (char.name === 'Matt') {
-                    // 强壮外国人 - 魁梧
                     ctx.fillStyle = char.color;
                     ctx.fillRect(-size/2, -faceOffset, size, faceOffset);
-                    // 短发
                     ctx.fillStyle = '#daa520';
                     ctx.fillRect(-size/2 - 2, -faceOffset, size + 4, 5);
-                    // 浓眉大眼
                     ctx.fillStyle = '#8b4513';
                     ctx.fillRect(-size/3 - 4, -faceOffset + 6, 8, 3);
                     ctx.fillRect(size/3 - 4, -faceOffset + 6, 8, 3);
                     ctx.fillStyle = '#4682b4';
                     ctx.fillRect(-size/3 - 3, -faceOffset + 10, 6, 5);
                     ctx.fillRect(size/3 - 3, -faceOffset + 10, 6, 5);
-                    // 严肃嘴
                     ctx.fillStyle = '#8b0000';
                     ctx.fillRect(-6, -faceOffset + 20, 12, 2);
                 }
                 
                 ctx.restore();
                 
-                // 绘制角色名字（头顶显示）- 跟随受伤位移
+                // 绘制角色名字
                 ctx.save();
                 ctx.font = 'bold 12px Arial, sans-serif';
                 ctx.fillStyle = '#fff';
@@ -1414,27 +1103,6 @@
                 ctx.strokeText(nameText, nameX, nameY);
                 ctx.fillText(nameText, nameX, nameY);
                 ctx.restore();
-                
-                // 创建/更新物理检测体 - 使用实际绘制位置
-                const bodyX = drawX;
-                const bodyY = drawY - faceOffset/2;
-                
-                if (!char.body && faceOffset > size * 0.5) {
-                    const { Bodies } = Matter;
-                    char.body = Bodies.rectangle(bodyX, bodyY, size * 0.6, faceOffset * 0.6, {
-                        isStatic: true,
-                        isSensor: true,
-                        label: 'character_face'
-                    });
-                    char.body.characterData = char;
-                    Matter.World.add(this.world, char.body);
-                } else if (char.body && faceOffset <= size * 0.3) {
-                    Matter.World.remove(this.world, char.body);
-                    char.body = null;
-                } else if (char.body) {
-                    // 更新检测体位置（跟随受伤位移）
-                    Matter.Body.setPosition(char.body, { x: bodyX, y: bodyY });
-                }
             }
 
             drawVison(ctx) {
@@ -1444,24 +1112,19 @@
                 ctx.save();
                 ctx.translate(x, y);
                 
-                // 身体
                 ctx.fillStyle = '#4682b4';
                 ctx.fillRect(-15, 0, 30, 50);
                 
-                // 头
                 ctx.fillStyle = '#fdbcb4';
                 ctx.fillRect(-12, -20, 24, 22);
                 
-                // 头发
                 ctx.fillStyle = '#4a4a4a';
                 ctx.fillRect(-12, -20, 24, 8);
                 
-                // 眼睛
                 ctx.fillStyle = '#000';
                 ctx.fillRect(-6, -12, 3, 3);
                 ctx.fillRect(2, -12, 3, 3);
                 
-                // 手持弹弓的姿势
                 ctx.strokeStyle = '#fdbcb4';
                 ctx.lineWidth = 6;
                 ctx.beginPath();
@@ -1473,18 +1136,11 @@
             }
 
             drawSlingshot(ctx) {
-                // 机关枪模式下绘制机关枪
-                if (this.machineGunActive) {
-                    this.drawMachineGun(ctx);
-                    return;
-                }
-                
                 const sx = CONFIG.slingshotX;
                 const sy = CONFIG.slingshotY;
                 
                 ctx.save();
                 
-                // 弹弓架
                 ctx.strokeStyle = '#8b4513';
                 ctx.lineWidth = 6;
                 ctx.lineCap = 'round';
@@ -1496,10 +1152,9 @@
                 ctx.lineTo(sx + 15, sy + 40);
                 ctx.stroke();
                 
-                // 皮筋
                 if (this.dragStart && this.dragCurrent) {
                     ctx.strokeStyle = '#654321';
-                    ctx.lineWidth = 3;
+                    ctx.lineWidth = 4;
                     
                     ctx.beginPath();
                     ctx.moveTo(sx - 15, sy);
@@ -1508,13 +1163,11 @@
                     ctx.lineTo(this.dragCurrent.x, this.dragCurrent.y);
                     ctx.stroke();
                     
-                    // 当前道具预览 - 使用造型
-                    if (this.currentItem) {
-                        ctx.save();
-                        ctx.translate(this.dragCurrent.x, this.dragCurrent.y);
-                        this.drawItemShape(ctx, this.currentItem, 0.6); // 缩小显示
-                        ctx.restore();
-                    }
+                    // 大便预览
+                    ctx.save();
+                    ctx.translate(this.dragCurrent.x, this.dragCurrent.y);
+                    this.drawPoopShape(ctx, POOP_ITEM.size * 0.5);
+                    ctx.restore();
                 } else {
                     ctx.strokeStyle = '#654321';
                     ctx.lineWidth = 3;
@@ -1523,11 +1176,10 @@
                     ctx.lineTo(sx + 15, sy);
                     ctx.stroke();
                     
-                    // 当前道具在弹弓上 - 使用造型
-                    if (this.currentItem && this.gameState === 'aiming') {
+                    if (this.gameState === 'aiming') {
                         ctx.save();
                         ctx.translate(sx, sy);
-                        this.drawItemShape(ctx, this.currentItem, 0.5); // 缩小显示
+                        this.drawPoopShape(ctx, POOP_ITEM.size * 0.4);
                         ctx.restore();
                     }
                 }
@@ -1535,298 +1187,29 @@
                 ctx.restore();
             }
             
-            // 绘制机关枪
-            drawMachineGun(ctx) {
-                const sx = CONFIG.slingshotX;
-                const sy = CONFIG.slingshotY;
-                const angle = this.machineGunAngle || -Math.PI / 4;
-                
-                ctx.save();
-                ctx.translate(sx, sy);
-                ctx.rotate(angle);
-                
-                // 枪身主体
-                ctx.fillStyle = '#2d2d2d';
-                ctx.fillRect(-10, -15, 60, 30);
-                
-                // 枪管
-                ctx.fillStyle = '#1a1a1a';
-                ctx.fillRect(50, -8, 40, 16);
-                
-                // 枪管散热孔
-                ctx.fillStyle = '#333';
-                ctx.fillRect(60, -6, 5, 12);
-                ctx.fillRect(70, -6, 5, 12);
-                ctx.fillRect(80, -6, 5, 12);
-                
-                // 握把
-                ctx.fillStyle = '#4a3728';
-                ctx.beginPath();
-                ctx.moveTo(-5, 15);
-                ctx.lineTo(5, 15);
-                ctx.lineTo(0, 45);
-                ctx.closePath();
-                ctx.fill();
-                
-                // 弹匣
+            drawPoopShape(ctx, size) {
                 ctx.fillStyle = '#8B4513';
-                ctx.fillRect(10, 15, 20, 35);
-                // 弹匣纹理
-                ctx.fillStyle = '#654321';
-                ctx.fillRect(12, 18, 16, 3);
-                ctx.fillRect(12, 24, 16, 3);
-                ctx.fillRect(12, 30, 16, 3);
-                ctx.fillRect(12, 36, 16, 3);
-                
-                // 瞄准镜
-                ctx.fillStyle = '#1a1a1a';
-                ctx.fillRect(20, -22, 25, 7);
-                ctx.fillRect(30, -25, 8, 10);
-                
-                // 枪口
-                ctx.fillStyle = '#000';
+                // 底部圆球
                 ctx.beginPath();
-                ctx.arc(90, 0, 6, 0, Math.PI * 2);
+                ctx.arc(0, size/3, size/3, 0, Math.PI * 2);
                 ctx.fill();
-                
-                // 枪身细节线条
-                ctx.strokeStyle = '#444';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(-10, -15, 60, 30);
-                
-                ctx.restore();
-                
-                // 绘制瞄准线
-                ctx.save();
-                ctx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
-                ctx.lineWidth = 1;
-                ctx.setLineDash([5, 5]);
+                // 中间圆球
                 ctx.beginPath();
-                ctx.moveTo(sx, sy);
-                ctx.lineTo(
-                    sx + Math.cos(angle) * 200,
-                    sy + Math.sin(angle) * 200
-                );
-                ctx.stroke();
-                ctx.restore();
-            }
-
-            // 绘制物品造型的辅助函数
-            drawItemShape(ctx, item, scale = 1) {
-                const s = item.size * scale;
-                
-                switch(item.type) {
-                    case 'plate':
-                        ctx.fillStyle = item.color;
-                        ctx.beginPath();
-                        ctx.arc(0, 0, s/2, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.strokeStyle = '#ccc';
-                        ctx.lineWidth = 2;
-                        ctx.stroke();
-                        ctx.fillStyle = '#f5f5f5';
-                        ctx.beginPath();
-                        ctx.arc(0, 0, s/4, 0, Math.PI * 2);
-                        ctx.fill();
-                        break;
-                    case 'dish':
-                        ctx.fillStyle = item.color;
-                        ctx.beginPath();
-                        ctx.ellipse(0, 0, s/2, s/3, 0, 0, Math.PI * 2);
-                        ctx.fill();
-                        break;
-                    case 'cup':
-                        ctx.fillStyle = item.color;
-                        ctx.fillRect(-s/3, -s/2, s*2/3, s);
-                        ctx.fillStyle = 'rgba(200,230,255,0.5)';
-                        ctx.fillRect(-s/3+2, -s/2, s*2/3-4, 4);
-                        break;
-                    case 'mug':
-                        ctx.fillStyle = item.color;
-                        ctx.fillRect(-s/3, -s/2, s*2/3, s);
-                        ctx.strokeStyle = item.color;
-                        ctx.lineWidth = 3;
-                        ctx.beginPath();
-                        ctx.arc(s/3, 0, s/4, -Math.PI/2, Math.PI/2);
-                        ctx.stroke();
-                        break;
-                    case 'cutlery':
-                        ctx.fillStyle = item.color;
-                        ctx.fillRect(-s/2+2, -2, s*0.6, 4);
-                        ctx.fillRect(s/2-8, -4, 6, 2);
-                        ctx.fillRect(s/2-8, 0, 6, 2);
-                        ctx.fillRect(s/2-8, 4, 6, 2);
-                        break;
-                    case 'bat':
-                        ctx.fillStyle = item.color;
-                        ctx.fillRect(-s/2+3, -3, s*0.7, 6);
-                        ctx.fillRect(s/2-8, -5, 10, 10);
-                        break;
-                    case 'ball':
-                        ctx.fillStyle = item.color;
-                        ctx.beginPath();
-                        ctx.arc(0, 0, s/2, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.strokeStyle = '#ff0000';
-                        ctx.lineWidth = 1;
-                        ctx.beginPath();
-                        ctx.arc(0, 0, s/3, 0.5, Math.PI-0.5);
-                        ctx.stroke();
-                        break;
-                    case 'toilet_paper':
-                        ctx.fillStyle = item.color;
-                        ctx.fillRect(-s/3, -s/2, s*2/3, s);
-                        ctx.fillStyle = '#d4c4b0';
-                        ctx.fillRect(-s/6, -s/2+2, s/3, s-4);
-                        break;
-                    case 'slipper':
-                        ctx.fillStyle = item.color;
-                        ctx.beginPath();
-                        ctx.ellipse(0, 0, s/2, s/3, 0, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.strokeStyle = '#ff4444';
-                        ctx.lineWidth = 3;
-                        ctx.beginPath();
-                        ctx.moveTo(-s/4, -s/6);
-                        ctx.quadraticCurveTo(0, -s/3, s/4, -s/6);
-                        ctx.stroke();
-                        break;
-                    case 'hanger':
-                        ctx.strokeStyle = item.color;
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.moveTo(-s/2, s/4);
-                        ctx.lineTo(0, -s/3);
-                        ctx.lineTo(s/2, s/4);
-                        ctx.stroke();
-                        ctx.beginPath();
-                        ctx.arc(0, -s/3, 4, -Math.PI, 0);
-                        ctx.stroke();
-                        break;
-                    case 'vase':
-                        ctx.fillStyle = item.color;
-                        ctx.beginPath();
-                        ctx.moveTo(-s/4, -s/2);
-                        ctx.lineTo(s/4, -s/2);
-                        ctx.lineTo(s/3, s/4);
-                        ctx.lineTo(-s/3, s/4);
-                        ctx.closePath();
-                        ctx.fill();
-                        break;
-                    case 'book':
-                        ctx.fillStyle = item.color;
-                        ctx.fillRect(-s/3, -s/2, s*2/3, s);
-                        ctx.fillStyle = '#2a4a9a';
-                        ctx.fillRect(-s/3, -s/2, s/6, s);
-                        break;
-                    case 'pencil':
-                        ctx.fillStyle = item.color;
-                        ctx.fillRect(-s/2+2, -2, s*0.8, 4);
-                        ctx.fillStyle = '#deb887';
-                        ctx.beginPath();
-                        ctx.moveTo(s/2-2, -2);
-                        ctx.lineTo(s/2+4, 0);
-                        ctx.lineTo(s/2-2, 2);
-                        ctx.fill();
-                        ctx.fillStyle = '#333';
-                        ctx.fillRect(s/2+2, -1, 2, 2);
-                        break;
-                    case 'console':
-                        ctx.fillStyle = item.color;
-                        ctx.fillRect(-s/3, -s/3, s*2/3, s*2/3);
-                        ctx.fillStyle = '#87ceeb';
-                        ctx.fillRect(-s/4, -s/4, s/2, s/3);
-                        ctx.fillStyle = '#ff4444';
-                        ctx.beginPath();
-                        ctx.arc(s/6, s/6, 3, 0, Math.PI * 2);
-                        ctx.fill();
-                        break;
-                    case 'controller':
-                        ctx.fillStyle = item.color;
-                        ctx.fillRect(-s/2+4, -s/4, s-8, s/2);
-                        ctx.fillStyle = '#333';
-                        ctx.beginPath();
-                        ctx.arc(-s/4, 0, 4, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.beginPath();
-                        ctx.arc(s/4, 0, 4, 0, Math.PI * 2);
-                        ctx.fill();
-                        break;
-                    case 'plush':
-                        ctx.fillStyle = item.color;
-                        ctx.beginPath();
-                        ctx.arc(0, 0, s/2, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.beginPath();
-                        ctx.arc(-s/3, -s/3, s/4, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.beginPath();
-                        ctx.arc(s/3, -s/3, s/4, 0, Math.PI * 2);
-                        ctx.fill();
-                        break;
-                    case 'sock':
-                        ctx.fillStyle = item.color;
-                        ctx.fillRect(-s/4, -s/2, s/2, s*0.6);
-                        ctx.fillRect(-s/4, 0, s*0.6, s/3);
-                        break;
-                    case 'underwear':
-                        ctx.fillStyle = item.color;
-                        ctx.beginPath();
-                        ctx.moveTo(-s/2, -s/3);
-                        ctx.lineTo(s/2, -s/3);
-                        ctx.lineTo(0, s/3);
-                        ctx.closePath();
-                        ctx.fill();
-                        ctx.fillStyle = 'rgba(255,255,255,0.5)';
-                        ctx.fillRect(-s/2, -s/3, s, 4);
-                        break;
-                    case 'bra':
-                        ctx.fillStyle = item.color;
-                        ctx.beginPath();
-                        ctx.arc(-s/3, 0, s/3, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.beginPath();
-                        ctx.arc(s/3, 0, s/3, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.fillRect(-s/6, -2, s/3, 4);
-                        break;
-                    case 'poop': // 大便 💩
-                        ctx.fillStyle = '#8B4513';
-                        // 底部圆球
-                        ctx.beginPath();
-                        ctx.arc(0, s/3, s/3, 0, Math.PI * 2);
-                        ctx.fill();
-                        // 中间圆球
-                        ctx.beginPath();
-                        ctx.arc(0, 0, s/2.5, 0, Math.PI * 2);
-                        ctx.fill();
-                        // 顶部尖尖
-                        ctx.beginPath();
-                        ctx.ellipse(0, -s/2.5, s/4, s/3, 0, 0, Math.PI * 2);
-                        ctx.fill();
-                        // 光泽
-                        ctx.fillStyle = '#A0522D';
-                        ctx.beginPath();
-                        ctx.arc(-s/6, -s/4, s/8, 0, Math.PI * 2);
-                        ctx.fill();
-                        break;
-                    case 'machine_gun': // 机关枪
-                        ctx.fillStyle = '#333';
-                        // 枪身
-                        ctx.fillRect(-s/2, -s/4, s, s/2);
-                        // 枪管
-                        ctx.fillRect(s/2-2, -s/6, s/2, s/3);
-                        // 握把
-                        ctx.fillRect(-s/4, s/4, s/4, s/2);
-                        // 弹匣
-                        ctx.fillStyle = '#666';
-                        ctx.fillRect(0, s/4, s/3, s/2);
-                        break;
-                    default:
-                        ctx.fillStyle = item.color;
-                        ctx.beginPath();
-                        ctx.arc(0, 0, s/2, 0, Math.PI * 2);
-                        ctx.fill();
+                ctx.arc(0, 0, size/2.5, 0, Math.PI * 2);
+                ctx.fill();
+                // 顶部
+                ctx.beginPath();
+                ctx.ellipse(0, -size/2.5, size/4, size/3, 0, 0, Math.PI * 2);
+                ctx.fill();
+                // 光泽
+                ctx.fillStyle = '#A0522D';
+                ctx.beginPath();
+                ctx.arc(-size/6, -size/4, size/8, 0, Math.PI * 2);
+                ctx.fill();
+                // 苍蝇
+                if (Math.random() > 0.7) {
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(size/4, -size/3, 2, 2);
                 }
             }
 
@@ -1838,10 +1221,7 @@
                 ctx.save();
                 ctx.translate(p.position.x, p.position.y);
                 ctx.rotate(p.angle);
-                
-                // 使用辅助函数绘制物品造型
-                this.drawItemShape(ctx, p.itemData, 1);
-                
+                this.drawPoopShape(ctx, POOP_ITEM.size);
                 ctx.restore();
             }
 
@@ -1851,11 +1231,10 @@
                 const dx = this.dragStart.x - this.dragCurrent.x;
                 const dy = this.dragStart.y - this.dragCurrent.y;
                 const dist = Math.hypot(dx, dy);
-                const power = dist / CONFIG.maxPullDistance;
+                const power = Math.min(dist / CONFIG.maxPullDistance, 1);
                 const angle = Math.atan2(dy, dx);
                 
-                // 绘制预览轨迹点
-                ctx.fillStyle = `rgba(255, 255, 255, ${0.3 + power * 0.4})`;
+                ctx.fillStyle = `rgba(139, 69, 19, ${0.3 + power * 0.4})`;
                 
                 let simX = this.dragStart.x;
                 let simY = this.dragStart.y;
@@ -1863,53 +1242,33 @@
                 let simVx = Math.cos(angle) * force * 20;
                 let simVy = Math.sin(angle) * force * 20;
                 
-                for (let i = 0; i < 15; i++) {
+                for (let i = 0; i < 12; i++) {
                     simX += simVx;
                     simY += simVy;
                     simVy += CONFIG.gravity * 0.5;
                     
                     ctx.beginPath();
-                    ctx.arc(simX, simY, 3, 0, Math.PI * 2);
+                    ctx.arc(simX, simY, 4, 0, Math.PI * 2);
                     ctx.fill();
                 }
             }
 
             drawParticles(ctx) {
                 this.particles.forEach(p => {
-                    if (p.isFire) {
-                        // 火焰效果 - 圆形渐变
-                        ctx.globalAlpha = p.life / 15;
-                        const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
-                        gradient.addColorStop(0, '#ffff00');
-                        gradient.addColorStop(0.5, p.color);
-                        gradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
-                        ctx.fillStyle = gradient;
-                        ctx.beginPath();
-                        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                        ctx.fill();
-                    } else if (p.isSmoke) {
-                        // 烟雾效果
-                        ctx.globalAlpha = (p.life / 40) * 0.5;
-                        ctx.fillStyle = p.color;
-                        ctx.beginPath();
-                        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                        ctx.fill();
-                    } else if (p.isShard) {
-                        // 碎片带旋转
-                        ctx.globalAlpha = p.life / 50;
+                    if (p.isShard) {
+                        ctx.globalAlpha = p.life / 60;
                         ctx.save();
                         ctx.translate(p.x, p.y);
                         ctx.rotate(p.rotation);
                         ctx.fillStyle = p.color;
                         ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
                         ctx.restore();
-                        // 更新旋转
-                        p.rotation += p.rotationSpeed;
                     } else {
-                        // 普通粒子
-                        ctx.globalAlpha = p.life / 40;
+                        ctx.globalAlpha = p.life / 50;
                         ctx.fillStyle = p.color;
-                        ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size/2, 0, Math.PI * 2);
+                        ctx.fill();
                     }
                 });
                 ctx.globalAlpha = 1;
@@ -1917,8 +1276,6 @@
 
             drawHealthBars() {
                 const ui = document.getElementById('ui');
-                
-                // 清除旧血条
                 ui.querySelectorAll('.health-bar, .character-name').forEach(el => el.remove());
                 
                 this.characters.forEach((char, index) => {
@@ -1953,7 +1310,7 @@
             }
         }
 
-        // 启动游戏 - 等待DOM完全加载
+        // 启动游戏
         let game;
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
