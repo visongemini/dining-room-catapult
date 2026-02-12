@@ -1248,6 +1248,11 @@
                 if (!this.poopMode) {
                     this.ammo--;
                     this.loadNextItem();
+                } else if (this.finalBattleMode) {
+                    // 最终战斗模式：发射后自动切换下一个角色
+                    setTimeout(() => {
+                        this.findNextAliveAlly();
+                    }, 500);
                 }
                 
                 setTimeout(() => this.removeProjectile(body), 7000);
@@ -1268,6 +1273,31 @@
                 for (let pair of pairs) {
                     const bodyA = pair.bodyA;
                     const bodyB = pair.bodyB;
+                    
+                    // 检查是否是boss_projectile击中盟友
+                    if (this.finalBattleMode) {
+                        let bossProj = null, allyBody = null;
+                        
+                        if (bodyA.label === 'boss_projectile' && bodyB.label?.startsWith('ally_')) {
+                            bossProj = bodyA;
+                            allyBody = bodyB;
+                        } else if (bodyB.label === 'boss_projectile' && bodyA.label?.startsWith('ally_')) {
+                            bossProj = bodyB;
+                            allyBody = bodyA;
+                        }
+                        
+                        if (bossProj && allyBody) {
+                            const allyIndex = parseInt(allyBody.label.match(/ally_(\d)/)?.[1]);
+                            const ally = this.allies[allyIndex];
+                            if (ally && !ally.defeated) {
+                                this.hitAlly(ally, 20 + Math.random() * 15);
+                                Matter.World.remove(this.world, bossProj);
+                            }
+                            continue;
+                        }
+                    }
+                    
+                    // 处理玩家投射物
                     let projectile = null, other = null;
                     
                     if (bodyA.label === 'projectile') { projectile = bodyA; other = bodyB; }
@@ -1292,17 +1322,6 @@
                     // 最终战斗模式 - 击中Vison
                     if (other.label === 'boss_vison' && this.boss && this.boss.hp > 0) {
                         this.hitFinalBoss(item, other.position, projectile);
-                        continue;
-                    }
-                    
-                    // 最终战斗模式 - Boss的投射物击中盟友
-                    if (other.label?.startsWith('ally_') && this.finalBattleMode) {
-                        const allyIndex = parseInt(other.label.match(/ally_(\d)/)?.[1]);
-                        const ally = this.allies[allyIndex];
-                        if (ally && !ally.defeated && projectile.label === 'boss_projectile') {
-                            this.hitAlly(ally, 20 + Math.random() * 15);
-                            Matter.World.remove(this.world, projectile);
-                        }
                         continue;
                     }
                     
