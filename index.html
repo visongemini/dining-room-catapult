@@ -92,6 +92,72 @@
             border-color: #ff6600;
             color: #333;
         }
+        #storyScreen, #finalBossWarning {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+            border: 3px solid #ff0000;
+            display: none;
+            pointer-events: auto;
+            z-index: 200;
+            max-width: 340px;
+        }
+        #storyScreen h2 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        #storyScreen p {
+            font-size: 13px;
+            line-height: 1.6;
+            margin: 10px 0;
+            color: #ddd;
+        }
+        #storyScreen .story-happy {
+            color: #90EE90;
+        }
+        #storyScreen .story-dark {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+        #continueStoryBtn, #continueFinalBossBtn {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        #continueStoryBtn:hover, #continueFinalBossBtn:hover {
+            background: #cc0000;
+        }
+        #finalBossWarning {
+            background: rgba(20,0,0,0.95);
+            border-color: #8b0000;
+            animation: evilPulse 0.5s ease-in-out infinite alternate;
+        }
+        @keyframes evilPulse {
+            from { box-shadow: 0 0 20px #ff0000; transform: translate(-50%, -50%) scale(1); }
+            to { box-shadow: 0 0 40px #ff0000, 0 0 60px #8b0000; transform: translate(-50%, -50%) scale(1.05); }
+        }
+        #finalBossWarning h2 { color: #ff0000; text-shadow: 0 0 10px #ff0000; }
+        .ally-health-bar {
+            position: absolute;
+            width: 60px;
+            height: 8px;
+            background: #333;
+            border: 1px solid #000;
+        }
+        .ally-health-fill {
+            height: 100%;
+            transition: width 0.2s;
+        }
         #gameOver h2, #bossWarning h2, #victoryScreen h2 { margin-bottom: 10px; font-size: 22px; }
         #gameOver h2 { color: #ffd700; }
         #bossWarning h2 { color: #ff00ff; text-shadow: 0 0 10px #ff00ff; }
@@ -202,6 +268,26 @@
             <p style="font-size: 16px; margin: 10px 0;">你击败了所有敌人！</p>
             <p id="finalScore" style="font-size: 14px; color:#666;"></p>
             <button id="restartBtn2" style="background:#ff6600;color:#fff;border:none;padding:10px 20px;font-size:14px;cursor:pointer;margin-top:10px;">再玩一次</button>
+        </div>
+        <div id="storyScreen">
+            <h2>📖 剧情发展</h2>
+            <p class="story-happy">大魔王Lola被打败了！魔气退散...</p>
+            <p class="story-happy">Lola变回了原来的样子，温柔地看向Matt。</p>
+            <p class="story-happy">"亲爱的，对不起...我回来了..."</p>
+            <p class="story-happy">Matt冲上前紧紧抱住了她。</p>
+            <p style="color:#ffd700;">从此他们幸福地生活在一起...但是——</p>
+            <p class="story-dark">Vison因为投出了太多武器，杀气太重...</p>
+            <p class="story-dark">魔气缠身，头上长出了恶魔之角！</p>
+            <p class="story-dark">他变成了比Lola更强大的大魔王！</p>
+            <p style="color:#ff4444;font-size:15px;">现在，全家必须联手击败Vison！</p>
+            <button id="continueStoryBtn">继续剧情</button>
+        </div>
+        <div id="finalBossWarning">
+            <h2>⚠️ 最终决战 ⚠️</h2>
+            <p style="font-size: 14px; margin: 10px 0;">曾经的战友 <span style="color:#ff0000;font-size:18px;">Vison</span> 堕落成魔！</p>
+            <p style="font-size: 12px; color:#ccc;">他比以前强百倍！全家人必须联手！</p>
+            <p style="font-size: 11px; color:#ff6666;">警告：如果家人被打败，游戏结束！</p>
+            <button id="continueFinalBossBtn">最终决战</button>
         </div>
     </div>
 
@@ -352,7 +438,46 @@
             invulnerable: 0
         };
 
-        // ==================== 音频系统 ====================
+        // ==================== 大魔王 Vison 配置 (最终Boss) ====================
+        const BOSS_VISON = {
+            name: 'Vison',
+            maxHp: BASE_HP * 100,
+            hp: BASE_HP * 100,
+            color: '#8b0000',
+            size: 120,
+            x: 180,
+            y: 150,
+            hpMultiplier: 100,
+            // Boss移动相关
+            targetX: 180,
+            targetY: 150,
+            moveSpeed: 4,
+            dodgeChance: 0.6,
+            teleportCooldown: 0,
+            isTeleporting: false,
+            invulnerable: 0,
+            eyeGlow: 0,
+            auraRotation: 0,
+            // 反击相关
+            attackCooldown: 0,
+            attackPattern: 0,
+            rageMode: false
+        };
+
+        // ==================== 盟友配置 (下方战斗角色) ====================
+        const ALLY_POSITIONS = [
+            { x: 80, y: 520 },   // Coco
+            { x: 170, y: 530 },  // Cola  
+            { x: 260, y: 520 },  // Vina
+            { x: 340, y: 500 }   // Matt
+        ];
+
+        const ALLIES = [
+            { name: 'Coco', maxHp: BASE_HP * 2, hp: BASE_HP * 2, color: '#ffb6c1', size: 50 },
+            { name: 'Cola', maxHp: BASE_HP * 2.5, hp: BASE_HP * 2.5, color: '#87ceeb', size: 55 },
+            { name: 'Vina', maxHp: BASE_HP * 3, hp: BASE_HP * 3, color: '#dda0dd', size: 60 },
+            { name: 'Matt', maxHp: BASE_HP * 4, hp: BASE_HP * 4, color: '#deb887', size: 65 }
+        ];
         class AudioSystem {
             constructor() {
                 this.audioCtx = null;
@@ -715,6 +840,14 @@
                 this.bossDefeated = false;
                 this.boss = null;
                 this.fireworks = [];
+                this.storyMode = false;
+                this.finalBattleMode = false;
+                this.allies = [];
+                this.currentAllyIndex = 0;
+                
+                // 重置弹弓位置
+                CONFIG.slingshotX = 80;
+                CONFIG.slingshotY = 520;
                 
                 this.characters = CHARACTERS.map((c, index) => ({
                     ...c, hp: c.maxHp, visible: false, visibleTimer: 0,
@@ -949,6 +1082,8 @@
                 document.getElementById('restartBtn').addEventListener('click', () => this.restart());
                 document.getElementById('restartBtn2').addEventListener('click', () => this.restart());
                 document.getElementById('continueBossBtn').addEventListener('click', () => this.startBossFight());
+                document.getElementById('continueStoryBtn').addEventListener('click', () => this.startFinalBattle());
+                document.getElementById('continueFinalBossBtn').addEventListener('click', () => this.initFinalBattle());
             }
 
             getPointerPos(e) {
@@ -1090,6 +1225,26 @@
                     
                     if (other.label === 'boss_lola' && this.boss && this.boss.hp > 0) {
                         this.hitBoss(item, other.position, projectile);
+                        continue;
+                    }
+                    
+                    // 最终战斗模式 - 击中Vison
+                    if (other.label === 'boss_vison' && this.boss && this.boss.hp > 0) {
+                        this.hitFinalBoss(item, other.position, projectile);
+                        continue;
+                    }
+                    
+                    // 最终战斗模式 - Boss的投射物击中盟友
+                    if (other.label?.startsWith('ally_') && this.finalBattleMode) {
+                        const allyIndex = parseInt(other.label.match(/ally_(\d)/)?.[1]);
+                        const ally = this.allies[allyIndex];
+                        if (ally && !ally.defeated) {
+                            // 检查是否是boss_projectile
+                            if (projectile.label === 'boss_projectile' || bodyA.label === 'boss_projectile' || bodyB.label === 'boss_projectile') {
+                                this.hitAlly(ally, 20 + Math.random() * 15);
+                                Matter.World.remove(this.world, projectile);
+                            }
+                        }
                         continue;
                     }
                     
@@ -1244,6 +1399,65 @@
                 furniture.hp = 0;
             }
 
+            hitFinalBoss(item, position, projectile) {
+                const b = this.boss;
+                
+                // 瞬移中或无敌时不受伤害
+                if (b.isTeleporting || b.invulnerable > 0) {
+                    this.showDamageText(position.x, position.y, 'MISS!', false, '#888');
+                    return;
+                }
+                
+                // 闪避几率
+                if (Math.random() < b.dodgeChance) {
+                    this.showDamageText(position.x, position.y, '闪避!', false, '#ffff00');
+                    this.bossTeleport();
+                    return;
+                }
+                
+                const damage = item.damage;
+                b.hp -= damage;
+                b.hitFlash = 15;
+                b.hitReaction = 20;
+                
+                // 受伤后高概率瞬移
+                if (Math.random() < 0.6) {
+                    this.bossTeleport();
+                }
+                
+                // 屏幕震动
+                document.getElementById('gameContainer').classList.add('screen-shake');
+                setTimeout(() => {
+                    document.getElementById('gameContainer').classList.remove('screen-shake');
+                }, 300);
+                
+                this.audio.playHurt();
+                if (navigator.vibrate) navigator.vibrate([40, 20, 40]);
+                
+                this.showDamageText(position.x, position.y, damage, true, '#ff0000');
+                this.score += damage * 3;
+                this.updateUI();
+                
+                this.createParticles(position.x, position.y, '#ff0000', 25);
+                
+                // 切换控制角色（轮流攻击）
+                this.findNextAliveAlly();
+                
+                if (b.hp <= 0) {
+                    this.createParticles(position.x, position.y, '#8b0000', 80);
+                    if (b.body) {
+                        Matter.World.remove(this.world, b.body);
+                    }
+                    this.bossDefeated = true;
+                    
+                    // 显示最终胜利
+                    this.audio.playVictoryMusic();
+                    document.getElementById('victoryScreen').style.display = 'block';
+                    document.getElementById('finalScore').textContent = `最终得分: ${this.score} | Vison被击败了！全家得救！`;
+                    this.startFireworks();
+                }
+            }
+
             showDamageText(x, y, damage, isCharacter, color) {
                 const el = document.createElement('div');
                 el.className = 'damage-text';
@@ -1352,12 +1566,536 @@
             }
 
             showVictory() {
+                // 如果是第一阶段胜利（击败Lola），进入剧情
+                if (!this.storyMode) {
+                    this.storyMode = true;
+                    this.showStory();
+                } else {
+                    // 真正的最终胜利
+                    this.audio.playVictoryMusic();
+                    document.getElementById('victoryScreen').style.display = 'block';
+                    document.getElementById('finalScore').textContent = `${t('finalScore')}: ${this.score}`;
+                    this.startFireworks();
+                }
+            }
+
+            showStory() {
+                document.getElementById('storyScreen').style.display = 'block';
                 this.audio.playVictoryMusic();
-                document.getElementById('victoryScreen').style.display = 'block';
-                document.getElementById('finalScore').textContent = `${t('finalScore')}: ${this.score}`;
+            }
+
+            startFinalBattle() {
+                document.getElementById('storyScreen').style.display = 'none';
+                document.getElementById('finalBossWarning').style.display = 'block';
+            }
+
+            initFinalBattle() {
+                document.getElementById('finalBossWarning').style.display = 'none';
                 
-                // 开始烟花
-                this.startFireworks();
+                const { World, Engine } = Matter;
+                World.clear(this.world);
+                Engine.clear(this.engine);
+                
+                // 重置游戏状态为第二阶段
+                this.finalBattleMode = true;
+                this.bossMode = true;
+                this.poopMode = true;
+                
+                // 创建Vison作为最终Boss
+                this.createFinalBoss();
+                
+                // 创建下方盟友
+                this.createAllies();
+                
+                // 清除旧家具，创建新的防御掩体
+                this.createFinalBattleFurniture();
+                
+                // 设置弹弓位置（现在在下方中间）
+                this.currentAllyIndex = 0;
+                this.loadNextAllyProjectile();
+                
+                // 开始最终战斗音乐
+                this.audio.startBossMusic();
+            }
+
+            createFinalBoss() {
+                const { World, Bodies } = Matter;
+                this.boss = { 
+                    ...BOSS_VISON, 
+                    body: null, 
+                    hitFlash: 0, 
+                    hitReaction: 0,
+                    targetX: 180,
+                    targetY: 150,
+                    teleportCooldown: 0,
+                    isTeleporting: false,
+                    invulnerable: 0,
+                    eyeGlow: 0,
+                    auraRotation: 0,
+                    attackCooldown: 0,
+                    attackPattern: 0,
+                    rageMode: false
+                };
+                
+                this.boss.body = Bodies.rectangle(this.boss.x, this.boss.y, this.boss.size * 0.8, this.boss.size, {
+                    isStatic: true,
+                    label: 'boss_vison'
+                });
+                
+                World.add(this.world, this.boss.body);
+            }
+
+            createAllies() {
+                const { World, Bodies } = Matter;
+                this.allies = [];
+                
+                for (let i = 0; i < ALLIES.length; i++) {
+                    const ally = {
+                        ...ALLIES[i],
+                        body: null,
+                        hitFlash: 0,
+                        index: i,
+                        defeated: false
+                    };
+                    
+                    const pos = ALLY_POSITIONS[i];
+                    ally.body = Bodies.rectangle(pos.x, pos.y, ally.size * 0.6, ally.size, {
+                        isStatic: true,
+                        label: `ally_${i}`
+                    });
+                    
+                    this.allies.push(ally);
+                    World.add(this.world, ally.body);
+                }
+            }
+
+            createFinalBattleFurniture() {
+                const { World, Bodies } = Matter;
+                this.furniture = [];
+                
+                // 为下方盟友创建掩体
+                const items = [
+                    { x: 80, y: 480, w: 50, h: 40, type: 'chair', hp: 40, nameKey: 'furniture.chair' },
+                    { x: 170, y: 490, w: 50, h: 40, type: 'chair', hp: 40, nameKey: 'furniture.chair' },
+                    { x: 260, y: 480, w: 50, h: 40, type: 'chair', hp: 40, nameKey: 'furniture.chair' },
+                    { x: 340, y: 460, w: 60, h: 50, type: 'table', hp: 80, nameKey: 'furniture.table' }
+                ];
+                
+                items.forEach(item => {
+                    const body = Bodies.rectangle(item.x, item.y, item.w, item.h, {
+                        isStatic: true,
+                        density: 0.005, friction: 0.6, restitution: 0.2,
+                        label: `furniture_${item.type}`
+                    });
+                    this.furniture.push({ body, type: item.type, hp: item.hp, maxHp: item.hp, nameKey: item.nameKey });
+                });
+                
+                World.add(this.world, this.furniture.map(f => f.body));
+            }
+
+            loadNextAllyProjectile() {
+                // 轮流使用不同盟友的弹药
+                const ally = this.allies[this.currentAllyIndex];
+                if (!ally || ally.defeated) {
+                    // 找下一个存活的盟友
+                    this.findNextAliveAlly();
+                    return;
+                }
+                
+                this.currentItem = { ...POOP_ITEM };
+                document.getElementById('currentItemName').textContent = `${ally.name} 攻击中`;
+                document.getElementById('modeDisplay').textContent = '💩终极大便模式!';
+                document.getElementById('ammoDisplay').textContent = '无限弹药';
+                
+                // 切换弹弓位置
+                const pos = ALLY_POSITIONS[this.currentAllyIndex];
+                CONFIG.slingshotX = pos.x;
+                CONFIG.slingshotY = pos.y - 30;
+            }
+
+            findNextAliveAlly() {
+                let found = false;
+                for (let i = 0; i < this.allies.length; i++) {
+                    this.currentAllyIndex = (this.currentAllyIndex + 1) % this.allies.length;
+                    if (!this.allies[this.currentAllyIndex].defeated) {
+                        found = true;
+                        break;
+                    }
+                }
+                
+                if (!found) {
+                    // 所有盟友都被击败，游戏结束
+                    this.showGameOver();
+                } else {
+                    this.loadNextAllyProjectile();
+                }
+            }
+
+            updateFinalBoss() {
+                if (!this.boss || this.boss.hp <= 0) return;
+                
+                const b = this.boss;
+                
+                // 怒气模式：血量低于50%时激活
+                if (!b.rageMode && b.hp < b.maxHp * 0.5) {
+                    b.rageMode = true;
+                    b.dodgeChance = 0.8;
+                    b.moveSpeed = 6;
+                }
+                
+                // 减少冷却
+                if (b.teleportCooldown > 0) b.teleportCooldown--;
+                if (b.invulnerable > 0) b.invulnerable--;
+                if (b.attackCooldown > 0) b.attackCooldown--;
+                b.auraRotation += 0.03;
+                
+                // 随机瞬移（闪避）
+                if (b.teleportCooldown <= 0 && Math.random() < 0.03) {
+                    this.bossTeleport();
+                }
+                
+                // Boss反击
+                if (b.attackCooldown <= 0) {
+                    this.bossAttack();
+                }
+                
+                // 平滑移动到目标位置
+                const dx = b.targetX - b.x;
+                const dy = b.targetY - b.y;
+                b.x += dx * 0.08;
+                b.y += dy * 0.08;
+                
+                // 更新物理体位置
+                if (b.body) {
+                    Matter.Body.setPosition(b.body, { x: b.x, y: b.y });
+                }
+                
+                // 眼睛发光效果
+                b.eyeGlow = (Math.sin(Date.now() / 150) + 1) / 2;
+            }
+
+            bossAttack() {
+                const b = this.boss;
+                b.attackCooldown = 40 + Math.random() * 40; // 0.7-1.3秒攻击间隔
+                
+                // 随机选择一个存活的盟友攻击
+                const aliveAllies = this.allies.filter(a => !a.defeated);
+                if (aliveAllies.length === 0) return;
+                
+                const target = aliveAllies[Math.floor(Math.random() * aliveAllies.length)];
+                const targetPos = ALLY_POSITIONS[target.index];
+                
+                // 创建Boss发射的投射物
+                this.createBossProjectile(targetPos, target);
+            }
+
+            createBossProjectile(targetPos, targetAlly) {
+                const { World, Bodies, Body } = Matter;
+                
+                const startX = this.boss.x;
+                const startY = this.boss.y + this.boss.size / 2;
+                
+                const body = Bodies.circle(startX, startY, 15, {
+                    density: 0.01, friction: 0.1, restitution: 0.3,
+                    frictionAir: 0.001, label: 'boss_projectile'
+                });
+                
+                // 计算朝向目标的 velocity
+                const dx = targetPos.x - startX;
+                const dy = targetPos.y - startY;
+                const angle = Math.atan2(dy, dx);
+                const speed = 8 + Math.random() * 4;
+                
+                Body.setVelocity(body, {
+                    x: Math.cos(angle) * speed,
+                    y: Math.sin(angle) * speed
+                });
+                
+                body.targetAllyIndex = targetAlly.index;
+                
+                World.add(this.world, body);
+                
+                // 3秒后自动移除
+                setTimeout(() => {
+                    if (body) {
+                        World.remove(this.world, body);
+                    }
+                }, 3000);
+            }
+
+            hitAlly(ally, damage) {
+                ally.hp -= damage;
+                ally.hitFlash = 10;
+                
+                // 显示伤害
+                const pos = ALLY_POSITIONS[ally.index];
+                this.showDamageText(pos.x, pos.y - 30, damage, true, '#ff0000');
+                this.audio.playHurt();
+                
+                // 屏幕震动
+                document.getElementById('gameContainer').classList.add('screen-shake');
+                setTimeout(() => {
+                    document.getElementById('gameContainer').classList.remove('screen-shake');
+                }, 200);
+                
+                if (ally.hp <= 0) {
+                    ally.defeated = true;
+                    ally.hp = 0;
+                    
+                    // 移除物理体
+                    if (ally.body) {
+                        Matter.World.remove(this.world, ally.body);
+                        ally.body = null;
+                    }
+                    
+                    // 显示击败效果
+                    const pos = ALLY_POSITIONS[ally.index];
+                    this.createParticles(pos.x, pos.y, ally.color, 30);
+                    this.showDamageText(pos.x, pos.y, `${ally.name} 阵亡!`, false, '#ff0000');
+                    
+                    // 检查是否所有盟友都被击败
+                    const aliveAllies = this.allies.filter(a => !a.defeated);
+                    if (aliveAllies.length === 0) {
+                        this.showGameOver();
+                    } else if (this.currentAllyIndex === ally.index) {
+                        // 如果当前控制的盟友被击败，切换到下一个
+                        this.findNextAliveAlly();
+                    }
+                }
+            }
+
+            showGameOver() {
+                this.audio.stopMusic();
+                document.getElementById('gameOver').style.display = 'block';
+                document.getElementById('gameOverTitle').textContent = '游戏结束';
+                document.getElementById('gameOverText').textContent = 'Vison太强大了...全家都被打败了...';
+            }
+
+            drawFinalBoss(ctx) {
+                const b = this.boss;
+                const size = b.size;
+                
+                ctx.save();
+                ctx.translate(b.x, b.y);
+                
+                // 受伤抖动
+                if (b.hitReaction > 0) {
+                    b.hitReaction--;
+                    ctx.translate((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
+                }
+                
+                // 无敌闪烁
+                if (b.invulnerable > 0 && Math.floor(Date.now() / 50) % 2) {
+                    ctx.globalAlpha = 0.3;
+                }
+                
+                if (b.hitFlash > 0 && Math.floor(Date.now() / 50) % 2) {
+                    ctx.globalAlpha = 0.5;
+                    b.hitFlash--;
+                }
+                
+                // 怒气模式红色边框
+                if (b.rageMode) {
+                    ctx.strokeStyle = '#ff0000';
+                    ctx.lineWidth = 5;
+                    ctx.shadowColor = '#ff0000';
+                    ctx.shadowBlur = 30;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, size/2 + 10, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                }
+                
+                // Boss身体 - Vison的脸，但更邪恶
+                const bodyGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size/2);
+                bodyGradient.addColorStop(0, b.rageMode ? '#ff4444' : '#fdbcb4');
+                bodyGradient.addColorStop(0.5, b.rageMode ? '#cc0000' : '#e8c4b8');
+                bodyGradient.addColorStop(1, '#8b0000');
+                ctx.fillStyle = bodyGradient;
+                ctx.beginPath();
+                ctx.arc(0, 0, size/2.2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // ========== 恶魔角 ==========
+                ctx.fillStyle = '#4a0000';
+                // 左角
+                ctx.beginPath();
+                ctx.moveTo(-size/4, -size/2.5);
+                ctx.lineTo(-size/2.5, -size/2 - 50);
+                ctx.lineTo(-size/6, -size/2.2);
+                ctx.closePath();
+                ctx.fill();
+                // 右角
+                ctx.beginPath();
+                ctx.moveTo(size/4, -size/2.5);
+                ctx.lineTo(size/2.5, -size/2 - 50);
+                ctx.lineTo(size/6, -size/2.2);
+                ctx.closePath();
+                ctx.fill();
+                
+                // 角发光
+                ctx.fillStyle = '#ff0000';
+                ctx.shadowColor = '#ff0000';
+                ctx.shadowBlur = 15;
+                ctx.beginPath();
+                ctx.arc(-size/2.5, -size/2 - 50, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(size/2.5, -size/2 - 50, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                
+                // ========== 眼睛 - 血红色 ==========
+                const eyeY = -size/10;
+                const eyeSize = size/6;
+                
+                // 左眼
+                const leftEyeGradient = ctx.createRadialGradient(-size/4, eyeY, 0, -size/4, eyeY, eyeSize);
+                leftEyeGradient.addColorStop(0, '#ff0000');
+                leftEyeGradient.addColorStop(0.7, '#aa0000');
+                leftEyeGradient.addColorStop(1, '#440000');
+                ctx.fillStyle = leftEyeGradient;
+                ctx.shadowColor = '#ff0000';
+                ctx.shadowBlur = 20;
+                ctx.beginPath();
+                ctx.arc(-size/4, eyeY, eyeSize, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 右眼
+                const rightEyeGradient = ctx.createRadialGradient(size/4, eyeY, 0, size/4, eyeY, eyeSize);
+                rightEyeGradient.addColorStop(0, '#ff0000');
+                rightEyeGradient.addColorStop(0.7, '#aa0000');
+                rightEyeGradient.addColorStop(1, '#440000');
+                ctx.fillStyle = rightEyeGradient;
+                ctx.beginPath();
+                ctx.arc(size/4, eyeY, eyeSize, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                
+                // 瞳孔
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(-size/4, eyeY, eyeSize * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(size/4, eyeY, eyeSize * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 眉毛 - 愤怒
+                ctx.strokeStyle = '#2a0000';
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(-size/3, eyeY - eyeSize * 1.5);
+                ctx.lineTo(-size/5, eyeY - eyeSize);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(size/3, eyeY - eyeSize * 1.5);
+                ctx.lineTo(size/5, eyeY - eyeSize);
+                ctx.stroke();
+                
+                // ========== 嘴巴 - 邪恶笑容 ==========
+                ctx.strokeStyle = '#8b0000';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(-size/5, size/6);
+                ctx.quadraticCurveTo(0, size/3, size/5, size/6);
+                ctx.stroke();
+                
+                // ========== 名称 ==========
+                ctx.font = 'bold 22px Arial';
+                ctx.fillStyle = b.rageMode ? '#ff0000' : '#8b0000';
+                ctx.shadowColor = '#ff0000';
+                ctx.shadowBlur = 15;
+                ctx.textAlign = 'center';
+                ctx.fillText('魔王 Vison', 0, -size/2 - 25);
+                ctx.font = '14px Arial';
+                ctx.fillText(b.rageMode ? '★ 狂暴模式 ★' : '大魔王', 0, -size/2 - 5);
+                ctx.shadowBlur = 0;
+                
+                ctx.restore();
+            }
+
+            drawAlly(ctx, ally) {
+                if (ally.defeated) return;
+                
+                const pos = ALLY_POSITIONS[ally.index];
+                const size = ally.size;
+                
+                ctx.save();
+                ctx.translate(pos.x, pos.y);
+                
+                // 受伤闪烁
+                if (ally.hitFlash > 0) {
+                    ally.hitFlash--;
+                    ctx.globalAlpha = 0.5;
+                }
+                
+                // 身体
+                ctx.fillStyle = ally.color;
+                ctx.beginPath();
+                ctx.arc(0, 0, size/2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 边框
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // 名字
+                ctx.font = 'bold 12px Arial';
+                ctx.fillStyle = '#fff';
+                ctx.textAlign = 'center';
+                ctx.fillText(ally.name, 0, size/2 + 15);
+                
+                // 当前控制的角色高亮
+                if (this.currentAllyIndex === ally.index) {
+                    ctx.strokeStyle = '#ffd700';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, size/2 + 5, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+                
+                ctx.restore();
+            }
+
+            drawAllyHealthBars() {
+                const ui = document.getElementById('ui');
+                
+                // 清除旧的血条
+                const oldBars = ui.querySelectorAll('.ally-health-bar, .ally-name');
+                oldBars.forEach(bar => bar.remove());
+                
+                if (!this.finalBattleMode) return;
+                
+                this.allies.forEach((ally, index) => {
+                    if (ally.defeated) return;
+                    
+                    const pos = ALLY_POSITIONS[index];
+                    
+                    // 血条背景
+                    const barContainer = document.createElement('div');
+                    barContainer.className = 'ally-health-bar';
+                    barContainer.style.left = (pos.x / CONFIG.width * 100 - 8) + '%';
+                    barContainer.style.top = ((pos.y - 70) / CONFIG.height * 100) + '%';
+                    
+                    // 血量填充
+                    const fill = document.createElement('div');
+                    fill.className = 'ally-health-fill';
+                    fill.style.width = (ally.hp / ally.maxHp * 100) + '%';
+                    fill.style.backgroundColor = ally.hp / ally.maxHp > 0.5 ? '#4CAF50' : ally.hp / ally.maxHp > 0.25 ? '#ff9800' : '#f44336';
+                    
+                    barContainer.appendChild(fill);
+                    ui.appendChild(barContainer);
+                    
+                    // 名字
+                    const name = document.createElement('div');
+                    name.className = 'character-name';
+                    name.style.left = (pos.x / CONFIG.width * 100 - 5) + '%';
+                    name.style.top = ((pos.y - 85) / CONFIG.height * 100) + '%';
+                    name.textContent = ally.name;
+                    ui.appendChild(name);
+                });
             }
 
             startFireworks() {
@@ -1417,8 +2155,15 @@
 
             loop() {
                 Matter.Engine.update(this.engine, 1000 / 60);
-                this.updateCharacters();
-                this.updateBoss();
+                
+                if (this.finalBattleMode) {
+                    this.updateFinalBoss();
+                    this.drawAllyHealthBars();
+                } else {
+                    this.updateCharacters();
+                    this.updateBoss();
+                }
+                
                 this.updateParticles();
                 this.render();
                 requestAnimationFrame(() => this.loop());
@@ -1436,35 +2181,50 @@
             render() {
                 const ctx = this.ctx;
                 
-                // Boss模式背景变暗
-                if (this.bossMode) {
+                // 最终战斗模式 - 红色背景
+                if (this.finalBattleMode) {
+                    ctx.fillStyle = '#1a0a0a';
+                    ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+                    
+                    // 暗红色遮罩
+                    ctx.fillStyle = 'rgba(139, 0, 0, 0.2)';
+                    ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+                } else if (this.bossMode) {
                     ctx.fillStyle = '#2a1a2a';
+                    ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+                    
+                    // Boss模式下添加暗紫色遮罩
+                    ctx.fillStyle = 'rgba(74, 0, 128, 0.15)';
+                    ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
                 } else {
                     ctx.fillStyle = '#f5e6d3';
-                }
-                ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
-                
-                // Boss模式下添加暗紫色遮罩
-                if (this.bossMode) {
-                    ctx.fillStyle = 'rgba(74, 0, 128, 0.15)';
                     ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
                 }
                 
-                ctx.fillStyle = this.bossMode ? '#3a2a3a' : '#d4c4b0';
+                ctx.fillStyle = this.bossMode || this.finalBattleMode ? '#3a2a3a' : '#d4c4b0';
                 ctx.fillRect(0, CONFIG.height - 40, CONFIG.width, 40);
-                ctx.fillStyle = this.bossMode ? '#8b4513' : '#c49a6c';
+                ctx.fillStyle = this.bossMode || this.finalBattleMode ? '#8b4513' : '#c49a6c';
                 ctx.fillRect(20, CONFIG.height - 50, CONFIG.width - 40, 30);
                 
                 this.drawLamp(ctx, CONFIG.width/2, 50);
                 this.furniture.forEach(f => { if (f.hp > 0) this.drawFurniture(ctx, f); });
-                this.characters.forEach((char, i) => { if (char.hp > 0) this.drawCharacter(ctx, char, i); });
                 
-                // 绘制Boss
-                if (this.bossMode && this.boss && this.boss.hp > 0) {
-                    this.drawBoss(ctx);
+                if (this.finalBattleMode) {
+                    // 最终战斗模式 - 绘制盟友和Vison
+                    this.allies.forEach(ally => this.drawAlly(ctx, ally));
+                    if (this.boss && this.boss.hp > 0) {
+                        this.drawFinalBoss(ctx);
+                    }
+                    // 不绘制Vison玩家角色，因为他变成了Boss
+                } else {
+                    // 普通模式
+                    this.characters.forEach((char, i) => { if (char.hp > 0) this.drawCharacter(ctx, char, i); });
+                    if (this.bossMode && this.boss && this.boss.hp > 0) {
+                        this.drawBoss(ctx);
+                    }
+                    this.drawVison(ctx);
                 }
                 
-                this.drawVison(ctx);
                 this.drawSlingshot(ctx);
                 this.projectiles.forEach(p => this.drawProjectile(ctx, p));
                 if (this.dragStart && this.dragCurrent) this.drawTrajectory(ctx);
