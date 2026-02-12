@@ -902,6 +902,7 @@
                 this.fireworks = [];
                 this.storyMode = false;
                 this.finalBattleMode = false;
+                this.gameEnded = false;
                 this.allies = [];
                 this.currentAllyIndex = 0;
 
@@ -1576,6 +1577,9 @@
             }
 
             showEnding() {
+                // 设置游戏结束标志，停止游戏循环
+                this.gameEnded = true;
+                
                 // Vison恢复正常
                 this.audio.playVictoryMusic();
 
@@ -2450,6 +2454,11 @@
             }
 
             restart() {
+                // 移除结局画面（如果存在）
+                const endingScreen = document.getElementById('endingScreen');
+                if (endingScreen) {
+                    endingScreen.remove();
+                }
                 document.getElementById('gameOver').style.display = 'none';
                 document.getElementById('bossWarning').style.display = 'none';
                 document.getElementById('victoryScreen').style.display = 'none';
@@ -2457,6 +2466,9 @@
             }
 
             loop() {
+                // 如果游戏已结束，不再更新和渲染
+                if (this.gameEnded) return;
+                
                 Matter.Engine.update(this.engine, 1000 / 60);
 
                 if (this.finalBattleMode) {
