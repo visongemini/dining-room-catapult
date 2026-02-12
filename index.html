@@ -1596,10 +1596,11 @@
                     return;
                 }
 
-                // 检查发射该投射物的角色是否处于神力模式（红血时100%命中）
+                // 检查发射该投射物的角色是否处于神力模式（半血时激活，红血时暴击）
                 let isGodMode = false;
                 if (currentAlly && !currentAlly.defeated && currentAlly.maxHp > 0) {
-                    isGodMode = currentAlly.hp / currentAlly.maxHp < 0.25;
+                    // 放宽条件：50%血量以下就触发神力模式
+                    isGodMode = currentAlly.hp / currentAlly.maxHp < 0.5;
                 }
 
                 // 计算实际闪避率（巨硬大便有50%命中率加成）
@@ -1993,7 +1994,12 @@
                 this.finalBattleMode = true;
                 this.bossMode = true;
                 this.poopMode = true;
-                this.bossDefeated = false;  // 修复：重置boss击败标志，确保结局能触发
+                this.bossDefeated = false;  // 修复：重置boss击败标志
+                this.gameEnded = false;     // 修复：重置游戏结束标志，确保结局能触发
+                
+                // 确保UI重置
+                document.getElementById('gameOver').style.display = 'none';
+                document.getElementById('victoryScreen').style.display = 'none';
 
                 // 创建Vison作为最终Boss
                 this.createFinalBoss();
@@ -2433,11 +2439,39 @@
             drawAlly(ctx, ally) {
                 if (ally.defeated) return;
 
-                const pos = ALLY_POSITIONS[ally.index];
+                // 优先使用物理体位置，如果没有则使用初始位置
+                const x = ally.body ? ally.body.position.x : ALLY_POSITIONS[ally.index].x;
+                const y = ally.body ? ally.body.position.y : ALLY_POSITIONS[ally.index].y;
                 const size = ally.size;
 
                 ctx.save();
-                ctx.translate(pos.x, pos.y);
+                ctx.translate(x, y);
+
+                // === 神力模式特效 ===
+                const hpPercent = ally.hp / ally.maxHp;
+                const isGodMode = hpPercent < 0.5; // 50%血以下触发
+
+                if (isGodMode) {
+                    // 1. 闪烁光环
+                    const glowSize = size * 0.8 + Math.sin(Date.now() / 150) * 5;
+                    const alpha = 0.4 + Math.sin(Date.now() / 200) * 0.2;
+                    
+                    ctx.beginPath();
+                    ctx.arc(0, 0, glowSize, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`; // 金色呼吸灯
+                    ctx.fill();
+                    
+                    // 2. 红色怒气上升粒子
+                    if (Math.random() < 0.3) {
+                        // 简单的粒子模拟（不持久化，仅视觉）
+                        ctx.fillStyle = '#ff4400';
+                        ctx.fillRect((Math.random()-0.5)*size, -size/2 - Math.random()*20, 2, 2);
+                    }
+                    
+                    // 3. 身体发红
+                    ctx.shadowColor = '#ff0000';
+                    ctx.shadowBlur = 15;
+                }
 
                 // 受伤闪烁
                 if (ally.hitFlash > 0) {
@@ -2446,49 +2480,77 @@
                 }
 
                 // 绘制弹弓（在角色后方）
-                ctx.strokeStyle = '#8b4513';
-                ctx.lineWidth = 4;
-                ctx.lineCap = 'round';
-                // 弹弓叉
-                ctx.beginPath();
-                ctx.moveTo(0, -size/2);
-                ctx.lineTo(-12, -size/2 - 25);
-                ctx.moveTo(0, -size/2);
-                ctx.lineTo(12, -size/2 - 25);
-                ctx.stroke();
-
-                // 弹弓皮筋
-                ctx.strokeStyle = '#4a3728';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(-12, -size/2 - 25);
-                ctx.lineTo(0, -size/2 - 15);
-                ctx.lineTo(12, -size/2 - 25);
-                ctx.stroke();
+                // 只有当前选中的角色才画弹弓
+                if (this.currentAllyIndex === ally.index) {
+                    ctx.strokeStyle = '#8b4513';
+                    ctx.lineWidth = 4;
+                    ctx.lineCap = 'round';
+                    // 弹弓叉
+                    ctx.beginPath();
+                    ctx.moveTo(0, -size/2);
+                    ctx.lineTo(-12, -size/2 - 25);
+                    ctx.moveTo(0, -size/2);
+                    ctx.lineTo(12, -size/2 - 25);
+                    ctx.stroke();
+                }
 
                 // 身体
-                ctx.fillStyle = ally.color;
+                ctx.fillStyle = isGodMode ? '#ffcccc' : ally.color; // 神力模式下身体变红白
                 ctx.beginPath();
                 ctx.arc(0, 0, size/2, 0, Math.PI * 2);
                 ctx.fill();
+                
+                // 脸部表情
+                ctx.fillStyle = '#000';
+                // 眼睛
+                if (isGodMode) {
+                    // 怒目
+                    ctx.beginPath();
+                    ctx.moveTo(-10, -5); ctx.lineTo(-4, 0); ctx.stroke();
+                    ctx.moveTo(10, -5); ctx.lineTo(4, 0); ctx.stroke();
+                } else {
+                    // 普通眼
+                    ctx.beginPath();
+                    ctx.arc(-6, -2, 2, 0, Math.PI*2);
+                    ctx.arc(6, -2, 2, 0, Math.PI*2);
+                    ctx.fill();
+                }
+                
+                // 嘴巴
+                ctx.beginPath();
+                if (isGodMode) {
+                    ctx.arc(0, 8, 6, Math.PI, 0); // 咬牙切齿
+                } else {
+                    ctx.arc(0, 5, 5, 0, Math.PI); // 微笑
+                }
+                ctx.stroke();
 
                 // 边框
-                ctx.strokeStyle = '#333';
-                ctx.lineWidth = 2;
+                ctx.strokeStyle = isGodMode ? '#ff0000' : '#333';
+                ctx.lineWidth = isGodMode ? 3 : 2;
                 ctx.stroke();
+                ctx.shadowBlur = 0; // 重置阴影
 
                 // 名字
                 ctx.font = 'bold 12px Arial';
                 ctx.fillStyle = '#fff';
                 ctx.textAlign = 'center';
                 ctx.fillText(ally.name, 0, size/2 + 15);
+                
+                // 神力模式文字
+                if (isGodMode) {
+                    ctx.fillStyle = '#ffd700';
+                    ctx.font = 'bold 10px Arial';
+                    ctx.fillText("GOD MODE", 0, size/2 + 28);
+                    ctx.fillText("50x DMG", 0, size/2 + 38);
+                }
 
-                // 当前控制的角色高亮
+                // 当前控制的角色高亮光圈
                 if (this.currentAllyIndex === ally.index) {
-                    ctx.strokeStyle = '#ffd700';
-                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = '#00ff00';
+                    ctx.lineWidth = 2;
                     ctx.beginPath();
-                    ctx.arc(0, 0, size/2 + 5, 0, Math.PI * 2);
+                    ctx.arc(0, 0, size/2 + 8, 0, Math.PI * 2);
                     ctx.stroke();
                 }
 
