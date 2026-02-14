@@ -368,7 +368,7 @@ function createTarget(x, y, name) {
 function createBoss(name, hp, y) {
     const body = Matter.Bodies.circle(CFG.w/2, y, 40, { isStatic: true, label: 'boss', isSensor: true });
     Matter.World.add(App.world, body);
-    return { name, hp, maxHp: hp, body, width: 80 };
+    return { name, hp, maxHp: hp, body, width: 80, defeated: false };
 }
 
 // --- Rendering ---
@@ -574,13 +574,21 @@ function handleCollisions(e) {
         }
         
         // Hit Boss
-        if(other.label === 'boss') {
+        if(other.label === 'boss' && App.boss && !App.boss.defeated) {
             App.boss.hp -= proj.damage;
             createFloatText(other.position.x, other.position.y, `-${proj.damage}`, '#f00');
             if(App.boss.hp <= 0) {
+                App.boss.defeated = true; // 标记已击败，防止重复触发
                 Matter.World.remove(App.world, App.boss.body);
-                if(App.stage === 2) showDialog('stage2_win');
-                if(App.stage === 3) playEnding();
+                
+                if(App.stage === 2) {
+                    showDialog('stage2_win');
+                } else if(App.stage === 3) {
+                    App.stage = 4; // 更新游戏状态为结局
+                    playEnding();
+                }
+                
+                App.boss = null; // 清理boss引用
             }
         }
     });
@@ -623,11 +631,19 @@ function createParticles(x, y, color) {
 }
 
 function playEnding() {
+    // 防止重复执行
+    if (document.getElementById('ending-scene').style.display === 'flex') {
+        return;
+    }
+    
     document.getElementById('ending-scene').style.display = 'flex';
     document.getElementById('ending-text').innerText = LANG[App.lang].ending_text;
     
     const cvs = document.getElementById('ending-canvas');
     const ctx = cvs.getContext('2d');
+    
+    // 清空画布
+    ctx.clearRect(0, 0, cvs.width, cvs.height);
     
     // Draw Vison & Matt
     ctx.fillStyle = '#3e2723'; ctx.fillRect(50, 150, 200, 50); // Sofa
@@ -638,6 +654,8 @@ function playEnding() {
     ctx.fillStyle = '#fff'; ctx.fillRect(110, 145, 10, 2); ctx.fillRect(190, 145, -10, 2);
     // Whiskey
     ctx.fillStyle = '#f1c40f'; ctx.fillRect(130, 180, 10, 15); ctx.fillRect(160, 180, 10, 15);
+    
+    console.log('🎉 Ending played successfully!');
 }
 
 // --- Audio (Simple Synth) ---
