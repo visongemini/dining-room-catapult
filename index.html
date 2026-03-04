@@ -208,11 +208,6 @@
             text-align: center;
             border-radius: 4px;
         }
-            border: 2px solid #00d4ff;
-            cursor: pointer;
-            pointer-events: auto;
-            z-index: 100;
-        }
         #langToggle:hover { background: rgba(0,212,255,0.3); }
         .damage-text {
             position: absolute;
@@ -240,13 +235,13 @@
             100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
         }
         .screen-shake {
-            animation: shake 0.3s ease-in-out;
+            animation: shake 0.2s ease-in-out;
         }
         @keyframes shake {
             0%, 100% { transform: translate(0, 0); }
-            25% { transform: translate(-5px, 5px); }
-            50% { transform: translate(5px, -5px); }
-            75% { transform: translate(-5px, -5px); }
+            25% { transform: translate(-4px, 3px); }
+            50% { transform: translate(4px, -3px); }
+            75% { transform: translate(-3px, -2px); }
         }
     </style>
 </head>
@@ -257,6 +252,7 @@
         <button id="langToggle">🌐 中文</button>
         <canvas id="gameCanvas"></canvas>
         <div id="ui"></div>
+        <div id="combo-display" style="position:absolute; top:65px; left:50%; transform:translateX(-50%); font-size:18px; color:#ffd700; text-shadow:2px 2px 0 #000; pointer-events:none; z-index:110; opacity:0; transition:opacity 0.3s;"></div>
         <div id="scorePanel">
             <div>得分: <span id="score">0</span></div>
             <div id="ammoDisplay">剩余: 30</div>
@@ -884,9 +880,13 @@
             }
 
             initGame() {
-                const { World, Engine } = Matter;
+                const { World, Engine, Events } = Matter;
                 World.clear(this.world);
                 Engine.clear(this.engine);
+
+                // Re-register collision events after Engine.clear
+                Events.on(this.engine, 'collisionStart', (e) => this.handleCollisions(e));
+                Events.on(this.engine, 'collisionActive', (e) => this.handleCollisions(e));
 
                 this.score = 0;
                 this.ammo = CONFIG.totalAmmo;
@@ -906,6 +906,19 @@
                 this.gameEnded = false;
                 this.allies = [];
                 this.currentAllyIndex = 0;
+                this.combo = 0;
+                this.comboTimer = 0;
+                this.trails = [];
+
+                // Reset cached health bar DOM elements
+                if (this._healthBarElements) {
+                    this._healthBarElements.forEach(el => el.remove());
+                    this._healthBarElements = null;
+                }
+                if (this._allyHealthBarElements) {
+                    this._allyHealthBarElements.forEach(el => el.remove());
+                    this._allyHealthBarElements = null;
+                }
 
                 // 重置弹弓位置
                 CONFIG.slingshotX = 80;
@@ -1068,11 +1081,12 @@
                 }
 
                 // 延迟创建新物理体
+                const label = this.finalBattleMode ? 'boss_vison' : 'boss_lola';
                 setTimeout(() => {
                     if (this.boss && this.boss.hp > 0) {
                         this.boss.body = Bodies.rectangle(this.boss.x, this.boss.y, this.boss.size * 0.8, this.boss.size, {
                             isStatic: true,
-                            label: 'boss_lola'
+                            label: label
                         });
                         World.add(this.world, this.boss.body);
                         this.boss.isTeleporting = false;
@@ -1156,7 +1170,7 @@
                 this.canvas.addEventListener('mousedown', handleStart);
                 this.canvas.addEventListener('mousemove', handleMove);
                 window.addEventListener('mouseup', handleEnd);
-                this.canvas.addEventListener('touchstart', handleStart, { passive: false });
+                this.canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleStart(e); }, { passive: false });
                 this.canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleMove(e); }, { passive: false });
                 window.addEventListener('touchend', handleEnd);
 
@@ -1300,6 +1314,13 @@
             removeProjectile(projectile) {
                 const index = this.projectiles.indexOf(projectile);
                 if (index > -1) {
+                    // Clean up hitCooldowns for this projectile
+                    const projId = projectile.id;
+                    for (const key of this.hitCooldowns.keys()) {
+                        if (key.startsWith(`${projId}_`)) {
+                            this.hitCooldowns.delete(key);
+                        }
+                    }
                     Matter.World.remove(this.world, projectile);
                     this.projectiles.splice(index, 1);
                 }
@@ -1473,6 +1494,16 @@
 
                 this.createParticles(position.x, position.y, '#8B4513', 15);
 
+                // Combo tracking
+                this.combo++;
+                this.comboTimer = 120;
+                if (this.combo >= 3) {
+                    const el = document.getElementById('combo-display');
+                    el.textContent = this.combo + 'x COMBO!';
+                    el.style.opacity = '1';
+                    el.style.fontSize = Math.min(18 + this.combo * 2, 36) + 'px';
+                }
+
                 Matter.Body.setVelocity(projectile, {
                     x: projectile.velocity.x * 0.5,
                     y: projectile.velocity.y * 0.3
@@ -1522,10 +1553,7 @@
                 }
 
                 // 屏幕震动效果
-                document.getElementById('gameContainer').classList.add('screen-shake');
-                setTimeout(() => {
-                    document.getElementById('gameContainer').classList.remove('screen-shake');
-                }, 300);
+                this.screenShake();
 
                 this.audio.playHurt();
                 if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
@@ -1535,6 +1563,16 @@
                 this.updateUI();
 
                 this.createParticles(position.x, position.y, '#ff00ff', 20);
+
+                // Combo tracking
+                this.combo++;
+                this.comboTimer = 120;
+                if (this.combo >= 3) {
+                    const el = document.getElementById('combo-display');
+                    el.textContent = this.combo + 'x COMBO!';
+                    el.style.opacity = '1';
+                    el.style.fontSize = Math.min(18 + this.combo * 2, 36) + 'px';
+                }
 
                 Matter.Body.setVelocity(projectile, {
                     x: projectile.velocity.x * 0.3,
@@ -1580,9 +1618,17 @@
                 const pos = furniture.body.position;
                 this.createParticles(pos.x, pos.y, '#8b4513', 25);
                 this.audio.playBreak();
+                this.screenShake();
                 const brokenText = currentLang === 'zh' ? `${t(furniture.nameKey)} 碎了!` : `${t(furniture.nameKey)} Broken!`;
                 this.showDamageText(pos.x, pos.y, brokenText, false, '#ff6600');
                 furniture.hp = 0;
+            }
+
+            screenShake() {
+                const el = document.getElementById('gameContainer');
+                el.classList.remove('screen-shake');
+                void el.offsetWidth;
+                el.classList.add('screen-shake');
             }
 
             hitFinalBoss(item, position, projectile) {
@@ -1650,10 +1696,7 @@
                 }
 
                 // 屏幕震动
-                document.getElementById('gameContainer').classList.add('screen-shake');
-                setTimeout(() => {
-                    document.getElementById('gameContainer').classList.remove('screen-shake');
-                }, 300);
+                this.screenShake();
 
                 this.audio.playHurt();
                 if (navigator.vibrate) navigator.vibrate([40, 20, 40]);
@@ -1663,6 +1706,16 @@
                 this.updateUI();
 
                 this.createParticles(position.x, position.y, '#ff0000', 25);
+
+                // Combo tracking
+                this.combo++;
+                this.comboTimer = 120;
+                if (this.combo >= 3) {
+                    const el = document.getElementById('combo-display');
+                    el.textContent = this.combo + 'x COMBO!';
+                    el.style.opacity = '1';
+                    el.style.fontSize = Math.min(18 + this.combo * 2, 36) + 'px';
+                }
 
                 // 不切换角色，玩家自由选择
 
@@ -1991,16 +2044,34 @@
                 World.clear(this.world);
                 Engine.clear(this.engine);
 
+                // Re-register collision events after Engine.clear
+                const { Events } = Matter;
+                Events.on(this.engine, 'collisionStart', (e) => this.handleCollisions(e));
+                Events.on(this.engine, 'collisionActive', (e) => this.handleCollisions(e));
+
                 // 重置游戏状态为第二阶段
                 this.finalBattleMode = true;
                 this.bossMode = true;
                 this.poopMode = true;
                 this.bossDefeated = false;  // 修复：重置boss击败标志
                 this.gameEnded = false;     // 修复：重置游戏结束标志，确保结局能触发
+
+                // Reset cached health bar DOM elements for fresh creation
+                if (this._healthBarElements) {
+                    this._healthBarElements.forEach(el => el.remove());
+                    this._healthBarElements = null;
+                }
+                if (this._allyHealthBarElements) {
+                    this._allyHealthBarElements.forEach(el => el.remove());
+                    this._allyHealthBarElements = null;
+                }
                 
                 // 确保UI重置
                 document.getElementById('gameOver').style.display = 'none';
                 document.getElementById('victoryScreen').style.display = 'none';
+
+                // 重建边界
+                this.createBoundaries();
 
                 // 创建Vison作为最终Boss
                 this.createFinalBoss();
@@ -2112,9 +2183,10 @@
 
                 // 使用最终决战专用巨硬大便
                 this.currentItem = { ...SUPER_POOP_FINAL };
-                document.getElementById('currentItemName').textContent = `${ally.name} 攻击中 (巨硬大便)`;
-                document.getElementById('modeDisplay').textContent = '💩巨硬大便模式! (+50%命中)';
-                document.getElementById('ammoDisplay').textContent = '无限弹药';
+                const isZh = currentLang === 'zh';
+                document.getElementById('currentItemName').textContent = isZh ? `${ally.name} 攻击中 (巨硬大便)` : `${ally.name} Attacking (Super Poop)`;
+                document.getElementById('modeDisplay').textContent = isZh ? '💩巨硬大便模式! (+50%命中)' : '💩Super Poop Mode! (+50% Hit)';
+                document.getElementById('ammoDisplay').textContent = isZh ? '无限弹药' : 'Unlimited Ammo';
 
                 // 切换弹弓位置
                 const pos = ALLY_POSITIONS[this.currentAllyIndex];
@@ -2270,10 +2342,7 @@
                 this.audio.playHurt();
 
                 // 屏幕震动
-                document.getElementById('gameContainer').classList.add('screen-shake');
-                setTimeout(() => {
-                    document.getElementById('gameContainer').classList.remove('screen-shake');
-                }, 200);
+                this.screenShake();
 
                 if (ally.hp <= 0) {
                     ally.defeated = true;
@@ -2288,7 +2357,7 @@
                     // 显示击败效果
                     const pos = ALLY_POSITIONS[ally.index];
                     this.createParticles(pos.x, pos.y, ally.color, 30);
-                    this.showDamageText(pos.x, pos.y, `${ally.name} 阵亡!`, false, '#ff0000');
+                    this.showDamageText(pos.x, pos.y, currentLang === 'zh' ? `${ally.name} 阵亡!` : `${ally.name} Defeated!`, false, '#ff0000');
 
                     // 检查是否所有盟友都被击败
                     const aliveAllies = this.allies.filter(a => !a.defeated);
@@ -2558,42 +2627,62 @@
                 ctx.restore();
             }
 
-            drawAllyHealthBars() {
+            initAllyHealthBarElements() {
                 const ui = document.getElementById('ui');
-
-                // 清除旧的血条
-                const oldBars = ui.querySelectorAll('.ally-health-bar, .ally-name');
-                oldBars.forEach(bar => bar.remove());
-
-                if (!this.finalBattleMode) return;
+                if (this._allyHealthBarElements) {
+                    this._allyHealthBarElements.forEach(el => el.remove());
+                }
+                this._allyHealthBarElements = [];
+                this._allyHealthBars = [];
+                this._allyNameLabels = [];
 
                 this.allies.forEach((ally, index) => {
-                    if (ally.defeated) return;
-
                     const pos = ALLY_POSITIONS[index];
 
-                    // 血条背景
                     const barContainer = document.createElement('div');
                     barContainer.className = 'ally-health-bar';
                     barContainer.style.left = (pos.x / CONFIG.width * 100 - 8) + '%';
                     barContainer.style.top = ((pos.y - 70) / CONFIG.height * 100) + '%';
 
-                    // 血量填充
                     const fill = document.createElement('div');
                     fill.className = 'ally-health-fill';
-                    fill.style.width = (ally.hp / ally.maxHp * 100) + '%';
-                    fill.style.backgroundColor = ally.hp / ally.maxHp > 0.5 ? '#4CAF50' : ally.hp / ally.maxHp > 0.25 ? '#ff9800' : '#f44336';
-
                     barContainer.appendChild(fill);
                     ui.appendChild(barContainer);
 
-                    // 名字
                     const name = document.createElement('div');
-                    name.className = 'character-name';
+                    name.className = 'ally-name character-name';
                     name.style.left = (pos.x / CONFIG.width * 100 - 5) + '%';
                     name.style.top = ((pos.y - 85) / CONFIG.height * 100) + '%';
                     name.textContent = ally.name;
                     ui.appendChild(name);
+
+                    this._allyHealthBars.push({ container: barContainer, fill });
+                    this._allyNameLabels.push(name);
+                    this._allyHealthBarElements.push(barContainer, name);
+                });
+            }
+
+            drawAllyHealthBars() {
+                if (!this.finalBattleMode) return;
+
+                // Lazy init
+                if (!this._allyHealthBarElements || this._allyHealthBarElements.length === 0) {
+                    this.initAllyHealthBarElements();
+                }
+
+                this.allies.forEach((ally, index) => {
+                    const bar = this._allyHealthBars[index];
+                    if (!bar) return;
+                    if (ally.defeated) {
+                        bar.container.style.display = 'none';
+                        this._allyNameLabels[index].style.display = 'none';
+                        return;
+                    }
+                    bar.container.style.display = '';
+                    this._allyNameLabels[index].style.display = '';
+                    const ratio = ally.hp / ally.maxHp;
+                    bar.fill.style.width = (ratio * 100) + '%';
+                    bar.fill.style.backgroundColor = ratio > 0.5 ? '#4CAF50' : ratio > 0.25 ? '#ff9800' : '#f44336';
                 });
             }
 
@@ -2639,9 +2728,9 @@
             updateUI() {
                 document.getElementById('score').textContent = this.score;
                 if (this.poopMode) {
-                    document.getElementById('ammoDisplay').textContent = '大便: ∞';
+                    document.getElementById('ammoDisplay').textContent = `${t('poopMode')} ∞`;
                 } else {
-                    document.getElementById('ammoDisplay').textContent = `剩余: ${this.ammo}`;
+                    document.getElementById('ammoDisplay').textContent = `${t('ammo')}: ${this.ammo}`;
                 }
             }
 
@@ -2657,6 +2746,7 @@
                 document.getElementById('bossWarning').style.display = 'none';
                 document.getElementById('victoryScreen').style.display = 'none';
                 this.initGame();
+                this.loop();
             }
 
             loop() {
@@ -2674,6 +2764,38 @@
                 }
 
                 this.updateParticles();
+
+                // Combo timer decay
+                if (this.comboTimer > 0) {
+                    this.comboTimer--;
+                    if (this.comboTimer <= 0) {
+                        this.combo = 0;
+                        document.getElementById('combo-display').style.opacity = '0';
+                    }
+                }
+
+                // Projectile trails
+                this.projectiles.forEach(p => {
+                    if (Math.hypot(p.velocity.x, p.velocity.y) > 2) {
+                        this.trails.push({ x: p.position.x, y: p.position.y, life: 10, color: p.itemData?.type === 'poop' ? '#8B4513' : '#aaa' });
+                    }
+                });
+                for (let i = this.trails.length - 1; i >= 0; i--) {
+                    this.trails[i].life--;
+                    if (this.trails[i].life <= 0) this.trails.splice(i, 1);
+                }
+
+                // Periodic hitCooldowns cleanup (every ~2 seconds at 60fps)
+                if (!this._cooldownCleanupCounter) this._cooldownCleanupCounter = 0;
+                this._cooldownCleanupCounter++;
+                if (this._cooldownCleanupCounter >= 120) {
+                    this._cooldownCleanupCounter = 0;
+                    const now = Date.now();
+                    for (const [key, time] of this.hitCooldowns.entries()) {
+                        if (now - time > 2000) this.hitCooldowns.delete(key);
+                    }
+                }
+
                 this.render();
                 requestAnimationFrame(() => this.loop());
             }
@@ -2745,6 +2867,14 @@
                     this.drawSlingshot(ctx);
                     if (this.dragStart && this.dragCurrent) this.drawTrajectory(ctx);
                 }
+
+                // Draw projectile trails
+                this.trails.forEach(t => {
+                    ctx.globalAlpha = t.life / 10;
+                    ctx.fillStyle = t.color;
+                    ctx.beginPath(); ctx.arc(t.x, t.y, 2, 0, Math.PI * 2); ctx.fill();
+                });
+                ctx.globalAlpha = 1;
 
                 this.projectiles.forEach(p => this.drawProjectile(ctx, p));
                 this.drawParticles(ctx);
@@ -3043,22 +3173,27 @@
                         for(let i=1; i<4; i++) {
                             ctx.fillRect(-w/2 + 3, -h/2 + i*h/4 - 2, w - 6, 4);
                         }
-                        // 书本（随机颜色）
+                        // 书本（使用缓存的书籍数据避免每帧闪烁）
                         const bookColors = ['#4169e1', '#dc143c', '#228b22', '#ff8c00', '#9932cc', '#ff6347'];
-                        for(let shelf=0; shelf<3; shelf++) {
-                            let bookX = -w/2 + 6;
-                            const shelfY = -h/2 + shelf*h/4 + 3;
-                            while(bookX < w/2 - 10) {
-                                const bookW = 4 + Math.random() * 6;
+                        if (!f.bookData) {
+                            f.bookData = [];
+                            for(let shelf=0; shelf<3; shelf++) {
+                                let bookX = -w/2 + 6;
+                                const shelfY = -h/2 + shelf*h/4 + 3;
                                 const bookH = h/4 - 8;
-                                if(bookX + bookW > w/2 - 6) break;
-                                ctx.fillStyle = bookColors[Math.floor(Math.random() * bookColors.length)];
-                                ctx.fillRect(bookX, shelfY, bookW, bookH);
-                                // 书脊高光
-                                ctx.fillStyle = 'rgba(255,255,255,0.3)';
-                                ctx.fillRect(bookX + 1, shelfY, 1, bookH);
-                                bookX += bookW + 1;
+                                while(bookX < w/2 - 10) {
+                                    const bookW = 4 + Math.random() * 6;
+                                    if(bookX + bookW > w/2 - 6) break;
+                                    f.bookData.push({ x: bookX, y: shelfY, w: bookW, h: bookH, color: bookColors[Math.floor(Math.random() * bookColors.length)] });
+                                    bookX += bookW + 1;
+                                }
                             }
+                        }
+                        for (const book of f.bookData) {
+                            ctx.fillStyle = book.color;
+                            ctx.fillRect(book.x, book.y, book.w, book.h);
+                            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                            ctx.fillRect(book.x + 1, book.y, 1, book.h);
                         }
                         break;
 
@@ -4036,7 +4171,7 @@
 
             drawParticles(ctx) {
                 this.particles.forEach(p => {
-                    ctx.globalAlpha = p.life / 50;
+                    ctx.globalAlpha = Math.min(p.life / 50, 1);
                     ctx.fillStyle = p.color;
                     ctx.beginPath();
                     ctx.arc(p.x, p.y, p.size/2, 0, Math.PI * 2);
@@ -4045,14 +4180,18 @@
                 ctx.globalAlpha = 1;
             }
 
-            drawHealthBars() {
+            initHealthBarElements() {
                 const ui = document.getElementById('ui');
-                ui.querySelectorAll('.health-bar, .character-name').forEach(el => el.remove());
+                // Remove old cached elements if any
+                if (this._healthBarElements) {
+                    this._healthBarElements.forEach(el => el.remove());
+                }
+                this._healthBarElements = [];
+                this._charHealthBars = [];
+                this._charNameLabels = [];
 
-                // 普通角色血条
+                // Create character health bars
                 this.characters.forEach((char, index) => {
-                    if (char.hp <= 0) return;
-
                     const barContainer = document.createElement('div');
                     barContainer.className = 'health-bar';
                     barContainer.style.left = (10 + index * 85) + 'px';
@@ -4060,11 +4199,6 @@
 
                     const fill = document.createElement('div');
                     fill.className = 'health-fill';
-                    fill.style.width = (char.hp / char.maxHp * 100) + '%';
-                    if (char.hp / char.maxHp > 0.5) fill.style.background = '#4CAF50';
-                    else if (char.hp / char.maxHp > 0.25) fill.style.background = '#ff9800';
-                    else fill.style.background = '#f44336';
-
                     barContainer.appendChild(fill);
                     ui.appendChild(barContainer);
 
@@ -4074,35 +4208,75 @@
                     name.style.left = (10 + index * 85) + 'px';
                     name.style.top = '22px';
                     ui.appendChild(name);
+
+                    this._charHealthBars.push({ container: barContainer, fill });
+                    this._charNameLabels.push(name);
+                    this._healthBarElements.push(barContainer, name);
                 });
 
-                // Boss血条
+                // Create boss health bar
+                const bossBarContainer = document.createElement('div');
+                bossBarContainer.className = 'health-bar';
+                bossBarContainer.style.left = '50px';
+                bossBarContainer.style.top = '55px';
+                bossBarContainer.style.width = '260px';
+                bossBarContainer.style.height = '15px';
+                bossBarContainer.style.display = 'none';
+
+                const bossFill = document.createElement('div');
+                bossFill.className = 'health-fill';
+                bossBarContainer.appendChild(bossFill);
+                ui.appendChild(bossBarContainer);
+
+                const bossName = document.createElement('div');
+                bossName.className = 'character-name';
+                bossName.style.left = '50px';
+                bossName.style.top = '40px';
+                bossName.style.fontSize = '12px';
+                bossName.style.display = 'none';
+                ui.appendChild(bossName);
+
+                this._bossHealthBar = { container: bossBarContainer, fill: bossFill };
+                this._bossNameLabel = bossName;
+                this._healthBarElements.push(bossBarContainer, bossName);
+            }
+
+            drawHealthBars() {
+                // Lazy init
+                if (!this._healthBarElements) this.initHealthBarElements();
+
+                // Update character health bars
+                this.characters.forEach((char, index) => {
+                    const bar = this._charHealthBars[index];
+                    if (!bar) return;
+                    if (char.hp <= 0) {
+                        bar.container.style.display = 'none';
+                        this._charNameLabels[index].style.display = 'none';
+                        return;
+                    }
+                    bar.container.style.display = '';
+                    this._charNameLabels[index].style.display = '';
+                    const ratio = char.hp / char.maxHp;
+                    bar.fill.style.width = (ratio * 100) + '%';
+                    if (ratio > 0.5) bar.fill.style.background = '#4CAF50';
+                    else if (ratio > 0.25) bar.fill.style.background = '#ff9800';
+                    else bar.fill.style.background = '#f44336';
+                });
+
+                // Update boss health bar
                 if (this.bossMode && this.boss && this.boss.hp > 0) {
                     const isFinalBoss = this.finalBattleMode;
-                    const bossBarContainer = document.createElement('div');
-                    bossBarContainer.className = 'health-bar';
-                    bossBarContainer.style.left = '50px';
-                    bossBarContainer.style.top = '55px';
-                    bossBarContainer.style.width = '260px';
-                    bossBarContainer.style.height = '15px';
-                    bossBarContainer.style.border = isFinalBoss ? '2px solid #ff0000' : '2px solid #ff00ff';
+                    this._bossHealthBar.container.style.display = '';
+                    this._bossHealthBar.container.style.border = isFinalBoss ? '2px solid #ff0000' : '2px solid #ff00ff';
+                    this._bossHealthBar.fill.style.width = (this.boss.hp / this.boss.maxHp * 100) + '%';
+                    this._bossHealthBar.fill.style.background = isFinalBoss ? 'linear-gradient(90deg, #ff0000, #8b0000)' : 'linear-gradient(90deg, #ff00ff, #800080)';
 
-                    const bossFill = document.createElement('div');
-                    bossFill.className = 'health-fill';
-                    bossFill.style.width = (this.boss.hp / this.boss.maxHp * 100) + '%';
-                    bossFill.style.background = isFinalBoss ? 'linear-gradient(90deg, #ff0000, #8b0000)' : 'linear-gradient(90deg, #ff00ff, #800080)';
-
-                    bossBarContainer.appendChild(bossFill);
-                    ui.appendChild(bossBarContainer);
-
-                    const bossName = document.createElement('div');
-                    bossName.className = 'character-name';
-                    bossName.textContent = isFinalBoss ? '👿 Demon King Vison' : '👿 Demon King Lola';
-                    bossName.style.left = '50px';
-                    bossName.style.top = '40px';
-                    bossName.style.color = isFinalBoss ? '#ff0000' : '#ff00ff';
-                    bossName.style.fontSize = '12px';
-                    ui.appendChild(bossName);
+                    this._bossNameLabel.style.display = '';
+                    this._bossNameLabel.textContent = isFinalBoss ? '👿 Demon King Vison' : '👿 Demon King Lola';
+                    this._bossNameLabel.style.color = isFinalBoss ? '#ff0000' : '#ff00ff';
+                } else {
+                    this._bossHealthBar.container.style.display = 'none';
+                    this._bossNameLabel.style.display = 'none';
                 }
             }
         }
