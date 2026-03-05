@@ -1260,8 +1260,8 @@
 
             bindEvents() {
                 const handleStart = (e) => {
-                    // Block input during stun
-                    if (this.stunTimer > 0 && this.finalBattleMode) return;
+                    // Block all input during speech sequence
+                    if (this.speechInProgress && this.finalBattleMode) return;
 
                     const pos = this.getPointerPos(e);
 
@@ -1269,7 +1269,7 @@
                     if (this.finalBattleMode) {
                         for (let i = 0; i < this.allies.length; i++) {
                             const ally = this.allies[i];
-                            if (ally.defeated) continue;
+                            if (ally.defeated || ally.stunned) continue;
 
                             const allyPos = ALLY_POSITIONS[i];
                             const dist = Math.hypot(pos.x - allyPos.x, pos.y - allyPos.y);
@@ -2309,7 +2309,8 @@
                         body: null,
                         hitFlash: 0,
                         index: i,
-                        defeated: false
+                        defeated: false,
+                        stunned: false
                     };
 
                     const pos = ALLY_POSITIONS[i];
@@ -2351,8 +2352,8 @@
             loadNextAllyProjectile() {
                 // 轮流使用不同盟友的弹药
                 const ally = this.allies[this.currentAllyIndex];
-                if (!ally || ally.defeated) {
-                    // 找下一个存活的盟友
+                if (!ally || ally.defeated || ally.stunned) {
+                    // 找下一个可用的盟友
                     this.findNextAliveAlly();
                     return;
                 }
@@ -2374,7 +2375,8 @@
                 let found = false;
                 for (let i = 0; i < this.allies.length; i++) {
                     this.currentAllyIndex = (this.currentAllyIndex + 1) % this.allies.length;
-                    if (!this.allies[this.currentAllyIndex].defeated) {
+                    const ally = this.allies[this.currentAllyIndex];
+                    if (!ally.defeated && !ally.stunned) {
                         found = true;
                         break;
                     }
@@ -2930,14 +2932,6 @@
                 if (this.gameEnded) return;
                 
                 Matter.Engine.update(this.engine, 1000 / 60);
-
-                // Stun timer decay
-                if (this.stunTimer > 0) {
-                    this.stunTimer--;
-                    if (this.stunTimer <= 0) {
-                        this.clearPhase2Effects();
-                    }
-                }
 
                 if (this.finalBattleMode) {
                     this.updateFinalBoss();
@@ -4479,12 +4473,9 @@
                 this.boss.hp = phase2Hp;
                 this.boss.maxHp = phase2Hp;
                 this.boss.rageMode = true;
-                this.boss.dodgeChance = 0.4; // less dodge in phase 2, more tanky
+                this.boss.dodgeChance = 0.4;
 
-                // Screen shake
                 this.screenShake();
-
-                // Show phase 2 warning dialog, speeches start after dismiss
                 this.showPhase2Warning();
             }
 
@@ -4497,48 +4488,113 @@
 
                 document.getElementById('phase2Btn').onclick = () => {
                     warning.style.display = 'none';
-                    // NOW start stun + speeches
-                    this.stunTimer = 480; // 8 seconds at 60fps
-                    this.showPhase2Speeches();
+                    // 开始逐个蛊惑盟友
+                    this.startSequentialSpeeches();
                 };
             }
 
-            showPhase2Speeches() {
+            startSequentialSpeeches() {
+                // 全局禁止操作，等所有话说完
+                this.speechInProgress = true;
                 this.clearPhase2Effects();
+
                 const container = document.getElementById('gameContainer');
                 const scaleX = container.offsetWidth / CONFIG.width;
                 const scaleY = container.offsetHeight / CONFIG.height;
 
+                // 收集存活盟友
+                const aliveAllies = [];
                 this.allies.forEach((ally, i) => {
-                    if (ally.defeated) return;
+                    if (!ally.defeated) aliveAllies.push(i);
+                });
+
+                // 逐个说话，每个间隔3秒
+                const speechDuration = 3000;
+                aliveAllies.forEach((allyIdx, seqIdx) => {
+                    const ally = this.allies[allyIdx];
+                    const allyPos = ALLY_POSITIONS[allyIdx];
                     const speechKey = `speech_${ally.name}`;
                     const text = t(speechKey);
-                    if (!text || text === speechKey) return;
 
-                    // Speech bubble
-                    const bubble = document.createElement('div');
-                    bubble.className = 'phase2-speech';
-                    bubble.textContent = text;
-                    const allyPos = ALLY_POSITIONS[i];
-                    const bx = allyPos.x * scaleX;
-                    const by = (allyPos.y - 60) * scaleY;
-                    bubble.style.left = Math.max(5, Math.min(bx - 50, container.offsetWidth - 130)) + 'px';
-                    bubble.style.top = Math.max(5, by - 30) + 'px';
-                    container.appendChild(bubble);
-                    this.phase2Bubbles.push(bubble);
+                    setTimeout(() => {
+                        // 清除上一个气泡
+                        this.clearPhase2Effects();
 
-                    setTimeout(() => bubble.classList.add('show'), i * 500);
-                    setTimeout(() => bubble.classList.remove('show'), 6000 + i * 200);
+                        // 显示气泡
+                        const bubble = document.createElement('div');
+                        bubble.className = 'phase2-speech';
+                        bubble.textContent = text;
+                        const bx = allyPos.x * scaleX;
+                        const by = (allyPos.y - 60) * scaleY;
+                        bubble.style.left = Math.max(5, Math.min(bx - 50, container.offsetWidth - 130)) + 'px';
+                        bubble.style.top = Math.max(5, by - 30) + 'px';
+                        container.appendChild(bubble);
+                        this.phase2Bubbles.push(bubble);
+                        setTimeout(() => bubble.classList.add('show'), 50);
 
-                    // Stun icon
-                    const stunIcon = document.createElement('div');
-                    stunIcon.className = 'stun-icon';
-                    stunIcon.textContent = '💫';
-                    stunIcon.style.left = (bx - 8) + 'px';
-                    stunIcon.style.top = (allyPos.y * scaleY - 40) + 'px';
-                    container.appendChild(stunIcon);
-                    this.phase2Bubbles.push(stunIcon);
+                        // 震屏
+                        this.screenShake();
+
+                        // 说完后：该盟友眩晕（标记 stunned）
+                        setTimeout(() => {
+                            ally.stunned = true;
+
+                            // 在盟友头上显示眩晕图标（持续存在）
+                            const stunIcon = document.createElement('div');
+                            stunIcon.className = 'stun-icon';
+                            stunIcon.id = `stun-icon-${allyIdx}`;
+                            stunIcon.textContent = '💫';
+                            stunIcon.style.left = (bx - 8) + 'px';
+                            stunIcon.style.top = (allyPos.y * scaleY - 40) + 'px';
+                            container.appendChild(stunIcon);
+                            // 不加入 phase2Bubbles，因为这个要长期保留
+
+                            // 显示该盟友被击溃的文字
+                            this.showDamageText(allyPos.x, allyPos.y - 30, t('stunned'), false, '#ff6b6b');
+
+                            // 如果当前操控的是这个盟友，自动切换到下一个
+                            if (this.currentAllyIndex === allyIdx) {
+                                this.findNextUnstunnedAlly();
+                            }
+                        }, speechDuration - 500);
+
+                        // 最后一个盟友说完后，解除全局禁止 + 启动恢复计时
+                        if (seqIdx === aliveAllies.length - 1) {
+                            setTimeout(() => {
+                                this.clearPhase2Effects();
+                                this.speechInProgress = false;
+
+                                // 10秒后逐个恢复盟友（每2秒恢复一个）
+                                aliveAllies.forEach((recoverIdx, recoverSeq) => {
+                                    setTimeout(() => {
+                                        const recoverAlly = this.allies[recoverIdx];
+                                        if (recoverAlly && !recoverAlly.defeated) {
+                                            recoverAlly.stunned = false;
+                                            const icon = document.getElementById(`stun-icon-${recoverIdx}`);
+                                            if (icon) icon.remove();
+                                            this.showDamageText(ALLY_POSITIONS[recoverIdx].x, ALLY_POSITIONS[recoverIdx].y - 30,
+                                                currentLang === 'zh' ? '恢复!' : 'Recovered!', false, '#4CAF50');
+                                        }
+                                    }, 10000 + recoverSeq * 2000);
+                                });
+                            }, speechDuration);
+                        }
+
+                    }, seqIdx * speechDuration);
                 });
+            }
+
+            findNextUnstunnedAlly() {
+                for (let i = 0; i < this.allies.length; i++) {
+                    const idx = (this.currentAllyIndex + 1 + i) % this.allies.length;
+                    const ally = this.allies[idx];
+                    if (!ally.defeated && !ally.stunned) {
+                        this.currentAllyIndex = idx;
+                        this.loadNextAllyProjectile();
+                        return;
+                    }
+                }
+                // 全部被眩晕，暂时无法操作（等恢复）
             }
 
             clearPhase2Effects() {
@@ -4546,6 +4602,8 @@
                     this.phase2Bubbles.forEach(el => el.remove());
                 }
                 this.phase2Bubbles = [];
+                // Also remove any stun icons
+                document.querySelectorAll('.stun-icon').forEach(el => el.remove());
             }
 
             // ==================== 排行榜系统 ====================
