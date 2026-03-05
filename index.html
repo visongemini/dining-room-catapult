@@ -46,11 +46,12 @@
             position: absolute;
             top: 5px;
             right: 5px;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.6);
             color: #fff;
-            padding: 5px 10px;
+            padding: 4px 8px;
             font-size: 10px;
-            border: 2px solid #fff;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
         }
         #ammoPanel {
             position: absolute;
@@ -179,36 +180,41 @@
             position: absolute;
             top: 5px;
             left: 5px;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.6);
             color: #fff;
-            padding: 8px 15px;
-            font-size: 14px;
-            border: 2px solid #ffd700;
+            width: 32px;
+            height: 32px;
+            font-size: 16px;
+            border: 1px solid rgba(255,255,255,0.3);
             cursor: pointer;
             pointer-events: auto;
             z-index: 100;
-            min-width: 80px;
             text-align: center;
             border-radius: 4px;
+            padding: 0;
+            line-height: 32px;
         }
-        #musicToggle:hover { background: rgba(255,215,0,0.3); }
+        #musicToggle:hover { background: rgba(255,255,255,0.2); }
         #langToggle {
             position: absolute;
             top: 5px;
-            left: 110px;
-            background: rgba(0,0,0,0.7);
+            left: 42px;
+            background: rgba(0,0,0,0.6);
             color: #fff;
-            padding: 8px 15px;
-            font-size: 14px;
-            border: 2px solid #00d4ff;
+            width: 32px;
+            height: 32px;
+            font-size: 12px;
+            border: 1px solid rgba(255,255,255,0.3);
             cursor: pointer;
             pointer-events: auto;
             z-index: 100;
-            min-width: 60px;
             text-align: center;
             border-radius: 4px;
+            padding: 0;
+            line-height: 32px;
+            font-weight: bold;
         }
-        #langToggle:hover { background: rgba(0,212,255,0.3); }
+        #langToggle:hover { background: rgba(255,255,255,0.2); }
         .damage-text {
             position: absolute;
             color: #ff0000;
@@ -331,9 +337,22 @@
         .lb-btn.secondary { background: #555; color: #fff; }
         .lb-btn.secondary:hover { background: #777; }
         #leaderboardBtn {
-            position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.7); color: #ffd700; border: 2px solid #ffd700;
-            padding: 4px 10px; font-size: 10px; cursor: pointer; z-index: 100;
+            position: absolute;
+            top: 5px;
+            left: 79px;
+            background: rgba(0,0,0,0.6);
+            color: #ffd700;
+            width: 32px;
+            height: 32px;
+            font-size: 16px;
+            border: 1px solid rgba(255,215,0,0.3);
+            cursor: pointer;
+            pointer-events: auto;
+            z-index: 100;
+            text-align: center;
+            border-radius: 4px;
+            padding: 0;
+            line-height: 32px;
             font-family: 'Courier New', monospace;
         }
         #leaderboardBtn:hover { background: rgba(255,215,0,0.2); }
@@ -341,9 +360,9 @@
 </head>
 <body>
     <div id="gameContainer">
-        <div style="position:absolute; top:5px; right:5px; color:rgba(255,255,255,0.3); font-size:10px; z-index:9999; pointer-events:none;">v2.4</div>
-        <button id="musicToggle">🎵 音乐: 关</button>
-        <button id="langToggle">🌐 中文</button>
+        <div style="position:absolute; bottom:5px; right:5px; color:rgba(255,255,255,0.2); font-size:8px; z-index:9999; pointer-events:none;">v2.4</div>
+        <button id="musicToggle">🔇</button>
+        <button id="langToggle">中</button>
         <button id="leaderboardBtn">🏆</button>
         <div id="leaderboardScreen"></div>
         <div id="phase2Warning">
@@ -356,49 +375,49 @@
         <div id="ui"></div>
         <div id="combo-display" style="position:absolute; top:65px; left:50%; transform:translateX(-50%); font-size:18px; color:#ffd700; text-shadow:2px 2px 0 #000; pointer-events:none; z-index:110; opacity:0; transition:opacity 0.3s;"></div>
         <div id="scorePanel">
-            <div>得分: <span id="score">0</span></div>
-            <div id="ammoDisplay">剩余: 30</div>
+            <div>Score: <span id="score">0</span></div>
+            <div id="ammoDisplay">Ammo: 30</div>
         </div>
         <div id="ammoPanel">
-            <div id="currentItemName">点击开始游戏</div>
+            <div id="currentItemName">Click to Start</div>
             <div id="modeDisplay" style="font-size:9px;color:#ff0;"></div>
         </div>
         <div id="gameOver">
-            <h2 id="gameOverTitle">游戏结束</h2>
+            <h2 id="gameOverTitle">Game Over</h2>
             <p id="gameOverText"></p>
-            <button id="restartBtn">再来一局</button>
+            <button id="restartBtn">Play Again</button>
         </div>
         <div id="bossWarning">
-            <h2>⚠️ 大魔王降临 ⚠️</h2>
-            <p style="font-size: 14px; margin: 10px 0;">Matt 的老婆 <span style="color:#ff00ff;font-size:18px;">Lola</span> 出现了！</p>
-            <p style="font-size: 12px; color:#ccc;">她带来了毁灭性的力量...</p>
-            <button id="continueBossBtn">迎战魔王</button>
+            <h2 id="bossWarningTitle">⚠️ BOSS APPEARS ⚠️</h2>
+            <p id="bossWarningText1" style="font-size: 14px; margin: 10px 0;">Matt's wife <span style="color:#ff00ff;font-size:18px;">Lola</span> Appears!</p>
+            <p id="bossWarningText2" style="font-size: 12px; color:#ccc;">She brings destruction...</p>
+            <button id="continueBossBtn">Fight Boss</button>
         </div>
         <div id="victoryScreen">
-            <h2>🎉 恭喜通关！🎉</h2>
-            <p style="font-size: 16px; margin: 10px 0;">你击败了所有敌人！</p>
+            <h2 id="victoryTitle">🎉 VICTORY! 🎉</h2>
+            <p id="victoryText" style="font-size: 16px; margin: 10px 0;">You defeated all enemies!</p>
             <p id="finalScore" style="font-size: 14px; color:#666;"></p>
-            <button id="restartBtn2" style="background:#ff6600;color:#fff;border:none;padding:10px 20px;font-size:14px;cursor:pointer;margin-top:10px;">再玩一次</button>
+            <button id="restartBtn2" style="background:#ff6600;color:#fff;border:none;padding:10px 20px;font-size:14px;cursor:pointer;margin-top:10px;">Play Again</button>
         </div>
         <div id="storyScreen">
-            <h2 id="storyTitle">📖 剧情发展</h2>
-            <p id="story1" class="story-happy">大魔王Lola被打败了！魔气退散...</p>
-            <p id="story2" class="story-happy">Lola变回了原来的样子，温柔地看向Matt。</p>
-            <p id="story3" class="story-happy">"亲爱的，对不起...我回来了..."</p>
-            <p id="story4" class="story-happy">Matt冲上前紧紧抱住了她。</p>
-            <p id="story5" style="color:#ffd700;">从此他们幸福地生活在一起...但是--</p>
-            <p id="story6" class="story-dark">Vison因为投出了太多武器，杀气太重...</p>
-            <p id="story7" class="story-dark">魔气缠身，头上长出了恶魔之角！</p>
-            <p id="story8" class="story-dark">他变成了比Lola更强大的大魔王！</p>
-            <p id="story9" style="color:#ff4444;font-size:15px;">现在，全家必须联手击败Vison！</p>
-            <button id="continueStoryBtn">继续剧情</button>
+            <h2 id="storyTitle">📖 Story</h2>
+            <p id="story1" class="story-happy">The Demon King Lola has been defeated! The evil energy dissipates...</p>
+            <p id="story2" class="story-happy">Lola returned to her normal self, looking gently at Matt.</p>
+            <p id="story3" class="story-happy">"My dear, I'm sorry... I'm back..."</p>
+            <p id="story4" class="story-happy">Matt rushed forward and hugged her tightly.</p>
+            <p id="story5" style="color:#ffd700;">They lived happily ever after... BUT--</p>
+            <p id="story6" class="story-dark">Vison had thrown too many weapons, accumulated too much killing intent...</p>
+            <p id="story7" class="story-dark">Demonic energy surrounded him, horns grew from his head!</p>
+            <p id="story8" class="story-dark">He transformed into a Demon King stronger than Lola!</p>
+            <p id="story9" style="color:#ff4444;font-size:15px;">Now, the whole family must unite to defeat Vison!</p>
+            <button id="continueStoryBtn">Continue Story</button>
         </div>
         <div id="finalBossWarning">
-            <h2 id="finalBossTitle">⚠️ 最终决战 ⚠️</h2>
-            <p id="finalBossP1" style="font-size: 14px; margin: 10px 0;">曾经的战友 <span style="color:#ff0000;font-size:18px;">Vison</span> 堕落成魔！</p>
-            <p id="finalBossP2" style="font-size: 12px; color:#ccc;">他比以前强百倍！全家人必须联手！</p>
-            <p id="finalBossP3" style="font-size: 11px; color:#ff6666;">警告：如果家人被打败，游戏结束！</p>
-            <button id="continueFinalBossBtn">最终决战</button>
+            <h2 id="finalBossTitle">⚠️ FINAL BATTLE ⚠️</h2>
+            <p id="finalBossP1" style="font-size: 14px; margin: 10px 0;">Former ally <span style="color:#ff0000;font-size:18px;">Vison</span> has fallen into demonhood!</p>
+            <p id="finalBossP2" style="font-size: 12px; color:#ccc;">He is 100x stronger! The family must unite!</p>
+            <p id="finalBossP3" style="font-size: 11px; color:#ff6666;">Warning: If family members fall, game over!</p>
+            <button id="continueFinalBossBtn">Final Battle</button>
         </div>
     </div>
 
@@ -415,9 +434,9 @@
         const TRANSLATIONS = {
             zh: {
                 title: '家庭餐厅弹射大战',
-                musicOn: '🎵 音乐: 开',
-                musicOff: '🎵 音乐: 关',
-                langBtn: '🌐 中文',
+                musicOn: '🎵',
+                musicOff: '🔇',
+                langBtn: 'EN',
                 score: '得分',
                 ammo: '剩余',
                 startHint: '点击开始游戏',
@@ -434,8 +453,10 @@
                 victoryText: '你击败了所有敌人！',
                 finalScore: '最终得分',
                 // Story translations
+                storyTitle: '📖 剧情发展',
                 storyLolaDefeated: '大魔王Lola被打败了！魔气退散...',
                 storyLolaBack: 'Lola变回了原来的样子，温柔地看向Matt。',
+                storyLolaQuote: '"亲爱的，对不起...我回来了..."',
                 storyMattHug: 'Matt冲上前紧紧抱住了她。',
                 storyHappyEnding: '从此他们幸福地生活在一起...但是--',
                 storyVisonCorrupt: 'Vison因为投出了太多武器，杀气太重...',
@@ -501,9 +522,9 @@
             },
             en: {
                 title: 'Dining Room Catapult',
-                musicOn: '🎵 Music: ON',
-                musicOff: '🎵 Music: OFF',
-                langBtn: '🌐 EN',
+                musicOn: '🎵',
+                musicOff: '🔇',
+                langBtn: '中',
                 score: 'Score',
                 ammo: 'Ammo',
                 startHint: 'Click to Start',
@@ -520,6 +541,7 @@
                 victoryText: 'You defeated all enemies!',
                 finalScore: 'Final Score',
                 // Story translations
+                storyTitle: '📖 Story',
                 storyLolaDefeated: 'The Demon King Lola has been defeated! The evil energy dissipates...',
                 storyLolaBack: 'Lola returned to her normal self, looking gently at Matt.',
                 storyLolaQuote: '"My dear, I\'m sorry... I\'m back..."',
@@ -1118,7 +1140,8 @@
                 this.loadNextItem();
                 this.updateUI();
 
-                // 设置初始提示文本
+                // Apply language to all UI text
+                this.applyLanguage();
                 document.getElementById('currentItemName').textContent = t('startHint');
             }
 
@@ -1380,23 +1403,24 @@
             }
 
             toggleMusic() {
-                const isPlaying = this.audio.toggleMusic();
+                this.audio.toggleMusic();
+                const isPlaying = this.audio.isMusicPlaying;
                 document.getElementById('musicToggle').textContent = isPlaying ? t('musicOn') : t('musicOff');
             }
 
-            toggleLanguage() {
-                currentLang = currentLang === 'zh' ? 'en' : 'zh';
-                document.getElementById('langToggle').textContent = t('langBtn');
+            applyLanguage() {
                 document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : 'en';
+                document.title = t('title');
 
-                // Update music button
-                const isPlaying = this.audio.isMusicPlaying;
+                // Top bar buttons
+                document.getElementById('langToggle').textContent = t('langBtn');
+                const isPlaying = this.audio && this.audio.isMusicPlaying;
                 document.getElementById('musicToggle').textContent = isPlaying ? t('musicOn') : t('musicOff');
 
-                // Update score panel
+                // Score panel
                 document.getElementById('scorePanel').querySelector('div').innerHTML = `${t('score')}: <span id="score">${this.score}</span>`;
 
-                // Update ammo display
+                // Ammo display
                 if (this.poopMode) {
                     document.getElementById('ammoDisplay').textContent = '💩: ∞';
                     document.getElementById('currentItemName').textContent = '💩 ' + t(POOP_ITEM.nameKey);
@@ -1411,7 +1435,7 @@
                     document.getElementById('modeDisplay').textContent = '';
                 }
 
-                // Update game over screen
+                // Game over screen
                 const gameOverDisplay = document.getElementById('gameOver').style.display;
                 if (gameOverDisplay !== 'none' && gameOverDisplay !== '') {
                     const allDefeated = this.characters.every(c => c.hp <= 0) || (this.bossMode && this.bossDefeated);
@@ -1419,45 +1443,46 @@
                     document.getElementById('restartBtn').textContent = t('restartBtn');
                 }
 
-                // Update boss warning
-                document.querySelector('#bossWarning h2').textContent = t('bossTitle');
-                const bossTextP = document.querySelectorAll('#bossWarning p');
-                if (bossTextP.length >= 1) {
-                    bossTextP[0].innerHTML = `Matt${t('bossText')} <span style="color:#ff00ff;font-size:18px;">Lola</span> ${currentLang === 'zh' ? '出现了！' : 'Appears!'}`;
-                    bossTextP[1].textContent = t('bossSubtitle');
-                }
+                // Boss warning
+                document.getElementById('bossWarningTitle').textContent = t('bossTitle');
+                document.getElementById('bossWarningText1').innerHTML = `Matt${t('bossText')} <span style="color:#ff00ff;font-size:18px;">Lola</span> ${currentLang === 'zh' ? '出现了！' : 'Appears!'}`;
+                document.getElementById('bossWarningText2').textContent = t('bossSubtitle');
                 document.getElementById('continueBossBtn').textContent = t('bossBtn');
 
-                // Update victory screen
-                document.querySelector('#victoryScreen h2').textContent = t('victoryTitle');
-                const victoryTextP = document.querySelectorAll('#victoryScreen p');
-                if (victoryTextP.length >= 1) {
-                    victoryTextP[0].textContent = t('victoryText');
-                }
+                // Victory screen
+                document.getElementById('victoryTitle').textContent = t('victoryTitle');
+                document.getElementById('victoryText').textContent = t('victoryText');
                 document.getElementById('restartBtn2').textContent = t('playAgainBtn');
 
-                // Update title
-                document.title = t('title');
-
-                // Update story screen
-                document.getElementById('storyTitle').textContent = currentLang === 'zh' ? '📖 剧情发展' : '📖 Story';
+                // Story screen
+                document.getElementById('storyTitle').textContent = t('storyTitle');
                 document.getElementById('story1').textContent = t('storyLolaDefeated');
                 document.getElementById('story2').textContent = t('storyLolaBack');
-                document.getElementById('story3').textContent = currentLang === 'zh' ? '"亲爱的，对不起...我回来了..."' : '"My dear, I\'m sorry... I\'m back..."';
+                document.getElementById('story3').textContent = t('storyLolaQuote');
                 document.getElementById('story4').textContent = t('storyMattHug');
-                document.getElementById('story5').textContent = currentLang === 'zh' ? '从此他们幸福地生活在一起...但是--' : 'They lived happily ever after... BUT--';
+                document.getElementById('story5').textContent = t('storyHappyEnding');
                 document.getElementById('story6').textContent = t('storyVisonCorrupt');
                 document.getElementById('story7').textContent = t('storyVisonDemon');
                 document.getElementById('story8').textContent = t('storyVisonBoss');
                 document.getElementById('story9').textContent = t('storyFinalBattle');
                 document.getElementById('continueStoryBtn').textContent = t('storyContinue');
 
-                // Update final boss warning
+                // Final boss warning
                 document.getElementById('finalBossTitle').textContent = t('finalBossTitle');
                 document.getElementById('finalBossP1').innerHTML = `${t('finalBossText1')}<span style="color:#ff0000;font-size:18px;">Vison</span>${t('finalBossText2')}`;
                 document.getElementById('finalBossP2').textContent = t('finalBossSubtitle');
                 document.getElementById('finalBossP3').textContent = t('finalBossWarning');
                 document.getElementById('continueFinalBossBtn').textContent = t('finalBattleBtn');
+
+                // Phase 2 warning
+                document.getElementById('phase2Title').textContent = t('phase2Title');
+                document.getElementById('phase2Text').textContent = t('phase2Text');
+                document.getElementById('phase2Btn').textContent = t('phase2Btn');
+            }
+
+            toggleLanguage() {
+                currentLang = currentLang === 'zh' ? 'en' : 'zh';
+                this.applyLanguage();
             }
 
             fireProjectile() {
