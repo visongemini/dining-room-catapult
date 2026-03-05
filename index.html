@@ -243,6 +243,55 @@
             50% { transform: translate(4px, -3px); }
             75% { transform: translate(-3px, -2px); }
         }
+        /* Phase 2 speech bubbles */
+        .phase2-speech {
+            position: absolute;
+            background: rgba(0,0,0,0.9);
+            color: #ff6b6b;
+            border: 2px solid #ff4444;
+            border-radius: 10px;
+            padding: 6px 10px;
+            font-size: 9px;
+            line-height: 1.4;
+            max-width: 120px;
+            pointer-events: none;
+            z-index: 160;
+            opacity: 0;
+            transition: opacity 0.5s;
+            font-family: 'Courier New', monospace;
+        }
+        .phase2-speech.show { opacity: 1; }
+        .stun-icon {
+            position: absolute;
+            font-size: 18px;
+            pointer-events: none;
+            z-index: 155;
+            animation: stunSpin 1s linear infinite;
+        }
+        @keyframes stunSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .phase2-flash {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #ff0000; z-index: 190; pointer-events: none; opacity: 0;
+        }
+        .phase2-flash.active { animation: phase2FlashAnim 1.5s ease-out forwards; }
+        @keyframes phase2FlashAnim {
+            0% { opacity: 0.8; background: #ff0000; }
+            30% { opacity: 0.5; background: #8b0000; }
+            100% { opacity: 0; }
+        }
+        #phase2Warning {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(50,0,0,0.95); color: #fff; padding: 20px; text-align: center;
+            border: 3px solid #ff0000; display: none; pointer-events: auto; z-index: 250; width: 85%;
+            animation: bossPulse 0.5s ease-in-out infinite alternate;
+        }
+        #phase2Warning h2 { color: #ff0000; text-shadow: 0 0 10px #ff0000; margin-bottom: 10px; font-size: 18px; }
+        #phase2Warning p { font-size: 12px; color: #ccc; margin: 8px 0; white-space: pre-line; }
+        #phase2Warning button {
+            margin-top: 15px; padding: 10px 25px; font-size: 14px;
+            background: #ff0000; color: #fff; border: 2px solid #fff; cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
         #leaderboardScreen {
             position: absolute;
             top: 50%;
@@ -292,11 +341,17 @@
 </head>
 <body>
     <div id="gameContainer">
-        <div style="position:absolute; top:5px; right:5px; color:rgba(255,255,255,0.3); font-size:10px; z-index:9999; pointer-events:none;">v2.3</div>
+        <div style="position:absolute; top:5px; right:5px; color:rgba(255,255,255,0.3); font-size:10px; z-index:9999; pointer-events:none;">v2.4</div>
         <button id="musicToggle">🎵 音乐: 关</button>
         <button id="langToggle">🌐 中文</button>
         <button id="leaderboardBtn">🏆</button>
         <div id="leaderboardScreen"></div>
+        <div id="phase2Warning">
+            <h2 id="phase2Title"></h2>
+            <p id="phase2Text"></p>
+            <button id="phase2Btn"></button>
+        </div>
+        <div id="phase2Flash" class="phase2-flash"></div>
         <canvas id="gameCanvas"></canvas>
         <div id="ui"></div>
         <div id="combo-display" style="position:absolute; top:65px; left:50%; transform:translateX(-50%); font-size:18px; color:#ffd700; text-shadow:2px 2px 0 #000; pointer-events:none; z-index:110; opacity:0; transition:opacity 0.3s;"></div>
@@ -351,7 +406,7 @@
         // ==================== 游戏配置 ====================
         const CONFIG = {
             width: 360, height: 640, gravity: 0.8,
-            slingshotX: 80, slingshotY: 520,
+            slingshotX: 180, slingshotY: 520,
             maxPullDistance: 120, launchPower: 0.28,
             totalAmmo: 30
         };
@@ -397,6 +452,16 @@
                 // God mode
                 godModeActivate: '🔥 神力模式! 🔥',
                 godModeActive: '50倍伤害! 100%命中!',
+                // Phase 2
+                phase2Title: '⚠️ Vison 暴走！第二阶段！⚠️',
+                phase2Text: 'Vison用言语击溃了所有人的心智！\n防御力暴增4倍！\n8秒后盟友才能恢复...',
+                phase2Btn: '坚持住！',
+                stunned: '💫 心智崩溃！',
+                speech_Coco: 'Coco...爸爸看着你从小画的每一幅画，都舍不得扔...',
+                speech_Cola: 'Cola...你还记得吗，我们一起写的第一个程序...',
+                speech_Vina: 'Vina...你弹琵琶的样子，是我这辈子听过最美的声音...',
+                speech_Matt: 'Matt...谢谢你在我最难的时候没有离开...',
+                speech_Lola: 'Lola...你的魔法其实一直在保护着这个家...',
                 furniture: {
                     table: '餐桌', chair: '椅子', microwave: '微波炉',
                     stool: '凳子', plant: '盆栽', 'glass_cabinet': '橱柜',
@@ -461,6 +526,16 @@
                 // God mode
                 godModeActivate: '🔥 GOD MODE! 🔥',
                 godModeActive: '50x Damage! 100% Hit!',
+                // Phase 2
+                phase2Title: '⚠️ VISON PHASE 2! ⚠️',
+                phase2Text: 'Vison broke everyone\'s spirit!\nDefense x4! Allies stunned 8 sec!',
+                phase2Btn: 'HOLD ON!',
+                stunned: '💫 STUNNED!',
+                speech_Coco: 'Coco...Dad kept every drawing you made since you were little...',
+                speech_Cola: 'Cola...remember the first program we wrote together?',
+                speech_Vina: 'Vina...your pipa is the most beautiful sound I\'ve ever heard...',
+                speech_Matt: 'Matt...thank you for staying when everyone else left...',
+                speech_Lola: 'Lola...your magic was always protecting this family...',
                 furniture: {
                     table: 'Table', chair: 'Chair', microwave: 'Microwave',
                     stool: 'Stool', plant: 'Plant', 'glass_cabinet': 'Cabinet',
@@ -561,13 +636,13 @@
         // ==================== 大魔王 Vison 配置 (最终Boss) ====================
         const BOSS_VISON = {
             name: 'Vison',
-            maxHp: BASE_HP * 100,
-            hp: BASE_HP * 100,
+            maxHp: BASE_HP * 1000,
+            hp: BASE_HP * 1000,
             color: '#8b0000',
             size: 120,
             x: 180,
             y: 150,
-            hpMultiplier: 100,
+            hpMultiplier: 1000,
             // Boss移动相关
             targetX: 180,
             targetY: 150,
@@ -974,6 +1049,10 @@
                 this.combo = 0;
                 this.comboTimer = 0;
                 this.trails = [];
+                this.bossPhase = 1;
+                this.stunTimer = 0;
+                this.phase2DefenseMultiplier = 1;
+                this.phase2Bubbles = [];
 
                 // Reset cached health bar DOM elements
                 if (this._healthBarElements) {
@@ -985,8 +1064,8 @@
                     this._allyHealthBarElements = null;
                 }
 
-                // 重置弹弓位置
-                CONFIG.slingshotX = 80;
+                // 重置弹弓位置（居中）
+                CONFIG.slingshotX = 180;
                 CONFIG.slingshotY = 520;
 
                 this.characters = CHARACTERS.map((c, index) => ({
@@ -1008,7 +1087,7 @@
             createBoundaries() {
                 const { World, Bodies } = Matter;
                 const thickness = 50;
-                const wallOptions = { isStatic: true, restitution: 0.9, friction: 0.1 };
+                const wallOptions = { isStatic: true, restitution: 1.0, friction: 0.1 };
                 World.add(this.world, [
                     Bodies.rectangle(CONFIG.width/2, CONFIG.height + thickness/2, CONFIG.width, thickness, { ...wallOptions, label: 'ground' }),
                     Bodies.rectangle(-thickness/2, CONFIG.height/2, thickness, CONFIG.height, { ...wallOptions, label: 'wall_left' }),
@@ -1056,7 +1135,7 @@
                 items.forEach(item => {
                     const body = Bodies.rectangle(item.x, item.y, item.w, item.h, {
                         isStatic: true,
-                        density: 0.005, friction: 0.6, restitution: 0.2,
+                        density: 0.005, friction: 0.6, restitution: 0.4,
                         label: `furniture_${item.type}`
                     });
                     this.furniture.push({ body, type: item.type, hp: item.hp, maxHp: item.hp, nameKey: item.nameKey });
@@ -1181,6 +1260,9 @@
 
             bindEvents() {
                 const handleStart = (e) => {
+                    // Block input during stun
+                    if (this.stunTimer > 0 && this.finalBattleMode) return;
+
                     const pos = this.getPointerPos(e);
 
                     // 最终战斗模式：检查点击了哪个角色
@@ -1349,7 +1431,7 @@
 
                 const item = this.currentItem;
                 const body = Bodies.circle(this.dragStart.x, this.dragStart.y, item.size/2, {
-                    density: item.weight * 0.001, friction: 0.4, restitution: 0.6,
+                    density: item.weight * 0.001, friction: 0.4, restitution: 0.9,
                     frictionAir: 0.005, label: 'projectile'
                 });
 
@@ -1744,14 +1826,20 @@
                     this.showDamageText(position.x, position.y - 60, '50x DAMAGE!', false, '#ff6600');
                 }
                 
+                // Phase 2: 4x defense
+                if (this.bossPhase === 2) {
+                    damage = Math.floor(damage / this.phase2DefenseMultiplier);
+                    this.showDamageText(position.x + 30, position.y - 30, 'DEF x4!', false, '#ff8800');
+                }
+
                 // 爆炸效果！额外500点爆炸伤害
-                const explosionDamage = 500;
+                const explosionDamage = this.bossPhase === 2 ? Math.floor(500 / this.phase2DefenseMultiplier) : 500;
                 const totalDamage = damage + explosionDamage;
-                
+
                 // 显示爆炸效果
                 this.createExplosion(position.x, position.y);
                 this.showDamageText(position.x, position.y - 30, `💥BOOM! -${explosionDamage}`, false, '#ff6600');
-                
+
                 b.hp -= totalDamage;
                 b.hitFlash = 15;
                 b.hitReaction = 20;
@@ -1788,19 +1876,24 @@
                 if (b.hp <= 0) {
                     // 防止重复触发
                     if (this.bossDefeated) return;
-                    
-                    this.createParticles(position.x, position.y, '#8b0000', 80);
-                    if (b.body) {
-                        Matter.World.remove(this.world, b.body);
-                        b.body = null;
-                    }
-                    this.bossDefeated = true;
-                    b.hp = 0; // 确保血量不会变成负数
 
-                    // 延迟显示结局画面，等待粒子效果
-                    setTimeout(() => {
-                        this.showEnding();
-                    }, 3000);
+                    if (this.bossPhase === 1) {
+                        // Phase 1 defeated → trigger Phase 2
+                        this.triggerPhase2();
+                    } else {
+                        // Phase 2 defeated → real victory
+                        this.createParticles(position.x, position.y, '#8b0000', 80);
+                        if (b.body) {
+                            Matter.World.remove(this.world, b.body);
+                            b.body = null;
+                        }
+                        this.bossDefeated = true;
+                        b.hp = 0;
+
+                        setTimeout(() => {
+                            this.showEnding();
+                        }, 3000);
+                    }
                 }
             }
 
@@ -2134,6 +2227,10 @@
                 this.poopMode = true;
                 this.bossDefeated = false;  // 修复：重置boss击败标志
                 this.gameEnded = false;     // 修复：重置游戏结束标志，确保结局能触发
+                this.bossPhase = 1;
+                this.stunTimer = 0;
+                this.phase2DefenseMultiplier = 1;
+                this.clearPhase2Effects();
 
                 // Reset cached health bar DOM elements for fresh creation
                 if (this._healthBarElements) {
@@ -2242,7 +2339,7 @@
                 items.forEach(item => {
                     const body = Bodies.rectangle(item.x, item.y, item.w, item.h, {
                         isStatic: true,
-                        density: 0.005, friction: 0.6, restitution: 0.2,
+                        density: 0.005, friction: 0.6, restitution: 0.4,
                         label: `furniture_${item.type}`
                     });
                     this.furniture.push({ body, type: item.type, hp: item.hp, maxHp: item.hp, nameKey: item.nameKey });
@@ -2833,6 +2930,14 @@
                 if (this.gameEnded) return;
                 
                 Matter.Engine.update(this.engine, 1000 / 60);
+
+                // Stun timer decay
+                if (this.stunTimer > 0) {
+                    this.stunTimer--;
+                    if (this.stunTimer <= 0) {
+                        this.clearPhase2Effects();
+                    }
+                }
 
                 if (this.finalBattleMode) {
                     this.updateFinalBoss();
@@ -4357,6 +4462,90 @@
                     this._bossHealthBar.container.style.display = 'none';
                     this._bossNameLabel.style.display = 'none';
                 }
+            }
+
+            // ==================== Phase 2 系统 ====================
+            triggerPhase2() {
+                this.bossPhase = 2;
+                this.phase2DefenseMultiplier = 4;
+
+                // Flash effect
+                const flash = document.getElementById('phase2Flash');
+                flash.classList.add('active');
+                setTimeout(() => flash.classList.remove('active'), 1500);
+
+                // Boss regenerates with 2x Phase 1 HP
+                const phase2Hp = BASE_HP * 2000;
+                this.boss.hp = phase2Hp;
+                this.boss.maxHp = phase2Hp;
+                this.boss.rageMode = true;
+                this.boss.dodgeChance = 0.4; // less dodge in phase 2, more tanky
+
+                // Screen shake
+                this.screenShake();
+
+                // Show phase 2 warning dialog, speeches start after dismiss
+                this.showPhase2Warning();
+            }
+
+            showPhase2Warning() {
+                const warning = document.getElementById('phase2Warning');
+                document.getElementById('phase2Title').textContent = t('phase2Title');
+                document.getElementById('phase2Text').textContent = t('phase2Text');
+                document.getElementById('phase2Btn').textContent = t('phase2Btn');
+                warning.style.display = 'block';
+
+                document.getElementById('phase2Btn').onclick = () => {
+                    warning.style.display = 'none';
+                    // NOW start stun + speeches
+                    this.stunTimer = 480; // 8 seconds at 60fps
+                    this.showPhase2Speeches();
+                };
+            }
+
+            showPhase2Speeches() {
+                this.clearPhase2Effects();
+                const container = document.getElementById('gameContainer');
+                const scaleX = container.offsetWidth / CONFIG.width;
+                const scaleY = container.offsetHeight / CONFIG.height;
+
+                this.allies.forEach((ally, i) => {
+                    if (ally.defeated) return;
+                    const speechKey = `speech_${ally.name}`;
+                    const text = t(speechKey);
+                    if (!text || text === speechKey) return;
+
+                    // Speech bubble
+                    const bubble = document.createElement('div');
+                    bubble.className = 'phase2-speech';
+                    bubble.textContent = text;
+                    const allyPos = ALLY_POSITIONS[i];
+                    const bx = allyPos.x * scaleX;
+                    const by = (allyPos.y - 60) * scaleY;
+                    bubble.style.left = Math.max(5, Math.min(bx - 50, container.offsetWidth - 130)) + 'px';
+                    bubble.style.top = Math.max(5, by - 30) + 'px';
+                    container.appendChild(bubble);
+                    this.phase2Bubbles.push(bubble);
+
+                    setTimeout(() => bubble.classList.add('show'), i * 500);
+                    setTimeout(() => bubble.classList.remove('show'), 6000 + i * 200);
+
+                    // Stun icon
+                    const stunIcon = document.createElement('div');
+                    stunIcon.className = 'stun-icon';
+                    stunIcon.textContent = '💫';
+                    stunIcon.style.left = (bx - 8) + 'px';
+                    stunIcon.style.top = (allyPos.y * scaleY - 40) + 'px';
+                    container.appendChild(stunIcon);
+                    this.phase2Bubbles.push(stunIcon);
+                });
+            }
+
+            clearPhase2Effects() {
+                if (this.phase2Bubbles) {
+                    this.phase2Bubbles.forEach(el => el.remove());
+                }
+                this.phase2Bubbles = [];
             }
 
             // ==================== 排行榜系统 ====================
