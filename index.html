@@ -687,11 +687,11 @@
 
         // ==================== 盟友配置 (下方战斗角色) ====================
         const ALLY_POSITIONS = [
-            { x: 60, y: 520 },   // Coco
-            { x: 125, y: 530 },  // Cola
-            { x: 190, y: 520 },  // Vina
-            { x: 255, y: 530 },  // Matt
-            { x: 320, y: 510 }   // Lola (调整到更左)
+            { x: 40, y: 520 },   // Coco
+            { x: 110, y: 525 },  // Cola
+            { x: 180, y: 520 },  // Vina (正中)
+            { x: 250, y: 525 },  // Matt
+            { x: 320, y: 520 }   // Lola
         ];
 
         const ALLIES = [
@@ -4931,10 +4931,11 @@
                         this.screenShake();
 
                         // 说完后：该盟友眩晕（标记 stunned）
+                        const stunDelay = speechDuration - 500;
                         setTimeout(() => {
                             ally.stunned = true;
 
-                            // 在盟友头上显示眩晕图标（持续存在）
+                            // 在盟友头上显示眩晕图标
                             const stunIcon = document.createElement('div');
                             stunIcon.className = 'stun-icon';
                             stunIcon.id = `stun-icon-${allyIdx}`;
@@ -4942,36 +4943,37 @@
                             stunIcon.style.left = (bx - 8) + 'px';
                             stunIcon.style.top = (allyPos.y * scaleY - 40) + 'px';
                             container.appendChild(stunIcon);
-                            // 不加入 phase2Bubbles，因为这个要长期保留
 
-                            // 显示该盟友被击溃的文字
                             this.showDamageText(allyPos.x, allyPos.y - 30, t('stunned'), false, '#ff6b6b');
 
-                            // 如果当前操控的是这个盟友，自动切换到下一个
+                            // 如果当前操控的是这个盟友，自动切换
                             if (this.currentAllyIndex === allyIdx) {
                                 this.findNextUnstunnedAlly();
                             }
-                        }, speechDuration - 500);
 
-                        // 最后一个盟友说完后，解除全局禁止 + 启动恢复计时
+                            // 该盟友8秒后独立恢复（不等其他人）
+                            setTimeout(() => {
+                                if (ally && !ally.defeated) {
+                                    ally.stunned = false;
+                                    const icon = document.getElementById(`stun-icon-${allyIdx}`);
+                                    if (icon) icon.remove();
+                                    this.showDamageText(allyPos.x, allyPos.y - 30,
+                                        currentLang === 'zh' ? '恢复!' : 'Recovered!', false, '#4CAF50');
+                                    // 如果当前没有可用盟友（全stunned期间），恢复后自动切换过来
+                                    const currentAlly = this.allies[this.currentAllyIndex];
+                                    if (!currentAlly || currentAlly.defeated || currentAlly.stunned) {
+                                        this.currentAllyIndex = allyIdx;
+                                        this.loadNextAllyProjectile();
+                                    }
+                                }
+                            }, 8000);
+                        }, stunDelay);
+
+                        // 最后一个盟友说完后，解除全局禁止
                         if (seqIdx === aliveAllies.length - 1) {
                             setTimeout(() => {
                                 this.clearPhase2Effects();
                                 this.speechInProgress = false;
-
-                                // 10秒后逐个恢复盟友（每2秒恢复一个）
-                                aliveAllies.forEach((recoverIdx, recoverSeq) => {
-                                    setTimeout(() => {
-                                        const recoverAlly = this.allies[recoverIdx];
-                                        if (recoverAlly && !recoverAlly.defeated) {
-                                            recoverAlly.stunned = false;
-                                            const icon = document.getElementById(`stun-icon-${recoverIdx}`);
-                                            if (icon) icon.remove();
-                                            this.showDamageText(ALLY_POSITIONS[recoverIdx].x, ALLY_POSITIONS[recoverIdx].y - 30,
-                                                currentLang === 'zh' ? '恢复!' : 'Recovered!', false, '#4CAF50');
-                                        }
-                                    }, 10000 + recoverSeq * 2000);
-                                });
                             }, speechDuration);
                         }
 
