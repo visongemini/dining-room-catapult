@@ -255,7 +255,7 @@ function init() {
     App.world = App.engine.world;
     App.engine.gravity.y = CFG.gravity;
 
-    const wallOpts = { isStatic: true, restitution: 0.8, friction: 0.1 };
+    const wallOpts = { isStatic: true, restitution: 1.0, friction: 0.05 };
     Matter.World.add(App.world, [
         Matter.Bodies.rectangle(CFG.w/2, CFG.h+50, CFG.w, 100, { ...wallOpts, label: 'floor' }),
         Matter.Bodies.rectangle(-50, CFG.h/2, 100, CFG.h, wallOpts),
@@ -296,8 +296,8 @@ function updateLogic() {
         const pos = p.position;
         const speed = Math.hypot(p.velocity.x, p.velocity.y);
         if (!p._slowFrames) p._slowFrames = 0;
-        if (speed < 0.3) p._slowFrames++; else p._slowFrames = 0;
-        if (pos.y > CFG.h + 100 || pos.x < -100 || pos.x > CFG.w + 100 || p._slowFrames > 120) {
+        if (speed < 0.2) p._slowFrames++; else p._slowFrames = 0;
+        if (pos.y > CFG.h + 100 || pos.x < -100 || pos.x > CFG.w + 100 || p._slowFrames > 200) {
             Matter.World.remove(App.world, p);
             App.projectiles.splice(i, 1);
         }
@@ -333,7 +333,7 @@ function updateLogic() {
             if (aliveAllies.length > 0) {
                 const target = aliveAllies[Math.floor(Math.random() * aliveAllies.length)];
                 const p = Matter.Bodies.circle(b.body.position.x, b.body.position.y+40, 12, {
-                    label: 'boss_atk', density: 0.15, restitution: 0.5
+                    label: 'boss_atk', density: 0.15, restitution: 0.9
                 });
                 p.damage = attackDmg;
                 Matter.World.add(App.world, p);
@@ -368,9 +368,9 @@ function loadStage(n) {
     if(n === 1) {
         App.ammo = 30; App.poopMode = false; App.score = 0;
         // Improved furniture with better physics - varied density and friction
-        createFurniture(150, 500, 'Table', 100, 40, { density: 0.04, friction: 0.6, restitution: 0.15 });
-        createFurniture(300, 400, 'Cabinet', 60, 80, { density: 0.08, friction: 0.9, restitution: 0.05 });
-        createFurniture(100, 600, 'Chair', 40, 60, { density: 0.02, friction: 0.4, restitution: 0.3 });
+        createFurniture(150, 500, 'Table', 100, 40, { density: 0.04, friction: 0.3, restitution: 0.8 });
+        createFurniture(300, 400, 'Cabinet', 60, 80, { density: 0.08, friction: 0.4, restitution: 0.7 });
+        createFurniture(100, 600, 'Chair', 40, 60, { density: 0.02, friction: 0.2, restitution: 0.9 });
         createTarget(150, 450, 'Vina');
         createTarget(300, 350, 'Matt');
         createTarget(100, 550, 'Coco');
@@ -385,8 +385,10 @@ function loadStage(n) {
     else if(n === 3) {
         App.ammo = 999; App.poopMode = true;
         const team = ['Coco','Cola','Vina','Matt','Lola'];
+        // Allies spread across bottom, slingshots centered below them
+        const startX = (CFG.w - (team.length - 1) * 80) / 2;
         for(let i=0; i<5; i++) {
-            const x = 60 + i * 80;
+            const x = startX + i * 80;
             const y = CFG.floorY - 20;
             const body = Matter.Bodies.rectangle(x, y, 30, 40, { isStatic: true, label: 'ally' });
             body.hp = 200; body.maxHp = 200; body.name = team[i];
@@ -409,7 +411,7 @@ function createFurniture(x, y, type, w, h, physicsOpts) {
 
 function createTarget(x, y, name) {
     // Improved hit detection: slightly larger collision body
-    const body = Matter.Bodies.rectangle(x, y, 34, 44, { density: 0.01, label: 'target', chamfer: { radius: 4 } });
+    const body = Matter.Bodies.rectangle(x, y, 34, 44, { density: 0.01, label: 'target', chamfer: { radius: 4 }, restitution: 0.8 });
     body.name = name; body.hp = 50; body.maxHp = 50;
     App.targets.push(body);
     Matter.World.add(App.world, body);
@@ -758,7 +760,7 @@ function fire(idx) {
     // Improved projectile physics: slightly more varied shapes
     const radius = isHard ? 15 : 10;
     const p = Matter.Bodies.circle(sl.anchor.x, sl.anchor.y - 15, radius, {
-        density: isHard ? 0.08 : 0.05, restitution: 0.6, friction: 0.05, label: 'projectile'
+        density: isHard ? 0.08 : 0.05, restitution: 0.95, friction: 0.02, label: 'projectile'
     });
 
     let dmg = 20;
