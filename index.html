@@ -495,7 +495,8 @@
                     toilet_paper: '卷纸', slipper: '拖鞋', vase: '花瓶',
                     book: '书本', pencil: '铅笔', console: '游戏机',
                     plush: '毛绒玩具', sock: '袜子', underwear: '内裤',
-                    poop: '💩巨硬大便'
+                    poop: '💩大便',
+                    super_poop: '💩巨硬大便'
                 },
                 leaderboardTitle: '🏆 排行榜',
                 leaderboardEmpty: '暂无记录，快去通关吧！',
@@ -583,7 +584,8 @@
                     toilet_paper: 'Toilet Paper', slipper: 'Slipper', vase: 'Vase',
                     book: 'Book', pencil: 'Pencil', console: 'Game Console',
                     plush: 'Plush Toy', sock: 'Sock', underwear: 'Underwear',
-                    poop: '💩Mega Hard Poop'
+                    poop: '💩Poop',
+                    super_poop: '💩Mega Hard Poop'
                 },
                 leaderboardTitle: '🏆 Leaderboard',
                 leaderboardEmpty: 'No records yet. Beat the game!',
@@ -647,7 +649,7 @@
 
         // ==================== 最终决战专用 - 巨硬大便 ====================
         const SUPER_POOP_FINAL = {
-            nameKey: 'items.poop', damage: 200, weight: 10, size: 70,
+            nameKey: 'items.super_poop', damage: 200, weight: 10, size: 70,
             type: 'super_poop_final', color: '#654321', penetrating: true,
             hasFace: true, hitBonus: 0.8 // 80%命中率加成
         };
@@ -4468,37 +4470,60 @@
 
                 switch(item.type) {
                     case 'poop':
-                        ctx.fillStyle = '#8B4513';
+                        // 经典螺旋大便造型
+                        const r = size / 2;
+                        // 底座（最宽）
+                        ctx.fillStyle = '#6B3A2A';
                         ctx.beginPath();
-                        ctx.arc(0, size/3, size/3, 0, Math.PI * 2);
+                        ctx.ellipse(0, r * 0.55, r * 0.8, r * 0.35, 0, 0, Math.PI * 2);
                         ctx.fill();
+                        // 第二层
+                        ctx.fillStyle = '#7B4A32';
                         ctx.beginPath();
-                        ctx.arc(0, 0, size/2.5, 0, Math.PI * 2);
+                        ctx.ellipse(r * 0.05, r * 0.15, r * 0.6, r * 0.3, 0, 0, Math.PI * 2);
                         ctx.fill();
+                        // 第三层
+                        ctx.fillStyle = '#8B5A3C';
                         ctx.beginPath();
-                        ctx.ellipse(0, -size/2.5, size/4, size/3, 0, 0, Math.PI * 2);
+                        ctx.ellipse(-r * 0.05, -r * 0.2, r * 0.45, r * 0.25, 0, 0, Math.PI * 2);
                         ctx.fill();
-                        ctx.fillStyle = '#A0522D';
+                        // 尖顶（螺旋头）
+                        ctx.fillStyle = '#9B6A46';
                         ctx.beginPath();
-                        ctx.arc(-size/6, -size/4, size/8, 0, Math.PI * 2);
+                        ctx.ellipse(r * 0.05, -r * 0.5, r * 0.2, r * 0.18, -0.3, 0, Math.PI * 2);
+                        ctx.fill();
+                        // 高光
+                        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                        ctx.beginPath();
+                        ctx.ellipse(r * 0.15, r * 0.1, r * 0.12, r * 0.35, 0.2, 0, Math.PI * 2);
                         ctx.fill();
                         break;
 
                     case 'super_poop_final':
-                        // 巨硬大便 - 更大更硬的颜色
-                        ctx.fillStyle = '#4a3728';
+                        // 巨硬大便 - 螺旋造型 + 人脸
+                        const sr = size / 2;
+                        ctx.strokeStyle = '#2a1a10';
+                        ctx.lineWidth = 1.5;
+                        // 底座
+                        ctx.fillStyle = '#4a2a1a';
                         ctx.beginPath();
-                        ctx.arc(0, size/3, size/2.5, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.stroke();
+                        ctx.ellipse(0, sr * 0.55, sr * 0.85, sr * 0.38, 0, 0, Math.PI * 2);
+                        ctx.fill(); ctx.stroke();
+                        // 第二层
+                        ctx.fillStyle = '#5a3a22';
                         ctx.beginPath();
-                        ctx.arc(0, 0, size/2, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.stroke();
+                        ctx.ellipse(sr * 0.05, sr * 0.12, sr * 0.65, sr * 0.32, 0, 0, Math.PI * 2);
+                        ctx.fill(); ctx.stroke();
+                        // 第三层
+                        ctx.fillStyle = '#6a4a2c';
                         ctx.beginPath();
-                        ctx.ellipse(0, -size/2.5, size/3, size/2.5, 0, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.stroke();
+                        ctx.ellipse(-sr * 0.05, -sr * 0.22, sr * 0.5, sr * 0.28, 0, 0, Math.PI * 2);
+                        ctx.fill(); ctx.stroke();
+                        // 尖顶
+                        ctx.fillStyle = '#7a5a36';
+                        ctx.beginPath();
+                        ctx.ellipse(sr * 0.05, -sr * 0.55, sr * 0.22, sr * 0.2, -0.3, 0, Math.PI * 2);
+                        ctx.fill(); ctx.stroke();
                         
                         // 人脸绘制
                         ctx.fillStyle = '#fdbcb4'; // 肤色
