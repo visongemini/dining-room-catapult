@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Family Mess Fight V1.3</title>
+    <title>Family Mess Fight V1.4</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
@@ -86,9 +86,10 @@
 
 <script>
 /**
- * FAMILY MESS FIGHT - V1.3 (Boss Phase 2 + Enhanced Physics)
- * New: Boss Phase 2 with emotional speech, stun mechanic, 4x defense
- * Enhanced: Projectile shapes, hit detection, item physics
+ * FAMILY MESS FIGHT - V1.4
+ * Fix: Phase 2 speeches now visible after dialog dismiss
+ * Fix: Vison HP 10x (Phase1: 80000, Phase2: 120000)
+ * Fix: Enhanced bilingual ending scene
  */
 
 // --- SVG Assets (Embedded) ---
@@ -128,7 +129,7 @@ const LANG_DATA = {
         phase2_title: "Vison 暴走! 第二阶段!",
         phase2_text: "Vison用言语击溃了所有人的心智!\n防御力暴增4倍!\n8秒后盟友才能恢复...",
         phase2_btn: "坚持住!",
-        ending_text: "闹剧结束，黑暗消散!\n全家团圆，开怀畅饮。",
+        ending_text: "闹剧结束，黑暗消散!\n全家人围坐在一起，举杯畅饮。\nVison恢复了正常，\n向每个人道歉。\n\n这一刻，餐厅里只有\n笑声和温暖。\n\n— 全家团圆 · HAPPY ENDING —",
         gameover_title: "全军覆没!",
         gameover_text: "盟友全部阵亡...\n魔王Vison统治了餐厅!",
         ammo: "剩余", stage: "关卡",
@@ -158,7 +159,7 @@ const LANG_DATA = {
         phase2_title: "VISON PHASE 2!",
         phase2_text: "Vison broke everyone's spirit!\nDefense x4! Allies stunned 8 sec!",
         phase2_btn: "HOLD ON!",
-        ending_text: "Chaos Ends! Family Reunited.",
+        ending_text: "The chaos fades, darkness lifts!\nThe whole family gathers around\nthe table, raising their glasses.\nVison returns to normal and\napologizes to everyone.\n\nIn this moment, only laughter\nand warmth fill the dining room.\n\n— Family Reunited · HAPPY ENDING —",
         gameover_title: "GAME OVER!",
         gameover_text: "All allies have fallen...\nEvil Vison rules the dining room!",
         ammo: "Ammo", stage: "Stage",
@@ -396,7 +397,7 @@ function loadStage(n) {
             Matter.World.add(App.world, body);
             App.slingshots.push({ x, y: 750, anchor:{x, y:750}, active:false, owner:team[i] });
         }
-        App.boss = createBoss('Vison', 8000, 120);
+        App.boss = createBoss('Vison', 80000, 120);
     }
     updateUI();
 }
@@ -439,14 +440,8 @@ function triggerPhase2() {
     App.audioEngine.playPhase2();
 
     // Boss regenerates with new HP
-    App.boss.hp = 12000;
-    App.boss.maxHp = 12000;
-
-    // Stun all allies for 8 seconds (480 frames at 60fps)
-    App.stunTimer = 480;
-
-    // Show speech bubbles
-    showPhase2Speeches();
+    App.boss.hp = 120000;
+    App.boss.maxHp = 120000;
 
     // Screen shake (heavy)
     const container = document.getElementById('game-container');
@@ -454,8 +449,23 @@ function triggerPhase2() {
     void container.offsetWidth;
     container.style.animation = 'shake 0.3s ease-in-out 3';
 
-    // Show phase 2 dialog
-    showDialog('phase2');
+    // Show phase 2 dialog first, then speeches + stun after dismiss
+    showPhase2Dialog();
+}
+
+function showPhase2Dialog() {
+    const el = document.getElementById('dialog-overlay');
+    const L = LANG_DATA[App.lang];
+    document.getElementById('dialog-title').innerText = L.phase2_title;
+    document.getElementById('dialog-text').innerText = L.phase2_text;
+    document.getElementById('dialog-btn').innerText = L.phase2_btn;
+    document.getElementById('dialog-btn').onclick = () => {
+        el.style.display = 'none';
+        // NOW show speeches and start stun
+        App.stunTimer = 480; // 8 seconds at 60fps
+        showPhase2Speeches();
+    };
+    el.style.display = 'flex';
 }
 
 function showPhase2Speeches() {
@@ -925,8 +935,7 @@ function showDialog(id) {
         'stage1': { t: L.stage1_title, c: L.stage1_text, b: L.stage1_btn, fn: () => loadStage(1) },
         'stage2': { t: L.stage2_title, c: L.stage2_text, b: L.stage2_btn, fn: () => loadStage(2) },
         'stage2_win': { t: L.stage2_win_title, c: L.stage2_win_text, b: L.stage2_win_btn, fn: () => showDialog('stage3') },
-        'stage3': { t: L.stage3_title, c: L.stage3_text, b: L.stage3_btn, fn: () => loadStage(3) },
-        'phase2': { t: L.phase2_title, c: L.phase2_text, b: L.phase2_btn, fn: () => { /* dismiss dialog, stun continues */ } }
+        'stage3': { t: L.stage3_title, c: L.stage3_text, b: L.stage3_btn, fn: () => loadStage(3) }
     };
     const d = data[id];
     document.getElementById('dialog-title').innerText = d.t;
