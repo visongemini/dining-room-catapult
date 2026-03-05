@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Family Mess Fight V1.2</title>
+    <title>Family Mess Fight V1.3</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
@@ -34,6 +34,17 @@
         /* Combo display */
         #combo-display { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); font-size: 16px; color: #ffd700; text-shadow: 2px 2px 0 #000, 0 0 10px rgba(255,215,0,0.5); pointer-events: none; z-index: 110; opacity: 0; transition: opacity 0.3s; }
         #combo-display.visible { opacity: 1; }
+        /* Phase 2 speech bubbles */
+        .speech-bubble { position: absolute; background: rgba(0,0,0,0.9); color: #ff6b6b; border: 2px solid #ff4444; border-radius: 12px; padding: 8px 12px; font-size: 9px; line-height: 1.5; max-width: 140px; pointer-events: none; z-index: 160; opacity: 0; transition: opacity 0.5s; text-shadow: none; font-family: 'Press Start 2P', cursive; }
+        .speech-bubble.show { opacity: 1; }
+        .speech-bubble::after { content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid #ff4444; }
+        /* Stun indicator */
+        .stun-icon { position: absolute; font-size: 20px; pointer-events: none; z-index: 155; animation: stunSpin 1s linear infinite; }
+        @keyframes stunSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Phase transition flash */
+        .phase-flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 190; pointer-events: none; opacity: 0; }
+        .phase-flash.active { animation: flashBang 1.5s ease-out forwards; }
+        @keyframes flashBang { 0% { opacity: 0.9; background: #ff0000; } 30% { opacity: 0.6; background: #8b0000; } 100% { opacity: 0; } }
     </style>
 </head>
 <body>
@@ -70,14 +81,14 @@
         <p id="ending-text" style="color:#fff; margin-top:20px; font-size:10px; line-height:2; text-align:center;">Ending Text</p>
         <button class="action-btn" onclick="location.reload()" style="margin-top:20px;">REPLAY</button>
     </div>
+    <div id="phase-flash" class="phase-flash"></div>
 </div>
 
 <script>
 /**
- * FAMILY MESS FIGHT - V1.2 (Bug Fixed + Enhanced)
- * Fixes: DOM missing, Boss sensor, coordinate systems, friendly fire,
- *        boss attack, projectile cleanup, God Mode balance, combo system,
- *        screen shake, projectile trails, game over state
+ * FAMILY MESS FIGHT - V1.3 (Boss Phase 2 + Enhanced Physics)
+ * New: Boss Phase 2 with emotional speech, stun mechanic, 4x defense
+ * Enhanced: Projectile shapes, hit detection, item physics
  */
 
 // --- SVG Assets (Embedded) ---
@@ -114,11 +125,21 @@ const LANG_DATA = {
         stage3_title: "警告! 魔王Vison!",
         stage3_text: "五人联手，用巨硬大便(200攻)反击!\n保护盟友，否则全军覆没!",
         stage3_btn: "决一死战",
+        phase2_title: "Vison 暴走! 第二阶段!",
+        phase2_text: "Vison用言语击溃了所有人的心智!\n防御力暴增4倍!\n8秒后盟友才能恢复...",
+        phase2_btn: "坚持住!",
         ending_text: "闹剧结束，黑暗消散!\n全家团圆，开怀畅饮。",
         gameover_title: "全军覆没!",
         gameover_text: "盟友全部阵亡...\n魔王Vison统治了餐厅!",
         ammo: "剩余", stage: "关卡",
-        combo: "连击", god: "神力!", poop_mode: "大便模式!"
+        combo: "连击", god: "神力!", poop_mode: "大便模式!",
+        stunned: "心智崩溃!",
+        // Phase 2 emotional speeches - Vison says to each character
+        speech_Coco: "Coco...爸爸看着你\n从小画的每一幅画\n都舍不得扔...",
+        speech_Cola: "Cola...你还记得吗\n我们一起写的\n第一个程序...",
+        speech_Vina: "Vina...你弹琵琶的\n样子，是我这辈子\n听过最美的声音...",
+        speech_Matt: "Matt...谢谢你\n在我最难的时候\n没有离开...",
+        speech_Lola: "Lola...你的魔法\n其实一直在\n保护着这个家..."
     },
     en: {
         musicOn: "🔊", musicOff: "🔇",
@@ -134,11 +155,20 @@ const LANG_DATA = {
         stage3_title: "WARNING! EVIL VISON",
         stage3_text: "Use Super Poop (200 ATK) to fight back!\nProtect your allies or it's game over!",
         stage3_btn: "FIGHT",
+        phase2_title: "VISON PHASE 2!",
+        phase2_text: "Vison broke everyone's spirit!\nDefense x4! Allies stunned 8 sec!",
+        phase2_btn: "HOLD ON!",
         ending_text: "Chaos Ends! Family Reunited.",
         gameover_title: "GAME OVER!",
         gameover_text: "All allies have fallen...\nEvil Vison rules the dining room!",
         ammo: "Ammo", stage: "Stage",
-        combo: "COMBO", god: "GOD!", poop_mode: "POOP MODE!"
+        combo: "COMBO", god: "GOD!", poop_mode: "POOP MODE!",
+        stunned: "STUNNED!",
+        speech_Coco: "Coco...Dad kept\nevery drawing you\nmade since you were little...",
+        speech_Cola: "Cola...remember\nthe first program\nwe wrote together?",
+        speech_Vina: "Vina...your pipa\nis the most beautiful\nsound I've ever heard...",
+        speech_Matt: "Matt...thank you\nfor staying when\neveryone else left...",
+        speech_Lola: "Lola...your magic\nwas always protecting\nthis family..."
     }
 };
 
@@ -146,12 +176,7 @@ const CFG = { w: 450, h: 800, gravity: 1.5, floorY: 650 };
 
 // --- Audio System ---
 class AudioEngine {
-    constructor() {
-        this.ctx = null;
-        this.playing = false;
-        this.masterGain = null;
-        this.musicInterval = null;
-    }
+    constructor() { this.ctx = null; this.playing = false; this.masterGain = null; this.musicInterval = null; }
     init() {
         if (this.ctx) return;
         this.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -160,62 +185,48 @@ class AudioEngine {
         this.masterGain.connect(this.ctx.destination);
     }
     resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
-    toggle() {
-        this.init();
-        if (this.playing) { this.stop(); return false; }
-        this.start(); return true;
-    }
-    start() {
-        this.playing = true;
-        this.resume();
-        this._playLoop();
-    }
-    stop() {
-        this.playing = false;
-        if (this.musicInterval) clearTimeout(this.musicInterval);
-    }
+    toggle() { this.init(); if (this.playing) { this.stop(); return false; } this.start(); return true; }
+    start() { this.playing = true; this.resume(); this._playLoop(); }
+    stop() { this.playing = false; if (this.musicInterval) clearTimeout(this.musicInterval); }
     _playLoop() {
         if (!this.playing) return;
         const melody = [261.63,293.66,329.63,349.23,392.00,392.00,349.23,329.63,293.66,261.63];
         const durations = [0.25,0.25,0.25,0.25,0.5,0.25,0.25,0.25,0.25,0.5];
         let t = this.ctx.currentTime;
         melody.forEach((note, i) => {
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
+            const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
             osc.type = 'square'; osc.frequency.value = note;
-            gain.gain.setValueAtTime(0.08, t);
-            gain.gain.exponentialRampToValueAtTime(0.01, t + durations[i] * 0.8);
+            gain.gain.setValueAtTime(0.08, t); gain.gain.exponentialRampToValueAtTime(0.01, t + durations[i] * 0.8);
             osc.connect(gain); gain.connect(this.masterGain);
-            osc.start(t); osc.stop(t + durations[i]);
-            t += durations[i];
+            osc.start(t); osc.stop(t + durations[i]); t += durations[i];
         });
         this.musicInterval = setTimeout(() => this._playLoop(), (t - this.ctx.currentTime) * 1000);
     }
     playHit() {
         if (!this.ctx) return; this.resume();
-        const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(200, now);
-        osc.frequency.exponentialRampToValueAtTime(80, now + 0.12);
-        gain.gain.setValueAtTime(0.25, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
-        osc.connect(gain); gain.connect(this.masterGain);
-        osc.start(now); osc.stop(now + 0.12);
+        const now = this.ctx.currentTime; const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now); osc.frequency.exponentialRampToValueAtTime(80, now + 0.12);
+        gain.gain.setValueAtTime(0.25, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        osc.connect(gain); gain.connect(this.masterGain); osc.start(now); osc.stop(now + 0.12);
     }
     playLaunch() {
         if (!this.ctx) return; this.resume();
+        const now = this.ctx.currentTime; const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+        osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(150, now + 0.2);
+        gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        osc.connect(gain); gain.connect(this.masterGain); osc.start(now); osc.stop(now + 0.2);
+    }
+    // Phase 2 dramatic sound
+    playPhase2() {
+        if (!this.ctx) return; this.resume();
         const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(400, now);
-        osc.frequency.exponentialRampToValueAtTime(150, now + 0.2);
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-        osc.connect(gain); gain.connect(this.masterGain);
-        osc.start(now); osc.stop(now + 0.2);
+        [100, 80, 60, 50].forEach((freq, i) => {
+            const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+            osc.type = 'sawtooth'; osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.3, now + i*0.3); gain.gain.exponentialRampToValueAtTime(0.01, now + i*0.3 + 0.3);
+            osc.connect(gain); gain.connect(this.masterGain);
+            osc.start(now + i*0.3); osc.stop(now + i*0.3 + 0.3);
+        });
     }
 }
 
@@ -227,7 +238,12 @@ const App = {
     projectiles: [], furniture: [], targets: [],
     boss: null, slingshots: [], activeTouches: new Map(),
     ended: false, trails: [], combo: 0, comboTimer: 0,
-    hitSet: new Set() // track projectile-target pairs to prevent double hits
+    hitSet: new Set(),
+    // Phase 2 state
+    bossPhase: 1,
+    stunTimer: 0, // frames remaining for stun
+    speechBubbles: [], // active speech bubble DOM elements
+    phase2DefenseMultiplier: 1
 };
 
 // --- Init ---
@@ -235,18 +251,16 @@ function init() {
     App.cvs = document.getElementById('world');
     App.cvs.width = CFG.w; App.cvs.height = CFG.h;
     App.ctx = App.cvs.getContext('2d');
-
     App.engine = Matter.Engine.create();
     App.world = App.engine.world;
     App.engine.gravity.y = CFG.gravity;
 
-    // Walls (including ceiling)
     const wallOpts = { isStatic: true, restitution: 0.8, friction: 0.1 };
     Matter.World.add(App.world, [
         Matter.Bodies.rectangle(CFG.w/2, CFG.h+50, CFG.w, 100, { ...wallOpts, label: 'floor' }),
         Matter.Bodies.rectangle(-50, CFG.h/2, 100, CFG.h, wallOpts),
         Matter.Bodies.rectangle(CFG.w+50, CFG.h/2, 100, CFG.h, wallOpts),
-        Matter.Bodies.rectangle(CFG.w/2, -50, CFG.w, 100, wallOpts) // ceiling
+        Matter.Bodies.rectangle(CFG.w/2, -50, CFG.w, 100, wallOpts)
     ]);
 
     Matter.Events.on(App.engine, 'collisionStart', handleCollisions);
@@ -266,19 +280,23 @@ function init() {
 // --- Logic & Stages ---
 function updateLogic() {
     // Combo timer decay
-    if (App.comboTimer > 0) {
-        App.comboTimer--;
-        if (App.comboTimer <= 0) { App.combo = 0; hideCombo(); }
+    if (App.comboTimer > 0) { App.comboTimer--; if (App.comboTimer <= 0) { App.combo = 0; hideCombo(); } }
+
+    // Stun timer decay
+    if (App.stunTimer > 0) {
+        App.stunTimer--;
+        if (App.stunTimer <= 0) {
+            clearStunEffects();
+        }
     }
 
-    // Clean up old projectiles (out of bounds or too slow for too long)
+    // Clean up old projectiles
     for (let i = App.projectiles.length - 1; i >= 0; i--) {
         const p = App.projectiles[i];
         const pos = p.position;
         const speed = Math.hypot(p.velocity.x, p.velocity.y);
         if (!p._slowFrames) p._slowFrames = 0;
         if (speed < 0.3) p._slowFrames++; else p._slowFrames = 0;
-
         if (pos.y > CFG.h + 100 || pos.x < -100 || pos.x > CFG.w + 100 || p._slowFrames > 120) {
             Matter.World.remove(App.world, p);
             App.projectiles.splice(i, 1);
@@ -290,7 +308,6 @@ function updateLogic() {
         App.trails[i].life--;
         if (App.trails[i].life <= 0) App.trails.splice(i, 1);
     }
-    // Add trails for active projectiles
     App.projectiles.forEach(p => {
         if (Math.hypot(p.velocity.x, p.velocity.y) > 2) {
             App.trails.push({ x: p.position.x, y: p.position.y, life: 10, color: p.isHard ? '#ffd700' : '#795548' });
@@ -299,42 +316,44 @@ function updateLogic() {
 
     if(App.stage === 3 && App.boss && App.boss.hp > 0) {
         const b = App.boss;
-        // Boss float movement
+        // Phase 2: faster, more erratic movement
+        const moveSpeed = App.bossPhase === 2 ? 250 : 400;
+        const moveRange = App.bossPhase === 2 ? 120 : 80;
+        const bobSpeed = App.bossPhase === 2 ? 150 : 200;
         Matter.Body.setPosition(b.body, {
-            x: CFG.w/2 + Math.sin(Date.now()/400) * 80,
-            y: b._baseY + Math.sin(Date.now()/200) * 20
+            x: CFG.w/2 + Math.sin(Date.now()/moveSpeed) * moveRange,
+            y: b._baseY + Math.sin(Date.now()/bobSpeed) * 20
         });
-        // Boss Attack - targets allies
-        if(Math.random() < 0.025) {
+
+        // Boss Attack - Phase 2 attacks faster and harder
+        const attackRate = App.bossPhase === 2 ? 0.04 : 0.025;
+        const attackDmg = App.bossPhase === 2 ? 50 : 30;
+        if(Math.random() < attackRate) {
             const aliveAllies = App.targets.filter(t => t.hp > 0 && t.label === 'ally');
             if (aliveAllies.length > 0) {
                 const target = aliveAllies[Math.floor(Math.random() * aliveAllies.length)];
                 const p = Matter.Bodies.circle(b.body.position.x, b.body.position.y+40, 12, {
                     label: 'boss_atk', density: 0.15, restitution: 0.5
                 });
-                p.damage = 30;
+                p.damage = attackDmg;
                 Matter.World.add(App.world, p);
-                // Aim at a random ally
                 const dx = target.position.x - b.body.position.x;
                 const dy = target.position.y - b.body.position.y;
                 const angle = Math.atan2(dy, dx);
-                const speed = 8 + Math.random() * 4;
+                const speed = App.bossPhase === 2 ? 10 + Math.random() * 5 : 8 + Math.random() * 4;
                 Matter.Body.setVelocity(p, { x: Math.cos(angle)*speed, y: Math.sin(angle)*speed });
                 App.projectiles.push(p);
             }
         }
 
-        // Check game over - all allies dead
+        // Check game over
         const aliveAllies = App.targets.filter(t => t.hp > 0 && t.label === 'ally');
-        if (aliveAllies.length === 0) {
-            showGameOver();
-        }
+        if (aliveAllies.length === 0) showGameOver();
     }
 }
 
 function loadStage(n) {
     App.stage = n;
-    // Clear ALL non-static bodies AND previously added static bodies (allies, boss)
     const allBodies = Matter.Composite.allBodies(App.world);
     allBodies.forEach(b => {
         if (b.label === 'ally' || b.label === 'boss' || b.label === 'target' || b.label === 'furniture' || !b.isStatic) {
@@ -343,12 +362,15 @@ function loadStage(n) {
     });
     App.projectiles = []; App.furniture = []; App.targets = []; App.slingshots = [];
     App.trails = []; App.combo = 0; App.comboTimer = 0; App.hitSet.clear();
+    App.bossPhase = 1; App.stunTimer = 0; App.phase2DefenseMultiplier = 1;
+    clearStunEffects();
 
     if(n === 1) {
         App.ammo = 30; App.poopMode = false; App.score = 0;
-        createFurniture(150, 500, 'Table', 100, 40);
-        createFurniture(300, 400, 'Cabinet', 60, 80);
-        createFurniture(100, 600, 'Chair', 40, 60);
+        // Improved furniture with better physics - varied density and friction
+        createFurniture(150, 500, 'Table', 100, 40, { density: 0.04, friction: 0.6, restitution: 0.15 });
+        createFurniture(300, 400, 'Cabinet', 60, 80, { density: 0.08, friction: 0.9, restitution: 0.05 });
+        createFurniture(100, 600, 'Chair', 40, 60, { density: 0.02, friction: 0.4, restitution: 0.3 });
         createTarget(150, 450, 'Vina');
         createTarget(300, 350, 'Matt');
         createTarget(100, 550, 'Coco');
@@ -372,41 +394,138 @@ function loadStage(n) {
             Matter.World.add(App.world, body);
             App.slingshots.push({ x, y: 750, anchor:{x, y:750}, active:false, owner:team[i] });
         }
-        App.boss = createBoss('Vison', 10000, 120);
+        App.boss = createBoss('Vison', 8000, 120);
     }
     updateUI();
 }
 
-function createFurniture(x, y, type, w, h) {
-    const body = Matter.Bodies.rectangle(x, y, w, h, {
-        density: 0.05, friction: 0.8, restitution: 0.1, label: 'furniture'
-    });
+function createFurniture(x, y, type, w, h, physicsOpts) {
+    const opts = Object.assign({ density: 0.05, friction: 0.8, restitution: 0.1, label: 'furniture' }, physicsOpts || {});
+    const body = Matter.Bodies.rectangle(x, y, w, h, opts);
     body.furnitureType = type; body.w = w; body.h = h; body.hp = 100;
     App.furniture.push(body);
     Matter.World.add(App.world, body);
 }
 
 function createTarget(x, y, name) {
-    const body = Matter.Bodies.rectangle(x, y, 30, 40, { density: 0.01, label: 'target' });
+    // Improved hit detection: slightly larger collision body
+    const body = Matter.Bodies.rectangle(x, y, 34, 44, { density: 0.01, label: 'target', chamfer: { radius: 4 } });
     body.name = name; body.hp = 50; body.maxHp = 50;
     App.targets.push(body);
     Matter.World.add(App.world, body);
 }
 
 function createBoss(name, hp, y) {
-    // FIX: removed isSensor so projectiles bounce off boss properly
-    const body = Matter.Bodies.circle(CFG.w/2, y, 40, { isStatic: true, label: 'boss' });
+    // Larger collision radius for better hit detection
+    const body = Matter.Bodies.circle(CFG.w/2, y, 45, { isStatic: true, label: 'boss' });
     const boss = { name, hp, maxHp: hp, body, _baseY: y };
     Matter.World.add(App.world, body);
     return boss;
 }
 
+// --- Phase 2 Transition ---
+function triggerPhase2() {
+    App.bossPhase = 2;
+    App.phase2DefenseMultiplier = 4;
+
+    // Flash effect
+    const flash = document.getElementById('phase-flash');
+    flash.classList.add('active');
+    setTimeout(() => flash.classList.remove('active'), 1500);
+
+    // Sound
+    App.audioEngine.playPhase2();
+
+    // Boss regenerates with new HP
+    App.boss.hp = 12000;
+    App.boss.maxHp = 12000;
+
+    // Stun all allies for 8 seconds (480 frames at 60fps)
+    App.stunTimer = 480;
+
+    // Show speech bubbles
+    showPhase2Speeches();
+
+    // Screen shake (heavy)
+    const container = document.getElementById('game-container');
+    container.style.animation = 'none';
+    void container.offsetWidth;
+    container.style.animation = 'shake 0.3s ease-in-out 3';
+
+    // Show phase 2 dialog
+    showDialog('phase2');
+}
+
+function showPhase2Speeches() {
+    clearStunEffects();
+    const L = LANG_DATA[App.lang];
+    const container = document.getElementById('game-container');
+    const scaleX = container.offsetWidth / App.cvs.width;
+    const scaleY = container.offsetHeight / App.cvs.height;
+
+    App.targets.forEach((ally, i) => {
+        if (ally.hp <= 0 || ally.label !== 'ally') return;
+
+        const speechKey = `speech_${ally.name}`;
+        const text = L[speechKey] || '...';
+
+        // Speech bubble from Vison to this ally
+        const bubble = document.createElement('div');
+        bubble.className = 'speech-bubble';
+        bubble.textContent = text;
+        const allyX = ally.position.x * scaleX;
+        const allyY = (ally.position.y - 70) * scaleY;
+        bubble.style.left = Math.max(10, Math.min(allyX - 60, container.offsetWidth - 150)) + 'px';
+        bubble.style.top = Math.max(10, allyY - 50) + 'px';
+        container.appendChild(bubble);
+        App.speechBubbles.push(bubble);
+
+        // Staggered reveal
+        setTimeout(() => bubble.classList.add('show'), i * 600);
+        // Fade out after 6 seconds
+        setTimeout(() => bubble.classList.remove('show'), 6000 + i * 200);
+
+        // Stun icon above ally
+        const stunIcon = document.createElement('div');
+        stunIcon.className = 'stun-icon';
+        stunIcon.textContent = '💫';
+        stunIcon.style.left = (allyX - 10) + 'px';
+        stunIcon.style.top = (ally.position.y * scaleY - 45) + 'px';
+        container.appendChild(stunIcon);
+        App.speechBubbles.push(stunIcon);
+    });
+}
+
+function clearStunEffects() {
+    App.speechBubbles.forEach(el => el.remove());
+    App.speechBubbles = [];
+}
+
 // --- Render ---
 function render(ctx) {
-    ctx.fillStyle = '#f0e6d2'; ctx.fillRect(0, 0, CFG.w, CFG.h);
+    // Phase 2: darker background
+    if (App.stage === 3 && App.bossPhase === 2) {
+        ctx.fillStyle = '#2a1a1a';
+    } else {
+        ctx.fillStyle = '#f0e6d2';
+    }
+    ctx.fillRect(0, 0, CFG.w, CFG.h);
 
-    // Draw floor line
-    ctx.fillStyle = '#c4a882'; ctx.fillRect(0, CFG.floorY + 30, CFG.w, 4);
+    // Floor
+    ctx.fillStyle = App.bossPhase === 2 ? '#4a2a2a' : '#c4a882';
+    ctx.fillRect(0, CFG.floorY + 30, CFG.w, 4);
+
+    // Phase 2 ambient particles
+    if (App.bossPhase === 2) {
+        for (let i = 0; i < 8; i++) {
+            const px = (Date.now()/10 + i * 137) % CFG.w;
+            const py = (Date.now()/15 + i * 91) % CFG.h;
+            ctx.globalAlpha = 0.15 + Math.sin(Date.now()/300 + i) * 0.1;
+            ctx.fillStyle = '#ff0000';
+            ctx.beginPath(); ctx.arc(px, py, 2, 0, Math.PI*2); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }
 
     // Trails
     App.trails.forEach(t => {
@@ -428,6 +547,9 @@ function render(ctx) {
             ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.moveTo(-f.w/4, -f.h/4); ctx.lineTo(f.w/4, f.h/4); ctx.stroke();
         }
+        if (f.hp < 30) {
+            ctx.beginPath(); ctx.moveTo(f.w/4, -f.h/3); ctx.lineTo(-f.w/4, f.h/3); ctx.stroke();
+        }
         ctx.restore();
     });
 
@@ -437,21 +559,26 @@ function render(ctx) {
         const pos = t.position;
         ctx.save(); ctx.translate(pos.x, pos.y); ctx.rotate(t.angle);
 
+        // Stunned effect
+        if (App.stunTimer > 0 && t.label === 'ally') {
+            ctx.globalAlpha = 0.4 + Math.sin(Date.now()/100) * 0.2;
+            ctx.shadowBlur = 10; ctx.shadowColor = '#ff6b6b';
+        }
+
         // God Mode Aura (Stage 3 allies)
-        if(App.stage === 3 && t.label === 'ally' && t.hp/t.maxHp < 0.5) {
+        if(App.stage === 3 && t.label === 'ally' && t.hp/t.maxHp < 0.5 && App.stunTimer <= 0) {
             ctx.shadowBlur = 15; ctx.shadowColor = '#ffd700';
             ctx.beginPath(); ctx.arc(0, 0, 25, 0, Math.PI*2); ctx.fillStyle = 'rgba(255,215,0,0.3)'; ctx.fill();
-            ctx.shadowBlur = 0;
         }
 
         if(IMAGES[t.name]) ctx.drawImage(IMAGES[t.name], -15, -20, 30, 40);
 
         // HP Bar
         const pct = t.hp / t.maxHp;
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
         ctx.fillStyle = '#333'; ctx.fillRect(-15, -30, 30, 5);
         ctx.fillStyle = pct > 0.5 ? '#2ecc71' : pct > 0.25 ? '#f39c12' : '#e74c3c';
         ctx.fillRect(-15, -30, 30*pct, 5);
-        // Name tag
         ctx.fillStyle = '#fff'; ctx.font = '6px Arial'; ctx.textAlign = 'center';
         ctx.fillText(t.name, 0, -33);
         ctx.restore();
@@ -463,21 +590,45 @@ function render(ctx) {
         const pos = b.body.position;
         ctx.save(); ctx.translate(pos.x, pos.y);
 
-        // Aura with pulse
         const pulse = Math.sin(Date.now()/300) * 5;
-        ctx.shadowBlur = 20 + pulse; ctx.shadowColor = b.name==='Vison'?'#f00':'#8e44ad';
-        ctx.beginPath(); ctx.arc(0,0,50+pulse,0,Math.PI*2); ctx.fillStyle = b.name==='Vison'?'rgba(139,0,0,0.6)':'rgba(128,0,128,0.6)'; ctx.fill();
+
+        if (App.bossPhase === 2) {
+            // Phase 2: intense red/black aura with larger radius
+            ctx.shadowBlur = 30 + pulse; ctx.shadowColor = '#ff0000';
+            ctx.beginPath(); ctx.arc(0, 0, 60+pulse, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(139,0,0,0.7)'; ctx.fill();
+            // Inner dark core
+            ctx.beginPath(); ctx.arc(0, 0, 45, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(50,0,0,0.5)'; ctx.fill();
+            // Phase 2 indicator text
+            ctx.fillStyle = '#ff4444'; ctx.font = 'bold 8px Arial'; ctx.textAlign = 'center';
+            ctx.fillText('PHASE 2', 0, -78);
+            // Defense shield visual
+            ctx.strokeStyle = 'rgba(255,100,0,0.6)'; ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(0, 0, 55 + pulse, 0, Math.PI * 2);
+            ctx.setLineDash([8, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        } else {
+            ctx.shadowBlur = 20 + pulse; ctx.shadowColor = b.name==='Vison'?'#f00':'#8e44ad';
+            ctx.beginPath(); ctx.arc(0,0,50+pulse,0,Math.PI*2);
+            ctx.fillStyle = b.name==='Vison'?'rgba(139,0,0,0.6)':'rgba(128,0,128,0.6)'; ctx.fill();
+        }
         ctx.shadowBlur = 0;
 
         if(IMAGES[b.name]) ctx.drawImage(IMAGES[b.name], -40, -40, 80, 80);
 
-        // Boss HP Bar (wider, with gradient)
+        // Boss HP Bar
         const pct = b.hp / b.maxHp;
         ctx.fillStyle = '#333'; ctx.fillRect(-60, -65, 120, 12);
         const grad = ctx.createLinearGradient(-60, 0, 60, 0);
-        grad.addColorStop(0, '#ff0000'); grad.addColorStop(1, '#ff6600');
+        if (App.bossPhase === 2) {
+            grad.addColorStop(0, '#ff0000'); grad.addColorStop(0.5, '#ff4400'); grad.addColorStop(1, '#880000');
+        } else {
+            grad.addColorStop(0, '#ff0000'); grad.addColorStop(1, '#ff6600');
+        }
         ctx.fillStyle = grad; ctx.fillRect(-60, -65, 120*pct, 12);
-        // Boss name
         ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center';
         ctx.fillText(b.name, 0, -70);
         ctx.restore();
@@ -485,24 +636,24 @@ function render(ctx) {
 
     // Slingshots
     App.slingshots.forEach(s => {
-        // Slingshot fork
-        ctx.fillStyle = '#5d4037';
+        const isStunned = App.stunTimer > 0 && App.stage === 3;
+
+        ctx.fillStyle = isStunned ? '#888' : '#5d4037';
         ctx.fillRect(s.anchor.x - 3, s.anchor.y - 15, 6, 30);
         ctx.fillRect(s.anchor.x - 18, s.anchor.y - 15, 12, 6);
         ctx.fillRect(s.anchor.x + 6, s.anchor.y - 15, 12, 6);
 
-        // Rubber band
+        // Rubber band (grayed out if stunned)
         ctx.beginPath();
         ctx.moveTo(s.anchor.x-15, s.anchor.y - 12);
         ctx.lineTo(s.active ? s.x : s.anchor.x, s.active ? s.y : s.anchor.y - 12);
         ctx.lineTo(s.anchor.x+15, s.anchor.y - 12);
-        ctx.strokeStyle = '#c0392b'; ctx.lineWidth = 3; ctx.stroke();
+        ctx.strokeStyle = isStunned ? '#666' : '#c0392b'; ctx.lineWidth = 3; ctx.stroke();
 
-        if(s.active) {
+        if(s.active && !isStunned) {
             const r = App.stage===3 ? 15 : 10;
             ctx.fillStyle = App.stage===3 ? '#3e2723' : '#795548';
             ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, Math.PI*2); ctx.fill();
-            // Power indicator
             const dist = Math.hypot(s.x - s.anchor.x, s.y - s.anchor.y);
             const power = Math.min(dist / 100, 1);
             ctx.fillStyle = `rgba(255,${Math.floor(255*(1-power))},0,0.7)`;
@@ -512,17 +663,25 @@ function render(ctx) {
 
     // Projectiles
     App.projectiles.forEach(p => {
-        ctx.save(); ctx.translate(p.position.x, p.position.y);
-        ctx.rotate(p.angle);
+        ctx.save(); ctx.translate(p.position.x, p.position.y); ctx.rotate(p.angle);
         if (p.label === 'boss_atk') {
-            // Boss attack - dark energy ball
-            ctx.fillStyle = '#000';
-            ctx.shadowBlur = 10; ctx.shadowColor = '#f00';
+            ctx.fillStyle = App.bossPhase === 2 ? '#8b0000' : '#000';
+            ctx.shadowBlur = App.bossPhase === 2 ? 15 : 10;
+            ctx.shadowColor = App.bossPhase === 2 ? '#ff4400' : '#f00';
             ctx.beginPath(); ctx.arc(0, 0, p.circleRadius, 0, Math.PI*2); ctx.fill();
+            // Phase 2 boss projectiles have an outer ring
+            if (App.bossPhase === 2) {
+                ctx.strokeStyle = '#ff6600'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(0, 0, p.circleRadius + 3, 0, Math.PI*2); ctx.stroke();
+            }
             ctx.shadowBlur = 0;
         } else {
+            // Player projectiles: slightly better visual
             ctx.fillStyle = p.isHard ? '#3e2723' : '#795548';
             ctx.beginPath(); ctx.arc(0, 0, p.circleRadius, 0, Math.PI*2); ctx.fill();
+            // Highlight ring
+            ctx.strokeStyle = p.isHard ? '#ffd700' : '#a1887f'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(0, 0, p.circleRadius - 1, 0, Math.PI*2); ctx.stroke();
             if(p.isHard) { ctx.fillStyle='#ffd700'; ctx.font='bold 8px Arial'; ctx.textAlign='center'; ctx.fillText('200', 0, 4); }
         }
         ctx.restore();
@@ -536,20 +695,15 @@ function setupInput(cvs) {
         const scaleX = cvs.width / rect.width;
         const scaleY = cvs.height / rect.height;
         let clientX, clientY;
-        if (e.touches && e.touches.length > 0) {
-            clientX = e.touches[0].clientX;
-            clientY = e.touches[0].clientY;
-        } else if (e.changedTouches && e.changedTouches.length > 0) {
-            clientX = e.changedTouches[0].clientX;
-            clientY = e.changedTouches[0].clientY;
-        } else {
-            clientX = e.clientX;
-            clientY = e.clientY;
-        }
+        if (e.touches && e.touches.length > 0) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
+        else if (e.changedTouches && e.changedTouches.length > 0) { clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; }
+        else { clientX = e.clientX; clientY = e.clientY; }
         return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
     }
 
     const start = (id, e) => {
+        // Block slingshot during stun
+        if (App.stunTimer > 0 && App.stage === 3) return;
         const pos = getCanvasPos(e);
         App.slingshots.forEach((sl, i) => {
             if(Math.hypot(pos.x-sl.anchor.x, pos.y-sl.anchor.y) < 60) {
@@ -560,6 +714,7 @@ function setupInput(cvs) {
     };
 
     const move = (id, e) => {
+        if (App.stunTimer > 0 && App.stage === 3) return;
         if(App.activeTouches.has(id)) {
             const i = App.activeTouches.get(id);
             const sl = App.slingshots[i];
@@ -573,6 +728,7 @@ function setupInput(cvs) {
     };
 
     const end = (id) => {
+        if (App.stunTimer > 0 && App.stage === 3) { App.activeTouches.delete(id); return; }
         if(App.activeTouches.has(id)) {
             const i = App.activeTouches.get(id);
             fire(i);
@@ -580,11 +736,9 @@ function setupInput(cvs) {
         }
     };
 
-    // FIX: All events now use consistent coordinate conversion via getCanvasPos
     cvs.addEventListener('mousedown', e => start(-1, e));
     window.addEventListener('mousemove', e => move(-1, e));
     window.addEventListener('mouseup', () => end(-1));
-
     cvs.addEventListener('touchstart', e => { e.preventDefault(); for(let t of e.changedTouches) start(t.identifier, e); }, {passive:false});
     cvs.addEventListener('touchmove', e => { e.preventDefault(); for(let t of e.changedTouches) move(t.identifier, e); }, {passive:false});
     cvs.addEventListener('touchend', e => { for(let t of e.changedTouches) end(t.identifier); });
@@ -592,27 +746,27 @@ function setupInput(cvs) {
 
 function fire(idx) {
     const sl = App.slingshots[idx];
-    if (!sl.active) return; // FIX: prevent firing without dragging
+    if (!sl.active) return;
     sl.active = false;
     const dx = sl.anchor.x - sl.x; const dy = sl.anchor.y - sl.y;
     const power = Math.hypot(dx, dy) * 0.2;
-    if (power < 2) { sl.x = sl.anchor.x; sl.y = sl.anchor.y; return; } // minimum power threshold
+    if (power < 2) { sl.x = sl.anchor.x; sl.y = sl.anchor.y; return; }
     const angle = Math.atan2(dy, dx);
     sl.x = sl.anchor.x; sl.y = sl.anchor.y;
 
     const isHard = (App.stage === 3);
-    const p = Matter.Bodies.circle(sl.anchor.x, sl.anchor.y - 15, isHard?15:10, {
-        density: 0.05, restitution: 0.7, label: 'projectile'
+    // Improved projectile physics: slightly more varied shapes
+    const radius = isHard ? 15 : 10;
+    const p = Matter.Bodies.circle(sl.anchor.x, sl.anchor.y - 15, radius, {
+        density: isHard ? 0.08 : 0.05, restitution: 0.6, friction: 0.05, label: 'projectile'
     });
 
-    // Damage Calc
     let dmg = 20;
     if(isHard) dmg = 200;
-    // God Mode Check - only boost damage, not 50x (balanced to 5x)
     if(App.stage === 3) {
         const god = App.targets.some(t => t.hp > 0 && t.label === 'ally' && t.hp/t.maxHp < 0.5);
         if(god) {
-            dmg *= 5; // FIX: balanced from 50x to 5x
+            dmg *= 5;
             createFloatText(sl.anchor.x, sl.anchor.y-50, LANG_DATA[App.lang].god, "#ffd700");
         }
     }
@@ -638,33 +792,28 @@ function handleCollisions(e) {
     e.pairs.forEach(pair => {
         const a = pair.bodyA, b = pair.bodyB;
 
-        // --- Handle player projectiles ---
+        // --- Player projectiles ---
         let proj = null, other = null;
         if (a.label === 'projectile') { proj = a; other = b; }
         else if (b.label === 'projectile') { proj = b; other = a; }
 
         if (proj) {
-            // Prevent double-hit on same pair
             const hitKey = `${proj.id}_${other.id}`;
             if (App.hitSet.has(hitKey)) return;
             App.hitSet.add(hitKey);
-            // Auto-clean after 500ms
             setTimeout(() => App.hitSet.delete(hitKey), 500);
 
-            // FIX: Player projectiles should NOT damage allies
             if(other.label === 'target') {
                 if(other.hp > 0) {
                     other.hp -= proj.damage;
                     App.score += proj.damage;
                     addCombo();
                     createFloatText(other.position.x, other.position.y, `-${proj.damage}`, '#f00');
-                    App.audioEngine.playHit();
-                    screenShake();
+                    App.audioEngine.playHit(); screenShake();
                     if(other.hp <= 0) {
                         Matter.World.remove(App.world, other);
-                        if(App.stage === 1 && App.targets.filter(t => t.hp > 0 && t.label === 'target').length === 0) {
+                        if(App.stage === 1 && App.targets.filter(t => t.hp > 0 && t.label === 'target').length === 0)
                             showDialog('stage2');
-                        }
                     }
                 }
             }
@@ -678,43 +827,50 @@ function handleCollisions(e) {
             }
             else if(other.label === 'boss') {
                 if (App.boss && App.boss.hp > 0) {
-                    App.boss.hp -= proj.damage;
-                    App.score += proj.damage;
+                    // Phase 2: 4x defense = damage / 4
+                    let actualDmg = proj.damage;
+                    if (App.bossPhase === 2) {
+                        actualDmg = Math.floor(proj.damage / App.phase2DefenseMultiplier);
+                        createFloatText(other.position.x + 30, other.position.y - 30, `DEF x4!`, '#ff8800');
+                    }
+                    App.boss.hp -= actualDmg;
+                    App.score += actualDmg;
                     addCombo();
-                    createFloatText(other.position.x, other.position.y, `-${proj.damage}`, '#f0f');
-                    App.audioEngine.playHit();
-                    screenShake();
+                    createFloatText(other.position.x, other.position.y, `-${actualDmg}`, App.bossPhase === 2 ? '#ff4400' : '#f0f');
+                    App.audioEngine.playHit(); screenShake();
                     if(App.boss.hp <= 0) {
-                        Matter.World.remove(App.world, App.boss.body);
-                        if(App.stage === 2) showDialog('stage2_win');
-                        if(App.stage === 3) playEnding();
+                        if (App.bossPhase === 1 && App.stage === 3) {
+                            // Trigger Phase 2 instead of dying
+                            triggerPhase2();
+                        } else {
+                            // Phase 2 defeated = real victory
+                            Matter.World.remove(App.world, App.boss.body);
+                            if(App.stage === 2) showDialog('stage2_win');
+                            if(App.stage === 3) playEnding();
+                        }
                     }
                 }
             }
             return;
         }
 
-        // --- Handle boss attack projectiles ---
+        // --- Boss attack projectiles ---
         let bossProj = null, bossOther = null;
         if (a.label === 'boss_atk') { bossProj = a; bossOther = b; }
         else if (b.label === 'boss_atk') { bossProj = b; bossOther = a; }
 
         if (bossProj && bossOther) {
-            // FIX: Boss attacks now properly damage allies
             if (bossOther.label === 'ally' && bossOther.hp > 0) {
                 const dmg = bossProj.damage || 30;
                 bossOther.hp -= dmg;
                 createFloatText(bossOther.position.x, bossOther.position.y, `-${dmg}`, '#ff0000');
                 screenShake();
-                // Remove boss projectile after hit
                 Matter.World.remove(App.world, bossProj);
                 const idx = App.projectiles.indexOf(bossProj);
                 if (idx > -1) App.projectiles.splice(idx, 1);
-                if (bossOther.hp <= 0) {
+                if (bossOther.hp <= 0)
                     createFloatText(bossOther.position.x, bossOther.position.y - 20, `${bossOther.name} DOWN!`, '#ff4444');
-                }
             }
-            // Boss projectile hits floor/wall - remove it
             if (bossOther.label === 'floor' || bossOther.isStatic) {
                 Matter.World.remove(App.world, bossProj);
                 const idx = App.projectiles.indexOf(bossProj);
@@ -726,8 +882,7 @@ function handleCollisions(e) {
 
 // --- Combo System ---
 function addCombo() {
-    App.combo++;
-    App.comboTimer = 90; // 1.5 seconds at 60fps
+    App.combo++; App.comboTimer = 90;
     const L = LANG_DATA[App.lang];
     if (App.combo >= 3) {
         const el = document.getElementById('combo-display');
@@ -736,19 +891,15 @@ function addCombo() {
         el.style.fontSize = Math.min(16 + App.combo * 2, 32) + 'px';
     }
 }
-function hideCombo() {
-    document.getElementById('combo-display').classList.remove('visible');
-}
+function hideCombo() { document.getElementById('combo-display').classList.remove('visible'); }
 
-// --- Screen Shake ---
 function screenShake() {
     const container = document.getElementById('game-container');
     container.classList.remove('screen-shake');
-    void container.offsetWidth; // force reflow
+    void container.offsetWidth;
     container.classList.add('screen-shake');
 }
 
-// --- Game Over (Stage 3 allies all dead) ---
 function showGameOver() {
     App.ended = true;
     const L = LANG_DATA[App.lang];
@@ -757,7 +908,6 @@ function showGameOver() {
     document.getElementById('game-over-overlay').style.display = 'flex';
 }
 
-// --- UI & Helpers ---
 function updateUI() {
     const L = LANG_DATA[App.lang];
     const ammoEl = document.getElementById('ammoCount');
@@ -773,7 +923,8 @@ function showDialog(id) {
         'stage1': { t: L.stage1_title, c: L.stage1_text, b: L.stage1_btn, fn: () => loadStage(1) },
         'stage2': { t: L.stage2_title, c: L.stage2_text, b: L.stage2_btn, fn: () => loadStage(2) },
         'stage2_win': { t: L.stage2_win_title, c: L.stage2_win_text, b: L.stage2_win_btn, fn: () => showDialog('stage3') },
-        'stage3': { t: L.stage3_title, c: L.stage3_text, b: L.stage3_btn, fn: () => loadStage(3) }
+        'stage3': { t: L.stage3_title, c: L.stage3_text, b: L.stage3_btn, fn: () => loadStage(3) },
+        'phase2': { t: L.phase2_title, c: L.phase2_text, b: L.phase2_btn, fn: () => { /* dismiss dialog, stun continues */ } }
     };
     const d = data[id];
     document.getElementById('dialog-title').innerText = d.t;
@@ -786,11 +937,9 @@ function showDialog(id) {
 function createFloatText(x, y, txt, color) {
     const el = document.createElement('div');
     el.className = 'float-text'; el.innerText = txt; el.style.color = color;
-    // FIX: Scale position from canvas coords to CSS coords
     const container = document.getElementById('game-container');
-    const cvs = App.cvs;
-    const scaleX = container.offsetWidth / cvs.width;
-    const scaleY = container.offsetHeight / cvs.height;
+    const scaleX = container.offsetWidth / App.cvs.width;
+    const scaleY = container.offsetHeight / App.cvs.height;
     el.style.left = (x * scaleX) + 'px';
     el.style.top = (y * scaleY) + 'px';
     container.appendChild(el);
@@ -799,28 +948,21 @@ function createFloatText(x, y, txt, color) {
 
 function playEnding() {
     App.ended = true;
+    clearStunEffects();
     document.getElementById('ending-scene').style.display = 'flex';
     document.getElementById('ending-text').innerText = LANG_DATA[App.lang].ending_text;
-    // Wait for font to load before drawing
     document.fonts.ready.then(() => {
         const ctx = document.getElementById('ending-canvas').getContext('2d');
         ctx.fillStyle = '#3e2723'; ctx.fillRect(0,0,300,300);
-        // Warm lighting
         const grad = ctx.createRadialGradient(150, 150, 20, 150, 150, 150);
         grad.addColorStop(0, 'rgba(255,200,100,0.3)'); grad.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, 300, 300);
-        // Sofa
         ctx.fillStyle = '#5d4037'; ctx.fillRect(40, 200, 220, 60);
         ctx.fillStyle = '#4e342e'; ctx.fillRect(40, 200, 220, 10);
-        // Characters
         const team = ['Coco','Cola','Vina','Matt','Lola','Vison'];
-        team.forEach((name, i) => {
-            const x = 30 + i * 45;
-            if (IMAGES[name]) ctx.drawImage(IMAGES[name], x, 150, 35, 45);
-        });
+        team.forEach((name, i) => { const x = 30 + i * 45; if (IMAGES[name]) ctx.drawImage(IMAGES[name], x, 150, 35, 45); });
         ctx.fillStyle = '#f1c40f'; ctx.font = 'bold 20px "Press Start 2P"';
         ctx.textAlign = 'center'; ctx.fillText('CHEERS!', 150, 100);
-        // Score
         ctx.fillStyle = '#fff'; ctx.font = '10px "Press Start 2P"';
         ctx.fillText(`Score: ${App.score}`, 150, 280);
     });
@@ -831,7 +973,6 @@ document.getElementById('lang-btn').onclick = function() {
     App.lang = App.lang==='cn'?'en':'cn';
     this.innerText = App.lang.toUpperCase();
     updateUI();
-    // Update music button text
     document.getElementById('music-btn').innerText = App.audioEngine.playing ? LANG_DATA[App.lang].musicOn : LANG_DATA[App.lang].musicOff;
 };
 
