@@ -484,7 +484,20 @@
                 closeBtn: '关闭',
                 rank: '排名',
                 playerName: '玩家',
-                playerScore: '分数'
+                playerScore: '分数',
+                // Ally abilities & stats
+                critHit: '暴击!',
+                fastAttack: '疾速!',
+                pipaStun: '🎵 琵琶震波!',
+                powerHit: '💪 重击!',
+                healAlly: '💚 治愈!',
+                phase2Label: '第二阶段',
+                statsTitle: '战斗统计',
+                statsHits: '命中次数',
+                statsMaxCombo: '最高连击',
+                statsTime: '战斗用时',
+                statsDamageByAlly: '伤害贡献',
+                bossStunned: 'BOSS眩晕!'
             },
             en: {
                 title: 'Dining Room Catapult',
@@ -558,7 +571,20 @@
                 closeBtn: 'Close',
                 rank: 'Rank',
                 playerName: 'Player',
-                playerScore: 'Score'
+                playerScore: 'Score',
+                // Ally abilities & stats
+                critHit: 'CRIT!',
+                fastAttack: 'FAST!',
+                pipaStun: '🎵 PIPA STUN!',
+                powerHit: '💪 POWER!',
+                healAlly: '💚 HEAL!',
+                phase2Label: 'PHASE 2',
+                statsTitle: 'Battle Stats',
+                statsHits: 'Total Hits',
+                statsMaxCombo: 'Max Combo',
+                statsTime: 'Battle Time',
+                statsDamageByAlly: 'Damage by Ally',
+                bossStunned: 'BOSS STUNNED!'
             }
         };
 
@@ -669,11 +695,11 @@
         ];
 
         const ALLIES = [
-            { name: 'Coco', maxHp: BASE_HP * 2, hp: BASE_HP * 2, color: '#ffb6c1', size: 48, dodgeChance: 0.3, attackDamage: 10 },
-            { name: 'Cola', maxHp: BASE_HP * 2.5, hp: BASE_HP * 2.5, color: '#87ceeb', size: 52, dodgeChance: 0.3, attackDamage: 10 },
-            { name: 'Vina', maxHp: BASE_HP * 3, hp: BASE_HP * 3, color: '#dda0dd', size: 56, dodgeChance: 0.3, attackDamage: 10 },
+            { name: 'Coco', maxHp: BASE_HP * 2, hp: BASE_HP * 2, color: '#ffb6c1', size: 48, dodgeChance: 0.3, attackDamage: 10, critChance: 0.25 },
+            { name: 'Cola', maxHp: BASE_HP * 2.5, hp: BASE_HP * 2.5, color: '#87ceeb', size: 52, dodgeChance: 0.3, attackDamage: 10, attackSpeedBonus: true },
+            { name: 'Vina', maxHp: BASE_HP * 3, hp: BASE_HP * 3, color: '#dda0dd', size: 56, dodgeChance: 0.3, attackDamage: 10, stunBossChance: 0.15 },
             { name: 'Matt', maxHp: BASE_HP * 3, hp: BASE_HP * 3, color: '#deb887', size: 60, dodgeChance: 0.3, attackDamage: 30 },
-            { name: 'Lola', maxHp: BASE_HP * 3.5, hp: BASE_HP * 3.5, color: '#f5d0c5', size: 58, dodgeChance: 0.3, attackDamage: 15 }
+            { name: 'Lola', maxHp: BASE_HP * 3.5, hp: BASE_HP * 3.5, color: '#f5d0c5', size: 58, dodgeChance: 0.3, attackDamage: 15, healChance: 0.2 }
         ];
         class AudioSystem {
             constructor() {
@@ -1053,6 +1079,18 @@
                 this.stunTimer = 0;
                 this.phase2DefenseMultiplier = 1;
                 this.phase2Bubbles = [];
+
+                // Stats tracking
+                this.totalHits = 0;
+                this.maxCombo = 0;
+                this.battleStartTime = 0;
+
+                // Phase 2 atmosphere particles
+                this.phase2Particles = [];
+
+                // Boss minions & barrage (Feature 4)
+                this.bossMinions = [];
+                this.bossBarrageProjectiles = [];
 
                 // Reset cached health bar DOM elements
                 if (this._healthBarElements) {
@@ -1439,7 +1477,12 @@
                 body.allyIndex = this.currentAllyIndex; // 记录发射时的角色索引
                 World.add(this.world, body);
 
-                const force = CONFIG.launchPower * power;
+                let force = CONFIG.launchPower * power;
+                // Cola (index 1): 30% faster projectiles
+                if (this.finalBattleMode && this.currentAllyIndex === 1 && this.allies[1] && !this.allies[1].defeated) {
+                    force *= 1.3;
+                    this.showDamageText(this.dragStart.x, this.dragStart.y - 30, t('fastAttack'), false, '#00ccff');
+                }
                 const angle = Math.atan2(dy, dx);
                 Body.applyForce(body, body.position, {
                     x: Math.cos(angle) * force * item.weight,
@@ -1642,9 +1685,13 @@
 
                 this.createParticles(position.x, position.y, '#8B4513', 15);
 
+                // Stats tracking
+                this.totalHits++;
+
                 // Combo tracking
                 this.combo++;
                 this.comboTimer = 120;
+                if (this.combo > this.maxCombo) this.maxCombo = this.combo;
                 if (this.combo >= 3) {
                     const el = document.getElementById('combo-display');
                     el.textContent = this.combo + 'x COMBO!';
@@ -1712,9 +1759,13 @@
 
                 this.createParticles(position.x, position.y, '#ff00ff', 20);
 
+                // Stats tracking
+                this.totalHits++;
+
                 // Combo tracking
                 this.combo++;
                 this.comboTimer = 120;
+                if (this.combo > this.maxCombo) this.maxCombo = this.combo;
                 if (this.combo >= 3) {
                     const el = document.getElementById('combo-display');
                     el.textContent = this.combo + 'x COMBO!';
@@ -1813,19 +1864,30 @@
 
                 // 计算伤害（神力模式下50倍伤害，Matt有3倍攻击力加成）
                 let damage = item.damage;
-                
+
                 // 根据盟友攻击力调整伤害（Matt是3倍）
                 if (currentAlly && currentAlly.attackDamage) {
                     const attackMultiplier = currentAlly.attackDamage / 10; // 基础攻击力10
                     damage = Math.floor(damage * attackMultiplier);
                 }
-                
+
+                // === Ally Special Abilities ===
+                // Coco (index 0): 25% crit chance, 3x damage
+                if (currentAlly && allyIndex === 0 && currentAlly.critChance && Math.random() < currentAlly.critChance) {
+                    damage = damage * 3;
+                    this.showDamageText(position.x + 20, position.y - 50, t('critHit'), false, '#ff00ff');
+                }
+                // Matt (index 3): show POWER indicator
+                if (currentAlly && allyIndex === 3) {
+                    this.showDamageText(position.x - 20, position.y - 50, t('powerHit'), false, '#ff8800');
+                }
+
                 if (isGodMode) {
                     damage = damage * 50;
                     this.showDamageText(position.x, position.y - 80, '🔥 GOD MODE! 🔥', false, '#ffd700');
                     this.showDamageText(position.x, position.y - 60, '50x DAMAGE!', false, '#ff6600');
                 }
-                
+
                 // Phase 2: 4x defense
                 if (this.bossPhase === 2) {
                     damage = Math.floor(damage / this.phase2DefenseMultiplier);
@@ -1844,8 +1906,34 @@
                 b.hitFlash = 15;
                 b.hitReaction = 20;
 
-                // 受伤后高概率瞬移
-                if (Math.random() < 0.6) {
+                // Track per-ally damage
+                if (currentAlly) {
+                    currentAlly.totalDamage = (currentAlly.totalDamage || 0) + totalDamage;
+                }
+
+                // === Post-hit Ally Abilities ===
+                // Vina (index 2): 15% chance to stun boss for 3 seconds (180 frames)
+                if (currentAlly && allyIndex === 2 && currentAlly.stunBossChance && Math.random() < currentAlly.stunBossChance) {
+                    b.stunned = 180;
+                    b.invulnerable = 0;
+                    b.isTeleporting = false;
+                    b.isCharging = false;
+                    this.showDamageText(position.x, position.y - 100, t('pipaStun'), false, '#dda0dd');
+                    this.showDamageText(b.x, b.y - b.size/2 - 30, t('bossStunned'), false, '#ffff00');
+                }
+                // Lola (index 4): 20% chance to heal a random wounded ally by 20 HP
+                if (currentAlly && allyIndex === 4 && currentAlly.healChance && Math.random() < currentAlly.healChance) {
+                    const woundedAllies = this.allies.filter(a => !a.defeated && a.hp < a.maxHp);
+                    if (woundedAllies.length > 0) {
+                        const healTarget = woundedAllies[Math.floor(Math.random() * woundedAllies.length)];
+                        healTarget.hp = Math.min(healTarget.hp + 20, healTarget.maxHp);
+                        const healPos = ALLY_POSITIONS[healTarget.index];
+                        this.showDamageText(healPos.x, healPos.y - 30, t('healAlly'), false, '#00ff00');
+                    }
+                }
+
+                // 受伤后高概率瞬移 (skip if stunned)
+                if (!b.stunned && Math.random() < 0.6) {
                     this.bossTeleport();
                 }
 
@@ -1861,9 +1949,13 @@
 
                 this.createParticles(position.x, position.y, '#ff0000', 25);
 
+                // Stats tracking
+                this.totalHits++;
+
                 // Combo tracking
                 this.combo++;
                 this.comboTimer = 120;
+                if (this.combo > this.maxCombo) this.maxCombo = this.combo;
                 if (this.combo >= 3) {
                     const el = document.getElementById('combo-display');
                     el.textContent = this.combo + 'x COMBO!';
@@ -1987,7 +2079,19 @@
                             'Vison returned to normal, the demonic energy dissipated.<br>He and Matt sat on the couch,<br>smoking cigars, drinking whiskey,<br>as if nothing had happened.<br><br>"Bro, don\'t go so hard next time."<br>"Haha, cheers!"🥃'
                         }
                     </p>
-                    <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                    <div style="margin-top: 15px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; width: 90%; max-width: 280px;">
+                        <h3 style="color: #ffd700; font-size: 14px; margin-bottom: 8px;">${isZh ? t('statsTitle') : t('statsTitle')}</h3>
+                        <div style="color: #ccc; font-size: 11px; line-height: 1.8; text-align: left;">
+                            <div>${isZh ? t('statsHits') : t('statsHits')}: <span style="color:#fff;">${this.totalHits}</span></div>
+                            <div>${isZh ? t('statsMaxCombo') : t('statsMaxCombo')}: <span style="color:#fff;">${this.maxCombo}x</span></div>
+                            <div>${isZh ? t('statsTime') : t('statsTime')}: <span style="color:#fff;">${this.battleStartTime ? Math.floor((Date.now() - this.battleStartTime) / 1000) + 's' : 'N/A'}</span></div>
+                            <div style="margin-top: 5px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 5px;">
+                                <div style="color:#ffd700; margin-bottom: 3px;">${isZh ? t('statsDamageByAlly') : t('statsDamageByAlly')}:</div>
+                                ${this.allies.map(a => `<div style="color:${a.color};">${a.name}: ${a.totalDamage || 0}</div>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
                         <button id="endingSaveScoreBtn" style="padding: 12px 24px; font-size: 14px; background: #ffd700; color: #000; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
                             ${isZh ? '🏆 保存分数' : '🏆 Save Score'}
                         </button>
@@ -2106,6 +2210,10 @@
             updateCharacters() {
                 const { Bodies, World, Body } = Matter;
 
+                // Difficulty curve: characters pop up faster as ammo decreases
+                const progress = 1 - (this.ammo / CONFIG.totalAmmo); // 0 at start, 1 at end
+                const freqMultiplier = 1 + progress * 2; // 1x to 3x
+
                 this.characters.forEach((char, index) => {
                     if (char.hp <= 0) return;
 
@@ -2122,7 +2230,15 @@
                         char.faceOffset = Math.min(char.faceOffset + 4, char.size * 0.8);
                         if (char.visibleTimer <= 0) {
                             char.visible = false;
-                            char.nextToggle = Math.random() * 100 + 50;
+                            // Reduce nextToggle range as progress increases
+                            if (this.ammo < 5) {
+                                // When ammo < 5, very short intervals (nearly simultaneous)
+                                char.nextToggle = Math.random() * 10 + 5;
+                            } else {
+                                const maxDelay = Math.max(20, 100 * (1 - progress));
+                                const minDelay = Math.max(10, 50 * (1 - progress));
+                                char.nextToggle = Math.random() * maxDelay + minDelay;
+                            }
                         }
                     } else {
                         char.faceOffset = Math.max(char.faceOffset - 5, 0);
@@ -2262,6 +2378,14 @@
                 this.currentAllyIndex = 0;
                 this.loadNextAllyProjectile();
 
+                // Stats tracking for final battle
+                this.battleStartTime = Date.now();
+                this.totalHits = 0;
+                this.maxCombo = 0;
+                this.bossMinions = [];
+                this.bossBarrageProjectiles = [];
+                this.phase2Particles = [];
+
                 // 开始最终战斗音乐
                 this.audio.startBossMusic();
             }
@@ -2288,7 +2412,11 @@
                     chargeTargetX: 0,
                     chargeTargetY: 0,
                     chargeSpeed: 4,
-                    chargeHitAllies: new Set()
+                    chargeHitAllies: new Set(),
+                    // Phase 2 attack properties
+                    stunned: 0,
+                    bossBarrageCooldown: 240,
+                    bossSpawnCooldown: 480
                 };
 
                 this.boss.body = Bodies.rectangle(this.boss.x, this.boss.y, this.boss.size * 0.8, this.boss.size, {
@@ -2310,7 +2438,8 @@
                         hitFlash: 0,
                         index: i,
                         defeated: false,
-                        stunned: false
+                        stunned: false,
+                        totalDamage: 0
                     };
 
                     const pos = ALLY_POSITIONS[i];
@@ -2402,11 +2531,42 @@
                     b.moveSpeed = 8;
                 }
 
+                // Handle stun state
+                if (b.stunned && b.stunned > 0) {
+                    b.stunned--;
+                    b.auraRotation += 0.03;
+                    // Skip all movement/attack while stunned
+                    if (b.body) {
+                        Matter.Body.setPosition(b.body, { x: b.x, y: b.y });
+                    }
+                    b.eyeGlow = (Math.sin(Date.now() / 150) + 1) / 2;
+                    // Still update minions & barrage while stunned
+                    this.updateBossMinions();
+                    this.updateBossBarrage();
+                    return;
+                }
+
                 // 减少冷却
                 if (b.teleportCooldown > 0) b.teleportCooldown--;
                 if (b.invulnerable > 0) b.invulnerable--;
                 if (b.attackCooldown > 0) b.attackCooldown--;
+                if (b.bossBarrageCooldown > 0) b.bossBarrageCooldown--;
+                if (b.bossSpawnCooldown > 0) b.bossSpawnCooldown--;
                 b.auraRotation += 0.03;
+
+                // Phase 2 enhanced attacks
+                if (this.bossPhase === 2) {
+                    // Barrage attack: every ~4 seconds (240 frames)
+                    if (b.bossBarrageCooldown <= 0) {
+                        this.bossBarrageAttack();
+                        b.bossBarrageCooldown = 240;
+                    }
+                    // Summon minions: every ~8 seconds (480 frames)
+                    if (b.bossSpawnCooldown <= 0) {
+                        this.bossSpawnMinions();
+                        b.bossSpawnCooldown = 480;
+                    }
+                }
 
                 // 冲撞攻击模式
                 if (b.attackCooldown <= 0) {
@@ -2434,6 +2594,10 @@
 
                 // 检查冲撞碰撞
                 this.checkBossChargeCollision();
+
+                // Update minions and barrage
+                this.updateBossMinions();
+                this.updateBossBarrage();
             }
 
             bossChargeAttack() {
@@ -2450,6 +2614,8 @@
                 b.chargeTargetX = targetPos.x;
                 b.chargeTargetY = targetPos.y;
                 b.chargeSpeed = b.rageMode ? 6 : 4;
+                // Phase 2: doubled charge speed
+                if (this.bossPhase === 2) b.chargeSpeed *= 2;
                 b.attackCooldown = 120 + Math.random() * 60; // 2-3秒间隔
                 b.chargeHitAllies = new Set(); // 记录已撞击的盟友
 
@@ -2548,6 +2714,123 @@
                 }
             }
 
+            // ==================== Phase 2 Boss Attacks ====================
+            bossBarrageAttack() {
+                const b = this.boss;
+                if (!b || b.hp <= 0) return;
+                if (!this.bossBarrageProjectiles) this.bossBarrageProjectiles = [];
+
+                // Fire 5 projectiles in spread pattern toward ally area
+                const aliveAllies = this.allies.filter(a => !a.defeated);
+                if (aliveAllies.length === 0) return;
+
+                const centerX = 180;
+                const centerY = 520;
+                const baseAngle = Math.atan2(centerY - b.y, centerX - b.x);
+                const spread = 0.4; // radians spread
+
+                this.showDamageText(b.x, b.y - b.size/2 - 10, 'BARRAGE!', false, '#ff3300');
+
+                for (let i = 0; i < 5; i++) {
+                    const angle = baseAngle + (i - 2) * spread;
+                    const speed = 3;
+                    this.bossBarrageProjectiles.push({
+                        x: b.x,
+                        y: b.y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        life: 180, // 3 seconds
+                        damage: 20
+                    });
+                }
+            }
+
+            updateBossBarrage() {
+                if (!this.bossBarrageProjectiles) this.bossBarrageProjectiles = [];
+
+                this.bossBarrageProjectiles = this.bossBarrageProjectiles.filter(bp => {
+                    bp.x += bp.vx;
+                    bp.y += bp.vy;
+                    bp.life--;
+
+                    // Check collision with allies
+                    for (let i = 0; i < this.allies.length; i++) {
+                        const ally = this.allies[i];
+                        if (ally.defeated) continue;
+                        const pos = ALLY_POSITIONS[i];
+                        const dist = Math.hypot(bp.x - pos.x, bp.y - pos.y);
+                        if (dist < ally.size / 2 + 5) {
+                            this.hitAlly(ally, bp.damage);
+                            return false; // remove projectile
+                        }
+                    }
+
+                    // Out of bounds or expired
+                    if (bp.x < -10 || bp.x > CONFIG.width + 10 || bp.y < -10 || bp.y > CONFIG.height + 10 || bp.life <= 0) {
+                        return false;
+                    }
+                    return true;
+                });
+            }
+
+            bossSpawnMinions() {
+                const b = this.boss;
+                if (!b || b.hp <= 0) return;
+                if (!this.bossMinions) this.bossMinions = [];
+
+                this.showDamageText(b.x, b.y - b.size/2 - 10, 'SUMMON!', false, '#8b0000');
+
+                for (let i = 0; i < 2; i++) {
+                    this.bossMinions.push({
+                        x: b.x + (i === 0 ? -30 : 30),
+                        y: b.y + 20,
+                        size: 10,
+                        speed: 1.0 + Math.random() * 0.5,
+                        damage: 15,
+                        life: 300, // 5 seconds
+                        spawnTime: Date.now()
+                    });
+                }
+            }
+
+            updateBossMinions() {
+                if (!this.bossMinions) this.bossMinions = [];
+
+                this.bossMinions = this.bossMinions.filter(m => {
+                    m.life--;
+                    if (m.life <= 0) return false;
+
+                    // Home toward nearest alive ally
+                    const aliveAllies = this.allies.filter(a => !a.defeated);
+                    if (aliveAllies.length === 0) return true;
+
+                    let nearest = aliveAllies[0];
+                    let nearDist = Infinity;
+                    aliveAllies.forEach(a => {
+                        const pos = ALLY_POSITIONS[a.index];
+                        const d = Math.hypot(m.x - pos.x, m.y - pos.y);
+                        if (d < nearDist) { nearDist = d; nearest = a; }
+                    });
+
+                    const pos = ALLY_POSITIONS[nearest.index];
+                    const dx = pos.x - m.x;
+                    const dy = pos.y - m.y;
+                    const dist = Math.hypot(dx, dy);
+                    if (dist > 0) {
+                        m.x += (dx / dist) * m.speed;
+                        m.y += (dy / dist) * m.speed;
+                    }
+
+                    // Check collision with ally
+                    if (dist < nearest.size / 2 + m.size) {
+                        this.hitAlly(nearest, m.damage);
+                        return false; // remove minion
+                    }
+
+                    return true;
+                });
+            }
+
             showGameOver() {
                 this.audio.stopMusic();
                 document.getElementById('gameOver').style.display = 'block';
@@ -2580,6 +2863,50 @@
                 if (b.hitFlash > 0 && Math.floor(Date.now() / 50) % 2) {
                     ctx.globalAlpha = 0.5;
                     b.hitFlash--;
+                }
+
+                // Phase 2 enhanced visuals
+                if (this.bossPhase === 2) {
+                    // Larger pulsing dark aura
+                    const auraSize = size * 1.2 + Math.sin(Date.now() / 300) * 15;
+                    const auraAlpha = 0.3 + Math.sin(Date.now() / 400) * 0.15;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, auraSize, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(139, 0, 0, ${auraAlpha})`;
+                    ctx.fill();
+
+                    // Pulsing red shield ring
+                    const ringRadius = size * 0.8 + Math.sin(Date.now() / 200) * 8;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(255, 0, 0, ${0.5 + Math.sin(Date.now() / 150) * 0.3})`;
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    // Second ring rotating
+                    ctx.save();
+                    ctx.rotate(b.auraRotation * 2);
+                    ctx.beginPath();
+                    ctx.arc(0, 0, ringRadius + 5, 0, Math.PI);
+                    ctx.strokeStyle = 'rgba(255, 100, 0, 0.4)';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.restore();
+
+                    // "PHASE 2" text above boss
+                    ctx.font = 'bold 14px "Courier New", monospace';
+                    ctx.fillStyle = `rgba(255, 50, 50, ${0.7 + Math.sin(Date.now() / 300) * 0.3})`;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(t('phase2Label'), 0, -size/2 - 65);
+                }
+
+                // Boss stunned visual
+                if (b.stunned && b.stunned > 0) {
+                    ctx.font = '16px "Courier New", monospace';
+                    ctx.fillStyle = '#ffff00';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('💫', -10, -size/2 - 40);
+                    ctx.fillText('💫', 10, -size/2 - 35);
                 }
 
                 // 怒气模式红色边框（像素方块）
@@ -2992,8 +3319,42 @@
 
                 // 最终战斗模式 - 红色背景
                 if (this.finalBattleMode) {
-                    ctx.fillStyle = '#1a0a0a';
-                    ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+                    if (this.bossPhase === 2) {
+                        // Phase 2: almost black with red tint
+                        ctx.fillStyle = '#0a0202';
+                        ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+                        ctx.fillStyle = 'rgba(100, 0, 0, 0.3)';
+                        ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+
+                        // Red floating particles
+                        if (!this.phase2Particles) this.phase2Particles = [];
+                        // Spawn particles to maintain 8-10
+                        while (this.phase2Particles.length < 10) {
+                            this.phase2Particles.push({
+                                x: Math.random() * CONFIG.width,
+                                y: Math.random() * CONFIG.height,
+                                vx: (Math.random() - 0.5) * 0.5,
+                                vy: -0.3 - Math.random() * 0.5,
+                                size: 2 + Math.random() * 4,
+                                alpha: 0.3 + Math.random() * 0.5
+                            });
+                        }
+                        // Update and draw phase 2 particles
+                        this.phase2Particles = this.phase2Particles.filter(p => {
+                            p.x += p.vx;
+                            p.y += p.vy;
+                            p.alpha -= 0.003;
+                            if (p.y < -10 || p.alpha <= 0) return false;
+                            ctx.beginPath();
+                            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                            ctx.fillStyle = `rgba(255, 30, 30, ${p.alpha})`;
+                            ctx.fill();
+                            return true;
+                        });
+                    } else {
+                        ctx.fillStyle = '#1a0a0a';
+                        ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+                    }
 
                     // 暗红色遮罩
                     ctx.fillStyle = 'rgba(139, 0, 0, 0.2)';
@@ -3023,6 +3384,40 @@
                     this.allies.forEach(ally => this.drawAlly(ctx, ally));
                     if (this.boss && this.boss.hp > 0) {
                         this.drawFinalBoss(ctx);
+                    }
+                    // Draw boss minions
+                    if (this.bossMinions && this.bossMinions.length > 0) {
+                        this.bossMinions.forEach(m => {
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.arc(m.x, m.y, m.size, 0, Math.PI * 2);
+                            ctx.fillStyle = `rgba(139, 0, 0, ${0.6 + Math.sin(Date.now() / 200) * 0.3})`;
+                            ctx.fill();
+                            ctx.strokeStyle = '#ff0000';
+                            ctx.lineWidth = 1;
+                            ctx.stroke();
+                            // Inner glow
+                            ctx.beginPath();
+                            ctx.arc(m.x, m.y, m.size * 0.5, 0, Math.PI * 2);
+                            ctx.fillStyle = 'rgba(255, 50, 50, 0.5)';
+                            ctx.fill();
+                            ctx.restore();
+                        });
+                    }
+                    // Draw boss barrage projectiles
+                    if (this.bossBarrageProjectiles && this.bossBarrageProjectiles.length > 0) {
+                        this.bossBarrageProjectiles.forEach(bp => {
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.arc(bp.x, bp.y, 5, 0, Math.PI * 2);
+                            ctx.fillStyle = '#ff3300';
+                            ctx.fill();
+                            ctx.beginPath();
+                            ctx.arc(bp.x, bp.y, 3, 0, Math.PI * 2);
+                            ctx.fillStyle = '#ffaa00';
+                            ctx.fill();
+                            ctx.restore();
+                        });
                     }
                     // 为每个存活角色绘制弹弓
                     this.allies.forEach((ally, index) => {
